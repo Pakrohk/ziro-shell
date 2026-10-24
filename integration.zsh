@@ -230,4 +230,4 @@ EOF
 _ziro_update_check_background
 
 # Mark bootstrap complete
-export ZIRO_LOADED=1
+typeset -g ZIRO_LOADED=1

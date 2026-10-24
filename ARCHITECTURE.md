@@ -19,8 +19,16 @@ either in hot-path (< 5ms) or cold-path (user-invoked).
 ├─────────────────────────────────────────────────────────────┤
 │ L3 — znap Runtime (hot, emit-only)                          │
 │     ziro_load interface → znap source / ziro-defer          │
+│     (includes ziro-ghost from Pakrohk/ziro-ghost)           │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+## Layer 3 Autocompletion & Plugins
+
+Ghost (`ziro-ghost`) is integrated as the default Layer 3 autosuggestion plugin:
+- Loaded via znap from `Pakrohk/ziro-ghost` with `ziro-defer` at load order 6 (immediately following `fzf` at order 5).
+- Declared in `core/tools_factory.toml` with `load_method = "clone-source"` and mutual exclusion with `zsh-autosuggestions`.
+- Zero forks on hot-path; configuration resides in `~/.config/ziro/ghost.conf`.
 
 ## Hot-path budget
 

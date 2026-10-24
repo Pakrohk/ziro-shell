@@ -32,6 +32,18 @@ source ~/.ziro/integration.zsh
 
 Press Enter for Default. Use `--default` for CI (no prompts).
 
+## Ghost Autocomplete
+
+`ziro-ghost` is included automatically as the default autosuggestion plugin (Layer 3). During interactive install, you will be asked:
+
+```
+Do you use a Nerd Font in your terminal? [Y/n]
+```
+
+- Answer `Y` (default) if your terminal font supports Nerd Font glyphs for semantic icons.
+- Answer `n` to use clean ASCII icon fallbacks.
+- Configuration is saved to `~/.config/ziro/ghost.conf`. Non-interactive installations (`--default`) default to `true`.
+
 ## Adding plugins
 
 ```bash

@@ -153,14 +153,14 @@ description = "General-purpose command-line fuzzy finder."
 name = "ziro-ghost"
 type = "plugin"
 category = "auto_suggest"
-load_method = "local-source"
+load_method = "clone-source"
 load_timing = "defer"
 load_order = 6
 guard = "none"
-local_path = "$ZIRO_HOME/ghost/ghost.zsh"
+source = "Pakrohk/ziro-ghost"
 conflicts_with = ["zsh-autosuggestions"]
-github = "https://github.com/Pakrohk/ziro-shell"
-description = "Ziro self-maintained history autosuggestion and ZLE popup."
+github = "https://github.com/Pakrohk/ziro-ghost"
+description = "IDE-like autocomplete for Zsh (standalone, v1.0.0)"
 
 [[tool]]
 name = "fast-syntax-highlighting"

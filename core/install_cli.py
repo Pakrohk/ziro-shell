@@ -116,6 +116,28 @@ def _write_tags(cfg: Path) -> None:
     ensure_builtin_tags_file(cfg)
 
 
+def _configure_ghost_nerd_font(cfg: Path, argv: list[str] | None = None) -> None:
+    """Ensure ~/.config/ziro/ghost.conf exists with nerd_font setting (Spec 009 R19)."""
+    ghost_conf = cfg / "ghost.conf"
+    if ghost_conf.exists():
+        return  # don't overwrite
+
+    args = argv if argv is not None else sys.argv
+    if "--default" in args or not sys.stdin.isatty():
+        nerd = True  # safe default in non-interactive / default mode
+    else:
+        print("\nziro-ghost setup:")
+        try:
+            ans = input("  Do you use a Nerd Font in your terminal? [Y/n] ").strip().lower()
+            nerd = ans not in ("n", "no")
+        except EOFError:
+            nerd = True
+
+    ghost_conf.parent.mkdir(parents=True, exist_ok=True)
+    ghost_conf.write_text(f"[ui]\nnerd_font = {str(nerd).lower()}\n", encoding="utf-8")
+    print(f"✅ wrote: {ghost_conf}")
+
+
 def _data_dir() -> Path:
     base = os.environ.get("ZIRO_DATA")
     if base:
@@ -218,6 +240,8 @@ def cmd_install(argv: list[str]) -> int:
     if dry_run:
         print("[dry-run] would write defaults.toml, tools.toml, tags/builtin.toml, completions/_ziro, derived/plugins.gen.zsh")
         return 0
+
+    _configure_ghost_nerd_font(cfg, argv)
 
     data = _data_dir()
     from core.tty import is_tty

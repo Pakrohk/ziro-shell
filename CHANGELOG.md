@@ -8,8 +8,29 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 
 ## Upcoming
 
-- **v1.1.3** — Ziro Ghost (standalone autosuggest plugin)
-- **v1.1.5** — pf (cross-shell package manager) + standard helpers
+- **v1.1.4** — Starship themes ecosystem integration
+- **v1.1.5** — Documentation polish & contributor handbook
+- **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
+- **v1.4.0** — pf (cross-shell package manager) integration
+
+## [v1.1.3] — Ghost Integration (2026-10-16)
+
+### Added
+- **Pakrohk/ziro-ghost Integration**:
+  - Integrated stable `ziro-ghost` v1.0.0 via `tools_factory.toml` (`clone-source`, order 6, `ziro-defer`).
+  - Mutual exclusion (`conflicts_with`) configured with `zsh-autosuggestions`.
+- **Install Flow Polish**:
+  - Added terminal Nerd Font capability detection prompt to `ziro install`.
+  - Configures `~/.config/ziro/ghost.conf` idempotently (`nerd_font = true` / `false`).
+  - Safe default (`nerd_font = true`) on non-interactive or `--default` installations.
+
+### Removed
+- Deprecated local `ghost/` prototype directory in favor of sovereign external plugin.
+
+### Changed
+- `core/defaults_template.toml`: `auto_suggest.default` confirmed as `ziro-ghost`.
+- Documentation updated in `INSTALL.md` and `ARCHITECTURE.md`.
+- Spec 009 updated with R19 (Integration with ziro-shell).
 
 ## [v1.1.2] — Repository Transfer to Pakrohk (2026-10-16)
 
