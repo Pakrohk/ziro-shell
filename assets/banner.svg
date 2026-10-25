@@ -66,7 +66,7 @@
       <rect class="mask-cmd-2" x="312" y="146" width="93.5" height="22" />
     </clipPath>
 
-    <!-- دستور ۳: ziro analyze --full (19 کاراکتر * 8.5px = 161.5px) -->
+    <!-- دستور ۳: ziro analyze (full) (19 کاراکتر * 8.5px = 161.5px) -->
     <clipPath id="clip-cmd-3">
       <rect class="mask-cmd-3" x="312" y="146" width="161.5" height="22" />
     </clipPath>
@@ -435,7 +435,7 @@
   </g>
   <rect class="cursor-2" x="312" y="149" width="7.5" height="15" />
 
-  <!-- نوبت ۳: ziro analyze --full (19 کاراکتر = 161.5px) -->
+  <!-- نوبت ۳: ziro analyze (full) (19 کاراکتر = 161.5px) -->
   <g clip-path="url(#clip-cmd-3)">
     <text class="cli-text" x="312" y="162">ziro <tspan class="hl-blue">analyze --full</tspan></text>
   </g>
