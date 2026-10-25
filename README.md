@@ -84,27 +84,24 @@ Ziro enforces a strict compiled-only rule: execution paths require fresh `.zwc` 
 
 - **Zsh**: 5.8+ · **Python**: 3.11+ (standard library only; cold-path only) · **Git**: 2.25+ · **OS**: Linux or macOS
 
-### 1. Clone & Bootstrap
+### Quick Install
 
-Clone Ziro into your target runtime directory (default: `~/.ziro`):
+Run the automated installer directly:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.sh | zsh
+```
+
+### Manual Install
+
+Clone Ziro into your target runtime directory and run setup:
 
 ```bash
 git clone https://github.com/Pakrohk/ziro-shell.git ~/.ziro
-```
-
-### 2. Initialize with Ziro CLI
-
-Use the native installer to configure defaults (Starship prompt, core plugins, nerd font settings):
-
-```bash
-# Automated install with recommended defaults
 ~/.ziro/install.sh --default
-
-# Or interactive step-by-step setup:
-# ~/.ziro/install.sh
 ```
 
-### 3. Activate in `.zshrc`
+### Activate in `.zshrc`
 
 Append the lightweight 7-line bootstrap entrypoint to your `~/.zshrc`:
 

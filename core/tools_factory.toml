@@ -439,5 +439,18 @@ local_path = "$ZIRO_HOME/lib/keybindings.zsh"
 alternatives_only = false
 description = "Terminal keybindings: Home/End/Delete/PageUp/PageDown"
 
+[[tool]]
+name = "ziro-history-refresh"
+type = "plugin"
+category = "core"
+load_method = "local-source"
+load_timing = "eager"
+load_order = 18
+guard = "none"
+local_path = "$ZIRO_HOME/lib/history-refresh.zsh"
+alternatives_only = false
+description = "History cache refresh for ziro-ghost (same-terminal instant + cross-terminal 2s)"
+
+
 
 

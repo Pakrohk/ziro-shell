@@ -47,10 +47,11 @@ class TestV111Tools(unittest.TestCase):
           v1.2.0 consolidated fix: 27 tools
             +4 added: ziro-ssh-config, ohmyzsh-ssh-agent,
                       ziro-aliases-core, ziro-keybindings
+          v1.2.0 history-fix: 28 tools (+1 ziro-history-refresh)
         """
         tools = load_tools_registry()
         self.assertEqual(
-            len(tools), 27,
+            len(tools), 28,
             "Tool count changed. If intentional, update this test "
             "AND document the delta in .specify/HANDOFF.md.",
         )
