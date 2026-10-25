@@ -78,22 +78,11 @@ Standard Zsh setups scale linearly into latency degradation. Sourcing 15 to 30 p
 
 Plugin requirements are predictable at install time. Compiling scripts to `.zwc` wordcode eliminates repetitive parsing, and on-demand loading isolates tool initialization to trigger events.
 
-```text
-+-----------------------------------------------------------+
-| Stage 2: Eager (Core Environment & Options)              |
-+-----------------------------------------------------------+
-                              |
-+-----------------------------------------------------------+
-| Stage 4: Eager (Interactive Prompt & ZLE Baseline)        |
-+-----------------------------------------------------------+
-                              | [First Prompt Displayed: ~16-21ms]
-+-----------------------------------------------------------+
-| Stage 5: Deferred (Idle Scheduler / Background Sourcing)  |
-+-----------------------------------------------------------+
-                              |
-+-----------------------------------------------------------+
-| Stage 7: On-Demand (Function Autoloads & Traps)           |
-+-----------------------------------------------------------+
+```mermaid
+flowchart TD
+    S2["Stage 2: Eager (Core Environment & Options)"] --> S4["Stage 4: Eager (Interactive Prompt & ZLE Baseline)"]
+    S4 -->|First Prompt Displayed: ~16-21ms| S5["Stage 5: Deferred (Idle Scheduler / Background Sourcing)"]
+    S5 --> S7["Stage 7: On-Demand (Function Autoloads & Traps)"]
 ```
 
 | Stage | Tier | Timing | Component Types |
@@ -120,26 +109,47 @@ Ziro enforces a strict compiled-only rule: execution paths require fresh `.zwc` 
 
 - **Zsh**: 5.8+ · **Python**: 3.11+ (standard library only; cold-path only) · **Git**: 2.25+ · **OS**: Linux or macOS
 
-### Quick Install
+### 1. Clone & Bootstrap
 
-```bash
-curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/main/install.sh | bash
-```
-
-### Manual Git Clone
+Clone Ziro into your target runtime directory (default: `~/.ziro`):
 
 ```bash
 git clone https://github.com/Pakrohk/ziro-shell.git ~/.ziro
-cd ~/.ziro && ./install.sh --default
 ```
 
-Append the bootstrap entrypoint to your `~/.zshrc`:
+### 2. Initialize with Ziro CLI
+
+Use the native installer to configure defaults (Starship prompt, core plugins, nerd font settings):
+
+```bash
+# Automated install with recommended defaults
+~/.ziro/install.sh --default
+
+# Or interactive step-by-step setup:
+# ~/.ziro/install.sh
+```
+
+### 3. Activate in `.zshrc`
+
+Append the lightweight 7-line bootstrap entrypoint to your `~/.zshrc`:
 
 ```zsh
 source ~/.config/ziro/boot.zsh
 ```
 
-Verify runtime health and artifacts: `ziro doctor && ziro analyze && ziro sync`. For existing framework migration, see [docs/MIGRATION.md](docs/MIGRATION.md).
+Restart your shell or run `exec zsh`. The `ziro` CLI function is now available directly in your interactive sessions.
+
+### 4. Verify & Sync
+
+Verify runtime health and compile initial bytecode artifacts:
+
+```bash
+ziro doctor
+ziro analyze --full
+ziro sync
+```
+
+For migrating an existing Oh My Zsh, Prezto, or Zinit setup, see [docs/MIGRATION.md](docs/MIGRATION.md).
 
 ---
 
