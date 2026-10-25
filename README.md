@@ -1,34 +1,8 @@
 # ziro-shell
 
-<!-- S1: Animated Logo -->
-<p align="center">
-  <svg width="400" height="400" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ziro runtime orbital architecture">
-    <style>
-      @media (prefers-reduced-motion: reduce) {
-        .orbit-eager, .orbit-deferred, .orbit-demand { animation: none !important; }
-      }
-      .orbit-line { fill: none; stroke: #313244; stroke-width: 1.5; stroke-dasharray: 4 4; }
-      .sun { fill: #1e1e2e; stroke: #cdd6f4; stroke-width: 2.5; }
-      .sun-z { fill: #f5f5f5; font-family: monospace, monospace; font-size: 42px; font-weight: bold; text-anchor: middle; dominant-baseline: central; }
-      .orbit-eager { transform-origin: 200px 200px; animation: spin 6s linear infinite; }
-      .orbit-deferred { transform-origin: 200px 200px; animation: spin 12s linear infinite; }
-      .orbit-demand { transform-origin: 200px 200px; animation: spin 20s linear infinite; }
-      .dot-eager { fill: #f5c2e7; }
-      .dot-deferred { fill: #89b4fa; }
-      .dot-demand { fill: #a6e3a1; }
-      @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
-    </style>
-    <rect width="100%" height="100%" fill="#181825" rx="20"/>
-    <circle cx="200" cy="200" r="80" class="orbit-line"/>
-    <circle cx="200" cy="200" r="140" class="orbit-line"/>
-    <circle cx="200" cy="200" r="180" class="orbit-line"/>
-    <g class="orbit-eager"><circle cx="200" cy="120" r="6" class="dot-eager"/><circle cx="200" cy="280" r="6" class="dot-eager"/></g>
-    <g class="orbit-deferred"><circle cx="200" cy="60" r="7" class="dot-deferred"/><circle cx="78" cy="270" r="7" class="dot-deferred"/><circle cx="322" cy="270" r="7" class="dot-deferred"/></g>
-    <g class="orbit-demand"><circle cx="200" cy="20" r="8" class="dot-demand"/><circle cx="200" cy="380" r="8" class="dot-demand"/></g>
-    <circle cx="200" cy="200" r="38" class="sun"/>
-    <text x="200" y="202" class="sun-z">Z</text>
-  </svg>
-</p>
+<div align="center">
+  <img src="./assets/banner.svg" alt="Ziro Shell Banner" width="100%" />
+</div>
 
 <!-- S2: Badges, Tagline & Mini-TOC -->
 <p align="center">
@@ -161,7 +135,7 @@ For migrating an existing Oh My Zsh, Prezto, or Zinit setup, see [docs/MIGRATION
 - **Analyzed (Cold Path)**: The offline analyzer inspects ZLE widgets, options, hooks, and completions to generate deterministic loading plans without runtime heuristics.
 - **Compiled (Hot Path)**: Managed scripts and completion files are pre-compiled to `.zwc` wordcode, eliminating parsing overhead and disk I/O on startup.
 - **Lazy (On-Demand)**: Tools remain dormant until invoked via autoload wrappers that intercept command execution.
-- **Batteries Included (27 Tools)**: Pre-configured integrations for `starship`, `zoxide`, `fzf`, `fzf-tab`, `zsh-completions`, `fast-syntax-highlighting`, `ziro-ghost`, `eza`, `bat`, `ripgrep`, `fd`, `git`, and core navigation.
+- **Batteries Included (27 Tools)**: Pre-configured integrations for Starship prompt (including upcoming `ziro theme` manager), `zoxide`, `fzf`, `fzf-tab`, `zsh-completions`, `fast-syntax-highlighting`, `ziro-ghost`, `eza`, `bat`, `ripgrep`, `fd`, `git`, and core navigation.
 - **Observable**: `ziro doctor` audits health and symlinks; `ziro analyze` inspects classifications; `ziro bench` tracks startup metrics.
 
 ### Benchmark Data
@@ -268,10 +242,10 @@ flowchart TD
 
 ## Plugin Development
 
-Ziro supports unannotated legacy plugins (heuristically assigned to stage 5 or 7) and manifest-aware plugins conforming to **Spec 012**:
+Ziro supports standard community Zsh plugins (automatically deferred or loaded on demand) as well as declarative plugins that include a `ziro-plugin.toml` manifest:
 
 ```toml
-# ziro-plugin.toml (Spec 012)
+# ziro-plugin.toml
 [plugin]
 name = "example-tool"
 version = "1.0.0"
@@ -301,14 +275,14 @@ Consult [docs/PLUGIN_AUTHORING.md](docs/PLUGIN_AUTHORING.md) for full manifest s
 
 ## Contributing
 
-We welcome technical contributions that advance runtime efficiency, expand test coverage, and verify platform portability.
+We welcome contributions that improve runtime efficiency, expand test coverage, and verify platform portability.
 
 ### Ways to Contribute
 
 | Area | Focus | Primary Artifacts |
 |---|---|---|
 | **Core Runtime** | Shell lifecycle, scheduler optimization, and boot sequences | `core/*.zsh`, `lib/*.zsh` |
-| **Plugin Manifests** | Spec 012 declarations for ecosystem tools | `plugins/**/ziro-plugin.toml` |
+| **Plugin Manifests** | Declarative manifest definitions for ecosystem tools | `plugins/**/ziro-plugin.toml` |
 | **Static Analyzer** | Python cold-path AST classification and hook detection | `core/analyzer.py`, `core/build.py` |
 | **Platform Verification** | Portability across Arch, Ubuntu, Fedora, Alpine, macOS | CI matrix, test containers |
 | **Test Suites** | Unit, contract, and hermetic integration tests | `tests/`, `pytest` |
@@ -316,7 +290,7 @@ We welcome technical contributions that advance runtime efficiency, expand test 
 | **Documentation** | Technical guides, specifications, and architecture records | `docs/*.md` |
 | **Bug Triage** | Reproductions, diagnostic traces, and root-cause fixes | Issue tracker, `ziro doctor` |
 
-### Development Setup & Standards (ADR-009)
+### Development Setup & Standards
 
 ```bash
 git clone https://github.com/Pakrohk/ziro-shell.git ~/Projects/ziro-shell
@@ -333,7 +307,7 @@ ln -sfn ~/Projects/ziro-shell ~/.ziro
 
 - **Test Suite**: All 434 tests must pass without regressions: `PYTHONPATH=. uv run --with pytest pytest tests/ -q`.
 - **Performance Budget**: Hot-path modifications carry a strict budget constraint: startup latency increase must remain `< +5ms`.
-- **Pull Requests**: Open an issue first for non-trivial changes. Submit minimal PRs accompanied by raw benchmark traces (H7 evidence rule).
+- **Pull Requests**: Open an issue first for non-trivial changes. Submit minimal PRs accompanied by verified command output traces.
 - **Security Disclosure**: Report vulnerabilities privately via GitHub Security Advisories or email maintainers at `pakrohk-security@pm.me`. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [CONTRIBUTORS.md](CONTRIBUTORS.md). Full guide in [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
 
 ---
@@ -346,10 +320,10 @@ Comprehensive guides and architectural specifications:
 - **[Configuration](docs/CONFIGURATION.md)** — `load.toml` schema, `[user]` overrides, and per-tool fields.
 - **[Plugin Authoring](docs/PLUGIN_AUTHORING.md)** — `ziro-plugin.toml` manifest specification, testing, and publishing.
 - **[Defer](docs/DEFER.md)** — 8-stage scheduler, priority slots, and dependency resolution.
-- **[Declarative](docs/DECLARATIVE.md)** — Spec 012 manifest philosophy and IOP design foundation.
+- **[Declarative](docs/DECLARATIVE.md)** — Declarative manifest philosophy and intent-driven architecture.
 - **[Migration](docs/MIGRATION.md)** — Migration guides from Oh My Zsh, Prezto, Zinit, and Zim.
 - **[Benchmarks](docs/BENCHMARKS.md)** — Measurement methodology, containerized isolation, and metrics.
-- **[Contributing](docs/CONTRIBUTING.md)** — Extended contributor handbook, testing matrix, and ADR process.
+- **[Contributing](docs/CONTRIBUTING.md)** — Extended contributor handbook, testing matrix, and architectural decisions.
 
 ---
 
@@ -358,9 +332,9 @@ Comprehensive guides and architectural specifications:
 | Version | Milestone | Status | Scope |
 |---|---|---|---|
 | **v1.2.0** | Stable Runtime Core | Released | Bytecode compilation pipeline, 4-tier scheduler, 27 tool profiles, 434 tests |
-| **v1.3.0** | Cache Persistence | Planned | Persistent pre-computed shell state cache, incremental analyzer invalidation |
-| **v1.4.0** | Package Federation (`pf`) | Planned | Standalone cross-distro package manager dispatch (Spec 010) |
-| **v2.0.0** | Ghost Engine v2 | Design Complete | Deep ZLE integration (Spec 009) with asynchronous ghost-text completions |
+| **v1.3.0** | Starship Theme Manager & Cache Persistence | In Progress | Interactive theme switcher (`ziro theme`), pre-computed shell state cache |
+| **v1.4.0** | Package Federation (`pf`) | Planned | Standalone cross-distro package manager dispatch and lockfile synthesis |
+| **v2.0.0** | Ghost Engine v2 | Design Complete | Deep ZLE integration with asynchronous ghost-text completions |
 
 ---
 
