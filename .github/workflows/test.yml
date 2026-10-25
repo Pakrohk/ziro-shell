@@ -24,6 +24,11 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
 
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+
       - name: Compile Python
         run: |
           python -m py_compile core/*.py
@@ -41,7 +46,7 @@ jobs:
           # installed $HOME/.ziro. CI runners have a bare checkout, so put the
           # workspace first on sys.path.
           PYTHONPATH: ${{ github.workspace }}
-        run: python -m unittest discover -s tests -v
+        run: pytest -v
 
       - name: Smoke CLI
         run: |

@@ -55,31 +55,31 @@
       <path d="M 24 0 L 0 0 0 24" fill="none" stroke="#313244" stroke-width="0.5" stroke-opacity="0.3" />
     </pattern>
 
-    <!-- ================= ماسک‌های دقیق انیمیشن تایپ ================= -->
-    <!-- ۱. ماسک تایپ واترمارک بزرگ پس‌زمینه (32 کاراکتر = 640px) -->
-    <clipPath id="clip-bg-watermark">
-      <rect class="mask-watermark" x="285" y="68" width="640" height="55" />
+    <!-- ================= ماسک‌های تایپ تک‌به‌تک دستورات واقعی ================= -->
+    <!-- دستور ۱: ziro sync (9 کاراکتر * 8.5px = 76.5px) -->
+    <clipPath id="clip-cmd-1">
+      <rect class="mask-cmd-1" x="312" y="146" width="76.5" height="22" />
     </clipPath>
 
-    <!-- ۲. ماسک تایپ دستور بالای پس‌زمینه (37 کاراکتر * 8px = 296px) -->
-    <clipPath id="clip-cmd">
-      <rect class="mask-cmd" x="295" y="28" width="296" height="20" />
+    <!-- دستور ۲: ziro doctor (11 کاراکتر * 8.5px = 93.5px) -->
+    <clipPath id="clip-cmd-2">
+      <rect class="mask-cmd-2" x="312" y="146" width="93.5" height="22" />
     </clipPath>
 
-    <!-- ۳. ماسک تایپ خط وضعیت زیر لوگو (52 کاراکتر * 8px = 416px) -->
-    <clipPath id="clip-status">
-      <rect class="mask-status" x="295" y="148" width="416" height="20" />
+    <!-- دستور ۳: ziro analyze --full (19 کاراکتر * 8.5px = 161.5px) -->
+    <clipPath id="clip-cmd-3">
+      <rect class="mask-cmd-3" x="312" y="146" width="161.5" height="22" />
     </clipPath>
   </defs>
 
   <style>
     @media (prefers-reduced-motion: reduce) {
       .orbit-eager, .orbit-deferred, .orbit-demand, .lazy-pulse, .sun-halo,
-      .mask-watermark, .mask-cmd, .mask-status,
-      .cursor-cmd, .cursor-status, .typing-cycle {
+      .mask-cmd-1, .mask-cmd-2, .mask-cmd-3,
+      .cursor-1, .cursor-2, .cursor-3 {
         animation: none !important;
       }
-      .cursor-cmd { display: none; }
+      .mask-cmd-1, .mask-cmd-2, .cursor-1, .cursor-2 { display: none; }
     }
 
     /* ================= استایل‌های منظومه مداری (سمت چپ) ================= */
@@ -200,54 +200,65 @@
     /* ================= استایل‌های تایپ و لوگوی سمت راست ================= */
     .bg-watermark-text {
       fill: #cdd6f4;
-      opacity: 0.045;
+      opacity: 0.035;
       font-family: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace;
-      font-size: 36px;
+      font-size: 32px;
       font-weight: 900;
+      letter-spacing: 2px;
       user-select: none;
     }
-    .term-cmd {
-      fill: #6c7086;
+    .zshrc-comment {
+      fill: #585b70;
       font-family: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace;
-      font-size: 13px;
+      font-size: 12.5px;
       font-weight: 600;
     }
-    .term-status {
+    .zshrc-code {
       fill: #a6adc8;
       font-family: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace;
       font-size: 13px;
       font-weight: 600;
+    }
+    .cli-text {
+      fill: #cdd6f4;
+      font-family: ui-monospace, SFMono-Regular, 'JetBrains Mono', Menlo, Consolas, monospace;
+      font-size: 14px;
+      font-weight: 700;
     }
 
     .hl-pink { fill: #f5c2e7; }
     .hl-blue { fill: #89b4fa; }
     .hl-green { fill: #a6e3a1; }
 
-    /* چرخه ۱۰ ثانیه‌ای هماهنگ برای لایه تایپ */
-    .typing-cycle {
-      animation: cycle-fade 10s linear infinite;
+    /* چرخه ۱۲ ثانیه‌ای تقسیم‌شده بین ۳ دستور واقعی (هر دستور ۴ ثانیه) */
+    /* ۱. دستور اول: ziro sync (0% تا 33.33% - 9 کاراکتر) */
+    .mask-cmd-1 {
+      transform-origin: 312px 146px;
+      animation: type-cmd-1 12s infinite;
     }
-    .mask-watermark {
-      transform-origin: 285px 68px;
-      animation: type-wm 10s infinite;
-    }
-    .mask-cmd {
-      transform-origin: 295px 28px;
-      animation: type-line1 10s infinite;
-    }
-    .cursor-cmd {
-      fill: #f5c2e7;
-      animation: move-cursor1 10s infinite;
-    }
-    .mask-status {
-      transform-origin: 295px 148px;
-      animation: type-line2 10s infinite;
-    }
-    .cursor-status {
+    .cursor-1 {
       fill: #a6e3a1;
-      animation:
-        move-cursor2 10s infinite,
-        blink 0.75s step-end infinite;
+      animation: move-cur-1 12s infinite, blink 0.7s step-end infinite;
+    }
+
+    /* ۲. دستور دوم: ziro doctor (33.33% تا 66.66% - 11 کاراکتر) */
+    .mask-cmd-2 {
+      transform-origin: 312px 146px;
+      animation: type-cmd-2 12s infinite;
+    }
+    .cursor-2 {
+      fill: #f5c2e7;
+      animation: move-cur-2 12s infinite, blink 0.7s step-end infinite;
+    }
+
+    /* ۳. دستور سوم: ziro analyze --full (66.66% تا 100% - 19 کاراکتر) */
+    .mask-cmd-3 {
+      transform-origin: 312px 146px;
+      animation: type-cmd-3 12s infinite;
+    }
+    .cursor-3 {
+      fill: #89b4fa;
+      animation: move-cur-3 12s infinite, blink 0.7s step-end infinite;
     }
 
     /* نوار راهنمای پایین (هماهنگ با منظومه) */
@@ -285,37 +296,46 @@
       0%, 100% { opacity: 1; }
       50% { opacity: 0; }
     }
-    @keyframes cycle-fade {
-      0%, 2% { opacity: 0; }
-      6%, 90% { opacity: 1; }
-      96%, 100% { opacity: 0; }
+
+    /* زمان‌بندی دستور ۱: ziro sync (0% تا 33.3%) */
+    @keyframes type-cmd-1 {
+      0%, 2% { transform: scaleX(0); animation-timing-function: steps(9, end); }
+      12%, 28% { transform: scaleX(1); }
+      31%, 100% { transform: scaleX(0); }
     }
-    @keyframes type-wm {
-      0%, 4% { transform: scaleX(0); animation-timing-function: steps(32, end); }
-      65%, 96% { transform: scaleX(1); }
-      100% { transform: scaleX(0); }
+    @keyframes move-cur-1 {
+      0%, 1.9% { transform: translateX(0px); visibility: visible; }
+      2% { transform: translateX(0px); visibility: visible; animation-timing-function: steps(9, end); }
+      12%, 30% { transform: translateX(76.5px); visibility: visible; }
+      31%, 100% { transform: translateX(0px); visibility: hidden; }
     }
-    @keyframes type-line1 {
-      0%, 4% { transform: scaleX(0); animation-timing-function: steps(37, end); }
-      28%, 96% { transform: scaleX(1); }
-      100% { transform: scaleX(0); }
+
+    /* زمان‌بندی دستور ۲: ziro doctor (33.3% تا 66.6%) */
+    @keyframes type-cmd-2 {
+      0%, 35% { transform: scaleX(0); animation-timing-function: steps(11, end); }
+      46%, 61% { transform: scaleX(1); }
+      64%, 100% { transform: scaleX(0); }
     }
-    @keyframes move-cursor1 {
-      0%, 3.9% { transform: translateX(0px); opacity: 0; }
-      4% { transform: translateX(0px); opacity: 1; animation-timing-function: steps(37, end); }
-      28% { transform: translateX(296px); opacity: 1; animation-timing-function: step-end; }
-      29%, 100% { transform: translateX(296px); opacity: 0; }
+    @keyframes move-cur-2 {
+      0%, 33.2% { transform: translateX(0px); visibility: hidden; }
+      33.3%, 34.9% { transform: translateX(0px); visibility: visible; }
+      35% { transform: translateX(0px); visibility: visible; animation-timing-function: steps(11, end); }
+      46%, 63% { transform: translateX(93.5px); visibility: visible; }
+      64%, 100% { transform: translateX(0px); visibility: hidden; }
     }
-    @keyframes type-line2 {
-      0%, 30% { transform: scaleX(0); animation-timing-function: steps(52, end); }
-      72%, 96% { transform: scaleX(1); }
-      100% { transform: scaleX(0); }
+
+    /* زمان‌بندی دستور ۳: ziro analyze --full (66.6% تا 100%) */
+    @keyframes type-cmd-3 {
+      0%, 68% { transform: scaleX(0); animation-timing-function: steps(19, end); }
+      83%, 95% { transform: scaleX(1); }
+      98%, 100% { transform: scaleX(0); }
     }
-    @keyframes move-cursor2 {
-      0%, 29.9% { transform: translateX(0px); visibility: hidden; }
-      30% { transform: translateX(0px); visibility: visible; animation-timing-function: steps(52, end); }
-      72%, 95% { transform: translateX(416px); visibility: visible; }
-      96%, 100% { transform: translateX(0px); visibility: hidden; }
+    @keyframes move-cur-3 {
+      0%, 66.5% { transform: translateX(0px); visibility: hidden; }
+      66.6%, 67.9% { transform: translateX(0px); visibility: visible; }
+      68% { transform: translateX(0px); visibility: visible; animation-timing-function: steps(19, end); }
+      83%, 97% { transform: translateX(161.5px); visibility: visible; }
+      98%, 100% { transform: translateX(0px); visibility: hidden; }
     }
   </style>
 
@@ -357,7 +377,7 @@
     <text class="tier-label label-eager" x="240" y="297">EAGER</text>
 
     <!-- ۲. لایه‌های متحرک (انیمیشن‌های منظومه) -->
-    <!-- لایه سوم: Demand (۲۰ ثانیه - بارگذاری در لحظه فراخوانی) -->
+    <!-- لایه سوم: Demand (۲۰ ثانیه) -->
     <g class="orbit-demand">
       <circle class="lazy-pulse" cx="240" cy="45" r="8" />
       <circle class="dot-demand" cx="240" cy="45" r="8.5" />
@@ -367,7 +387,7 @@
       <circle class="dot-demand" cx="92.8" cy="300" r="4" opacity="0.45" />
     </g>
 
-    <!-- لایه دوم: Deferred (۱۲ ثانیه - بارگذاری ناهمگام در پس‌زمینه) -->
+    <!-- لایه دوم: Deferred (۱۲ ثانیه) -->
     <g class="orbit-deferred">
       <path d="M 190 100.4 A 125 125 0 0 1 240 90" fill="none" stroke="#89b4fa" stroke-width="2.5" stroke-linecap="round" opacity="0.45" />
       <circle class="dot-deferred" cx="240" cy="90" r="7.5" />
@@ -376,7 +396,7 @@
       <circle class="dot-deferred" cx="240" cy="340" r="5" opacity="0.65" />
     </g>
 
-    <!-- لایه اول: Eager (۶ ثانیه - بارگذاری آنی همزمان با هسته) -->
+    <!-- لایه اول: Eager (۶ ثانیه) -->
     <g class="orbit-eager">
       <line class="sync-beam" x1="240" y1="167" x2="240" y2="140" />
       <path d="M 195 146.5 A 82 82 0 0 1 240 133" fill="none" stroke="#f5c2e7" stroke-width="3" stroke-linecap="round" opacity="0.6" />
@@ -392,29 +412,34 @@
     </g>
   </g>
 
-  <!-- ================= ۳. لایه تایپ پس‌زمینه و ترمینال (سمت راست) ================= -->
-  <g class="typing-cycle">
-    <!-- الف) تایپ واترمارک بزرگ در پس‌زمینه پشت لوگو -->
-    <g clip-path="url(#clip-bg-watermark)">
-      <text class="bg-watermark-text" x="285" y="108">ZERO_OVERHEAD_SHELL_ARCHITECTURE</text>
-    </g>
+  <!-- ================= ۳. بخش کدهای واقعی و ترمینال نوبتی (سمت راست) ================= -->
+  <!-- الف) واترمارک پس‌زمینه پشت لوگو -->
+  <text class="bg-watermark-text" x="288" y="106">~/.config/ziro/boot.zsh</text>
 
-    <!-- ب) تایپ خط فرمان در بالای لوگو (37 کاراکتر = 296px) -->
-    <g clip-path="url(#clip-cmd)">
-      <text class="term-cmd" x="295" y="43">
-        <tspan class="hl-pink">$</tspan> ziro-shell --init --arch=three-tier
-      </text>
-    </g>
-    <rect class="cursor-cmd" x="295" y="31" width="7" height="14" />
+  <!-- ب) خط کانفیگ واقعی در بالای لوگو (.zshrc) -->
+  <text class="zshrc-comment" x="295" y="42"># ~/.zshrc</text>
+  <text class="zshrc-code" x="385" y="42"><tspan class="hl-pink">source</tspan> ~/.config/ziro/boot.zsh</text>
 
-    <!-- ج) تایپ گزارش اجرای سه لایه در زیر لوگو (52 کاراکتر = 416px) -->
-    <g clip-path="url(#clip-status)">
-      <text class="term-status" x="295" y="162">
-        <tspan class="hl-green">>_</tspan> [<tspan class="hl-pink">eager</tspan>: 0.3ms]  [<tspan class="hl-blue">deferred</tspan>: async]  [<tspan class="hl-green">demand</tspan>: lazy]
-      </text>
-    </g>
-    <rect class="cursor-status" x="295" y="150" width="7" height="14" />
+  <!-- ج) خط فرمان زنده در زیر لوگو: دستورات یکی‌یکی و به نوبت تایپ می‌شوند -->
+  <text class="cli-text hl-green" x="295" y="162">❯</text>
+
+  <!-- نوبت ۱: ziro sync (9 کاراکتر = 76.5px) -->
+  <g clip-path="url(#clip-cmd-1)">
+    <text class="cli-text" x="312" y="162">ziro <tspan class="hl-green">sync</tspan></text>
   </g>
+  <rect class="cursor-1" x="312" y="149" width="7.5" height="15" />
+
+  <!-- نوبت ۲: ziro doctor (11 کاراکتر = 93.5px) -->
+  <g clip-path="url(#clip-cmd-2)">
+    <text class="cli-text" x="312" y="162">ziro <tspan class="hl-pink">doctor</tspan></text>
+  </g>
+  <rect class="cursor-2" x="312" y="149" width="7.5" height="15" />
+
+  <!-- نوبت ۳: ziro analyze --full (19 کاراکتر = 161.5px) -->
+  <g clip-path="url(#clip-cmd-3)">
+    <text class="cli-text" x="312" y="162">ziro <tspan class="hl-blue">analyze --full</tspan></text>
+  </g>
+  <rect class="cursor-3" x="312" y="149" width="7.5" height="15" />
 
   <!-- ================= ۴. تایپوگرافی وکتوری اختصاصی ZIRO SHELL ================= -->
   <g transform="translate(0, 6)">

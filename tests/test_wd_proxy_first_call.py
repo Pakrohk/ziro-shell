@@ -41,7 +41,7 @@ def test_wd_help_first_call():
 
 def test_wd_warp_cycle(tmp_path: Path):
     point = "ziro_test_warp"
-    res = _run_zsh(f"cd {tmp_path} && wd add {point} && cd /home/ali && wd {point} && pwd && wd rm {point}")
+    res = _run_zsh(f"cd {tmp_path} && wd add {point} && cd /tmp && wd {point} && pwd && wd rm {point}")
     assert res.returncode == 0
     assert "maximum nested" not in res.stderr
     assert "FUNCNEST" not in res.stderr

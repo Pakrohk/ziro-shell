@@ -1,6 +1,6 @@
 import unittest
 from pathlib import Path
-from core.tools_registry import load_tools_registry
+from core.generator import load_tools_registry
 
 
 class TestHistoryRefresh(unittest.TestCase):
