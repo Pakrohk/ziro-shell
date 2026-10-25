@@ -46,6 +46,7 @@
 <p align="center">
   <a href="#installation">Install</a> ·
   <a href="#features">Features</a> ·
+  <a href="#benchmarks--comparison">Benchmarks & Comparison</a> ·
   <a href="#how-it-works">How It Works</a> ·
   <a href="#plugin-development">Plugin Development</a> ·
   <a href="#contributing">Contributing</a> ·
@@ -182,8 +183,58 @@ Measured under standardized conditions (100 iterations, warm disk cache):
 | `starship` init | 3.39 ms | 1.60 ms | -52.8% |
 | `zcolors` | 2.63 ms | 1.11 ms | -57.8% |
 | `git` core integration | 5.74 ms | 5.03 ms | -12.4% |
+| `zsh-completions` | 0.92 ms | 0.02 ms | -97.8% |
 
-For evaluation methodology, see [docs/BENCHMARKS.md](docs/BENCHMARKS.md).
+---
+
+## Benchmarks & Comparison
+
+### Equal-Ground Benchmark Results
+
+Under identical workloads running the standard `zsh-bench --isolation docker` suite on Ubuntu 22.04 LTS (Zsh 5.8.1+), Ziro was benchmarked against vanilla baselines and popular frameworks:
+
+| Framework / Setup | `first_prompt_lag` | `first_command_lag` | `input_lag` | `exit_time` | Architectural Reality |
+|---|:---:|:---:|:---:|:---:|---|
+| **`no-rcs` (Baseline)** | 1.49 ms | 1.60 ms | 0.17 ms | 1.94 ms | Native `zsh -f` zero-overhead ceiling |
+| **`minimal` (compinit)** | 24.72 ms | 25.07 ms | 0.18 ms | 25.24 ms | Standard uncompiled completion setup |
+| **`zim`** | 53.41 ms | 69.98 ms | 14.91 ms | 28.99 ms | High input lag, blocking sequential sourcing |
+| **`zinit-turbo`** | 2.25 ms* | 56.97 ms | 14.69 ms | 40.12 ms | *Fake prompt: buffers input, terminal unresponsive |
+| **`ziro` (Full Battery)** | **19.59 ms** | **19.93 ms** | **0.18 ms** | **20.57 ms** | **Honest interactive readiness; zero input lag** |
+
+*Methodology: Measured with `zsh-bench` using Docker cgroups to eliminate CPU frequency and caching artifacts. Detailed numbers in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).*
+
+### Where Ziro Stands: Performance & Features
+
+```mermaid
+quadrantChart
+    title Shell Ecosystem: Latency vs Feature Density
+    x-axis Low Feature Set --> Rich Feature Battery
+    y-axis High Latency / Lag --> Instant / Low Latency
+    quadrant-1 Ziro Sweet Spot
+    quadrant-2 Minimal Fast Scripts
+    quadrant-3 Sluggish Custom RCs
+    quadrant-4 Heavy Frameworks
+    "Native zsh -f": [0.10, 0.95]
+    "Minimal RC": [0.30, 0.75]
+    "Zim": [0.65, 0.40]
+    "Oh My Zsh": [0.85, 0.20]
+    "Zinit Turbo": [0.75, 0.45]
+    "Ziro Shell": [0.90, 0.82]
+```
+
+### Why Use Ziro?
+
+1. **True Interactive Readiness (~3x faster command execution)**  
+   Unlike "instant prompt" tricks that render a fake prompt in 2ms while freezing input until 56ms, Ziro delivers an honest, fully interactive prompt in **~19ms**. Every keypress registered is executed immediately without swallowed keystrokes or cursor artifacts.
+
+2. **Native Keystroke Latency (80x lower input lag)**  
+   Frameworks with complex runtime hook loops introduce 14–15ms of typing latency. Ziro executes at **0.18 ms** input lag—identical to unconfigured native Zsh (`0.17 ms`). Your terminal feels completely instantaneous.
+
+3. **Pre-configured Battery Without Bloat (27 Tools)**  
+   You do not need to choose between an empty shell and a 300ms startup penalty. Ziro includes Starship prompt, Zoxide, Fzf, Fzf-tab, Git integrations, syntax highlighting, autosuggestions, SSH agent isolation, and defensive navigation out of the box.
+
+4. **Deterministic Declarative Stability**  
+   Every plugin is analyzed at install time, checked by a security heuristic (trust score 0–4), compiled to binary `.zwc` wordcode, and scheduled across 4 discrete stages. If a dependency changes, `ziro sync` handles bytecode generation offline rather than recalculating during shell boot.
 
 ---
 
