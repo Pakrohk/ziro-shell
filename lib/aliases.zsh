@@ -4,13 +4,10 @@
 # Loaded via ziro-defer: hot-path cost is 0ms.
 # Only defines aliases when modern CLI binaries exist in PATH.
 
-# ─── ls → eza ───
-if (( $+commands[eza] )); then
-  alias ls='eza --icons --group-directories-first'
-  alias ll='eza -la --icons --group-directories-first'
-  alias la='eza -a --icons --group-directories-first'
-  alias lt='eza --tree --level=2 --icons'
-fi
+# ─── Safety aliases ───
+alias cp='cp -i'
+alias mv='mv -i'
+alias rm='rm -i'
 
 # ─── cat → bat ───
 if (( $+commands[bat] )); then

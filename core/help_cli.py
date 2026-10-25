@@ -50,7 +50,7 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         summary="Manage plugins (add, remove, list, show)",
         usage="ziro plugin <add|remove|list|show> [args...]",
         subcommands={
-            "add": "Add and analyze a plugin from Git repository or GitHub slug",
+            "add": "Add and analyze a plugin from Git repository, GitHub slug, or local path",
             "remove": "Remove an installed plugin",
             "list": "List all installed plugins and their load strategies",
             "show": "Show detailed analysis and resolved strategy for a plugin",
@@ -61,6 +61,8 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         examples=[
             "ziro plugin list",
             "ziro plugin add zsh-users/zsh-autosuggestions",
+            "ziro plugin add --local ~/.ziro/lib/helpers.zsh helpers",
+            "ziro plugin add ohmyzsh/ohmyzsh --subpath=plugins/git --name=git",
             "ziro plugin add romkatv/powerlevel10k @eager",
             "ziro plugin show zsh-autosuggestions",
             "ziro plugin remove zsh-autosuggestions",
@@ -70,13 +72,18 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
     "plugin add": HelpEntry(
         name="plugin add",
         summary="Add and analyze a plugin",
-        usage="ziro plugin add <source> [name] [@tags...] [--dry-run]",
+        usage="ziro plugin add <source> [name] [@tags...] [--local] [--subpath=<path>] [--dry-run]",
         flags=[
+            ("--local", "Treat source as local path (skip GitHub detection)"),
+            ("--subpath=<path>", "Relative path inside repository for plugin source"),
+            ("--name=<name>", "Explicit plugin name"),
             ("--dry-run", "Preview plugin clone, analysis, and strategy without saving"),
         ],
         examples=[
             "ziro plugin add zsh-users/zsh-autosuggestions",
             "ziro plugin add https://github.com/zsh-users/zsh-syntax-highlighting.git",
+            "ziro plugin add --local ~/.ziro/lib/helpers.zsh helpers",
+            "ziro plugin add ohmyzsh/ohmyzsh --subpath=plugins/git --name=git",
             "ziro plugin add romkatv/powerlevel10k @eager",
         ],
         related=["plugin show", "tag add"],
@@ -480,19 +487,58 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
     ),
     "update": HelpEntry(
         name="update",
-        summary="Update Ziro Shell to latest release",
-        usage="ziro update [--check] [--force] [--quiet]",
+        summary="Update Ziro Shell components, plugins, and compile artifacts",
+        usage="ziro update [--check] [--force] [--dev] [--dry-run] [--yes] [--plugins-only] [--sync-only] [--plugin <name>] [--no-analyze] [--quiet]",
         flags=[
             ("-c, --check", "Check for available updates without applying"),
-            ("-f, --force", "Force update even if working tree has changes"),
+            ("-f, --force", "Bypass uncommitted tracked changes guard"),
+            ("--dev", "Bypass uncommitted tracked changes guard with warning in dev mode"),
+            ("--dry-run", "Show update orchestration plan without making changes"),
+            ("-y, --yes", "Skip interactive confirmation prompts"),
+            ("--plugins-only", "Fetch plugin updates only (skip self-check and sync)"),
+            ("--sync-only", "Compile and rebuild boot artifacts only (alias for ziro sync)"),
+            ("--plugin <name>", "Update only the specified plugin by name"),
+            ("--no-analyze", "Skip analyze prompt after updates, proceed directly to sync"),
             ("-q, --quiet", "Suppress progress messages"),
         ],
         examples=[
             "ziro update",
             "ziro update --check",
+            "ziro update --dry-run",
             "ziro update --force",
+            "ziro update --sync-only",
+            "ziro update --plugin zsh-completions",
         ],
-        related=["doctor", "install"],
+        related=["sync", "analyze", "doctor"],
+    ),
+    "analyze": HelpEntry(
+        name="analyze",
+        summary="Analyze tools and inspect load manifest",
+        usage="ziro analyze [tool] [--full] [--dry-run]",
+        flags=[
+            ("-h, --help", "Show help information"),
+            ("--full", "Full re-analysis from scratch (regenerates load.toml)"),
+            ("--dry-run", "Show summary without writing"),
+        ],
+        examples=[
+            "ziro analyze",
+            "ziro analyze --full",
+            "ziro analyze starship",
+        ],
+        related=["sync", "doctor"],
+    ),
+    "sync": HelpEntry(
+        name="sync",
+        summary="Compile and synchronize shell boot artifacts",
+        usage="ziro sync [--config <path>]",
+        flags=[
+            ("-h, --help", "Show help information"),
+            ("--config", "Path to load.toml manifest"),
+        ],
+        examples=[
+            "ziro sync",
+        ],
+        related=["analyze", "doctor"],
     ),
     "help": HelpEntry(
         name="help",
@@ -646,6 +692,9 @@ def list_all(colorize: bool | None = None) -> str:
         ("doctor", "Diagnose installation health and configuration"),
         ("bench", "Benchmark startup and command performance"),
         ("completion", "Generate shell completion script"),
+        ("analyze", "Analyze tools and inspect load manifest"),
+        ("sync", "Compile and synchronize shell boot artifacts"),
+        ("update", "Check for updates and update ziro components"),
         ("help", "Show help information for ziro commands"),
     ]
     for cmd, summary in top_entries:

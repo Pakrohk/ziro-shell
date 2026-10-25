@@ -37,6 +37,9 @@ Commands:
   doctor      Diagnose installation health and configuration
   bench       Benchmark startup and command performance
   completion  Generate shell completion script
+  analyze     Analyze tools and inspect load manifest
+  sync        Compile and synchronize shell boot artifacts
+  update      Check for updates and update ziro components
   help        Show help information for ziro commands
 
 Run 'ziro help <command>' or 'ziro <command> --help' for details on a command.

@@ -24,9 +24,7 @@ class LoadSpec:
     """
     plugin: str
     strategy: Strategy = "eager"
-    wait: str = ""
     sub_slot: str = ""
-    lazy_by_command: str = ""
     lazy_by_function: str = ""
     compile: bool = True
     pick: str = ""
@@ -38,6 +36,25 @@ class LoadSpec:
     eval_cache: str = ""
     raw: str = ""
     is_local: bool = False
+    stage: int = 5
+    slot: str = "b"
+    name: str = ""
+    depends: tuple[str, ...] = ()
+    condition: Optional[str] = None
+    on_key: Optional[str] = None
+    cache_type: str = "none"
+    timeout_ms: Optional[int] = None
+
+    def __post_init__(self) -> None:
+        if self.sub_slot and self.sub_slot in ("a", "b", "c", "d"):
+            object.__setattr__(self, "slot", self.sub_slot)
+        if not self.name and self.plugin:
+            try:
+                from core.analyzer import slug
+                object.__setattr__(self, "name", slug(self.plugin))
+            except Exception:
+                base = self.plugin.rstrip("/").split("/")[-1]
+                object.__setattr__(self, "name", base)
 
 
 def emit_eager(spec: LoadSpec) -> str:
@@ -52,23 +69,7 @@ def emit_eager(spec: LoadSpec) -> str:
 
 
 def emit_deferred(spec: LoadSpec) -> str:
-    """Emit ziro-defer-wrapped znap source for deferred plugins."""
-    prefix = "ziro-defer"
-    args: list[str] = []
-
-    if spec.wait and spec.wait != "0":
-        args.append(f'--wait="{spec.wait}"')
-    if spec.sub_slot and spec.sub_slot in ("a", "b", "c"):
-        args.append(f"--slot={spec.sub_slot}")
-    if spec.lazy_by_command:
-        args.append(f'--lazy-by-command="{spec.lazy_by_command}"')
-    if spec.lazy_by_function:
-        args.append(f'--lazy-by-function="{spec.lazy_by_function}"')
-    if spec.atinit:
-        args.append(f'--atinit="{spec.atinit}"')
-    if spec.atload:
-        args.append(f'--atload="{spec.atload}"')
-
+    """Emit ziro-defer-wrapped znap source for deferred plugins (Defer v2)."""
     if spec.is_local or spec.plugin.startswith(("$ZIRO_HOME/", "~/.ziro/", "plugins/")):
         inner = f"ziro local source {spec.plugin}"
     elif spec.pick:
@@ -76,9 +77,41 @@ def emit_deferred(spec: LoadSpec) -> str:
     else:
         inner = f"znap source {spec.plugin}"
 
-    if args:
-        return f"{prefix} {' '.join(args)} {inner}"
-    return f"{prefix} {inner}"
+    if spec.on_key:
+        return f"ziro-defer-bind-widget '{spec.on_key}' '{inner}'"
+
+    slug_or_name = spec.name
+    if not slug_or_name and spec.plugin:
+        try:
+            from core.analyzer import slug
+            slug_or_name = slug(spec.plugin)
+        except Exception:
+            slug_or_name = spec.plugin.rstrip("/").split("/")[-1]
+
+    parts: list[str] = [
+        "ziro-defer",
+        f"--stage={spec.stage}",
+        f"--slot={spec.slot}",
+    ]
+    if slug_or_name:
+        parts.append(f"--name={slug_or_name}")
+    if spec.depends:
+        dep_str = " ".join(spec.depends)
+        parts.append(f'--depends="{dep_str}"')
+    if spec.condition:
+        cond = spec.condition if spec.condition.startswith("if-") else f"if-{spec.condition}"
+        parts.append(f"--{cond}")
+    if spec.timeout_ms:
+        parts.append(f"--timeout={spec.timeout_ms}")
+    if spec.lazy_by_function:
+        parts.append(f'--lazy-by-function="{spec.lazy_by_function}"')
+    if spec.atinit:
+        parts.append(f'--atinit="{spec.atinit}"')
+    if spec.atload:
+        parts.append(f'--atload="{spec.atload}"')
+
+    parts.append(inner)
+    return " ".join(parts)
 
 
 def emit_raw(spec: LoadSpec) -> str:
@@ -104,10 +137,17 @@ def from_resolved(
     compile_: bool = True,
     eval_cache: bool = False,
     pick: str = "",
-    wait: str = "",
     defer_slot: str = "",
     raw: str = "",
     is_local: bool = False,
+    stage: int = 5,
+    slot: str = "b",
+    name: str = "",
+    depends: tuple[str, ...] = (),
+    condition: Optional[str] = None,
+    on_key: Optional[str] = None,
+    cache_type: str = "none",
+    timeout_ms: Optional[int] = None,
 ) -> LoadSpec:
     """Build LoadSpec from ResolvedConfig fields.
 
@@ -120,19 +160,25 @@ def from_resolved(
     if strategy_lower not in ("eager", "after-prompt", "lazy"):
         strategy_lower = "eager"  # safe fallback
 
-    sub_slot = defer_slot if defer_slot in ("a", "b", "c") else ""
-    wait_val = wait if (wait and wait != "0") else ""
+    resolved_slot = defer_slot if defer_slot in ("a", "b", "c", "d") else slot
 
     return LoadSpec(
         plugin=plugin,
         strategy=strategy_lower,  # type: ignore[arg-type]
-        wait=wait_val,
-        sub_slot=sub_slot,
+        sub_slot=defer_slot if defer_slot in ("a", "b", "c") else "",
         compile=compile_,
         pick=pick,
         eval_cache=(f"{plugin} init" if eval_cache else ""),
         raw=raw,
         is_local=is_local,
+        stage=stage,
+        slot=resolved_slot,
+        name=name,
+        depends=tuple(depends) if isinstance(depends, (list, tuple)) else (),
+        condition=condition,
+        on_key=on_key,
+        cache_type=cache_type,
+        timeout_ms=timeout_ms,
     )
 
 

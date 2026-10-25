@@ -1,6 +1,6 @@
 [project]
 name = "ziro-shell"
-version = "1.0.2"
+version = "1.2.0"
 description = "Fast, layered Zsh runtime customization"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -24,6 +24,7 @@ classifiers = [
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+norecursedirs = ["_deprecated", ".*"]
 
 [tool.ruff]
 line-length = 100

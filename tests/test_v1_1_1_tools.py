@@ -39,10 +39,21 @@ class TestV111Tools(unittest.TestCase):
 
         self.temp_dir.cleanup()
 
-    def test_tools_factory_count_is_23(self) -> None:
-        """tools_factory.toml contains exactly 23 registered tools (18 previous + 5 new)."""
+    def test_tools_factory_count_snapshot(self) -> None:
+        """Snapshot of tools_factory.toml tool count.
+
+        History:
+          v1.1.1: 23 tools (18 baseline + 5 from Phase 4-D)
+          v1.2.0 consolidated fix: 27 tools
+            +4 added: ziro-ssh-config, ohmyzsh-ssh-agent,
+                      ziro-aliases-core, ziro-keybindings
+        """
         tools = load_tools_registry()
-        self.assertEqual(len(tools), 23)
+        self.assertEqual(
+            len(tools), 27,
+            "Tool count changed. If intentional, update this test "
+            "AND document the delta in .specify/HANDOFF.md.",
+        )
 
     def test_new_default_tools_present(self) -> None:
         """zsh-you-should-use and fzf-tab are registered as default active tools."""
@@ -77,8 +88,7 @@ class TestV111Tools(unittest.TestCase):
         self.assertIn("ziro-helpers", tools)
         h_tool = tools["ziro-helpers"]
         self.assertEqual(h_tool["load_method"], "local-source")
-        self.assertEqual(h_tool["load_timing"], "defer")
-        self.assertEqual(emit_pattern(h_tool), "ziro-defer source $ZIRO_HOME/lib/helpers.zsh")
+        self.assertEqual(h_tool["load_timing"], "on-demand")
 
         self.assertIn("ziro-aliases", tools)
         a_tool = tools["ziro-aliases"]
@@ -93,7 +103,7 @@ class TestV111Tools(unittest.TestCase):
 
         self.assertIn("ziro-defer znap source MichaelAquilina/zsh-you-should-use", content)
         self.assertIn("ziro-defer znap source Aloxaf/fzf-tab", content)
-        self.assertIn("ziro-defer source $ZIRO_HOME/lib/helpers.zsh", content)
+        self.assertIn("_ziro_helpers_ensure", content)
         self.assertIn("ziro-defer source $ZIRO_HOME/lib/aliases.zsh", content)
 
         # forgit and wd must NOT be present by default

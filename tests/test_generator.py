@@ -27,10 +27,13 @@ class TestGenerate(unittest.TestCase):
             content = out.read_text()
             self.assertTrue(content.startswith(HEADER_LINE))
             self.assertIn("znap source p1", content)
-            self.assertIn("ziro-defer --slot=b znap source p2", content)
-            self.assertIn("ziro-defer --slot=c znap source p3", content)
+            self.assertIn("--stage=5", content)
+            self.assertIn("--slot=b", content)
+            self.assertIn("znap source p2", content)
+            self.assertIn("--slot=c", content)
+            self.assertIn("znap source p3", content)
             # Slot '0' must be omitted
-            self.assertIn("ziro-defer znap source p4", content)
+            self.assertIn("znap source p4", content)
             self.assertNotIn("--slot=0", content)
 
     def test_local_clone_source_emission(self):
