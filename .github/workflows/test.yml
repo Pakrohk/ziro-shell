@@ -46,7 +46,7 @@ jobs:
           # installed $HOME/.ziro. CI runners have a bare checkout, so put the
           # workspace first on sys.path.
           PYTHONPATH: ${{ github.workspace }}
-        run: pytest -v
+        run: python -m unittest discover -s tests -v
 
       - name: Smoke CLI
         run: |
