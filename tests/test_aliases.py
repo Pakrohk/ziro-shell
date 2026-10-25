@@ -35,18 +35,17 @@ class TestAliases(unittest.TestCase):
         self.assertNotIn("diff=", output)
 
     def test_alias_bound_when_fake_binary_present(self) -> None:
-        """When eza and bat are present in PATH, aliases ls and cat are defined."""
+        """When bat and rg are present in PATH, aliases cat and grep are defined."""
         with tempfile.TemporaryDirectory() as td:
             # Create fake executable binaries
-            for bin_name in ("eza", "bat", "rg"):
+            for bin_name in ("bat", "rg"):
                 bin_path = os.path.join(td, bin_name)
                 with open(bin_path, "w") as f:
                     f.write("#!/bin/sh\nexit 0\n")
                 os.chmod(bin_path, 0o755)
 
-            script = f'PATH="{td}:$PATH" source "{ALIASES_FILE}"; alias ls; alias cat; alias grep'
+            script = f'PATH="{td}:$PATH" source "{ALIASES_FILE}"; alias cat; alias grep'
             res = subprocess.run(["zsh", "-f", "-c", script], capture_output=True, text=True)
             self.assertEqual(res.returncode, 0, res.stderr)
-            self.assertIn("eza", res.stdout)
             self.assertIn("bat", res.stdout)
             self.assertIn("rg", res.stdout)

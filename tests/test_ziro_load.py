@@ -33,17 +33,25 @@ class TestEmitEager(unittest.TestCase):
 class TestEmitDeferred(unittest.TestCase):
     def test_plain_deferred(self):
         spec = LoadSpec("heavy", "after-prompt")
-        self.assertEqual(emit(spec), "ziro-defer znap source heavy")
+        out = emit(spec)
+        self.assertIn("--stage=5", out)
+        self.assertIn("--slot=b", out)
+        self.assertIn("--name=heavy", out)
+        self.assertIn("znap source heavy", out)
 
     def test_deferred_with_slot(self):
         spec = LoadSpec("heavy", "after-prompt", sub_slot="b")
-        self.assertEqual(emit(spec), "ziro-defer --slot=b znap source heavy")
+        out = emit(spec)
+        self.assertIn("--stage=5", out)
+        self.assertIn("--slot=b", out)
+        self.assertIn("znap source heavy", out)
 
     def test_deferred_rejects_numeric_zero_slot(self):
         # Regression test for Bug #5: slot '0' is invalid per Spec 005 (only a|b|c)
         spec = LoadSpec("heavy", "after-prompt", sub_slot="0")
-        self.assertNotIn("--slot=0", emit(spec))
-        self.assertNotIn("--slot", emit(spec))
+        out = emit(spec)
+        self.assertIn("--slot=b", out)
+        self.assertNotIn("--slot=0", out)
 
     def test_local_plugin_emits_source(self):
         # Regression test for Bug #5: local clone in plugins/ must emit ziro local source
@@ -52,11 +60,10 @@ class TestEmitDeferred(unittest.TestCase):
 
     def test_local_plugin_deferred_emits_source(self):
         spec = LoadSpec("$ZIRO_HOME/plugins/wd/wd.plugin.zsh", "after-prompt", is_local=True)
-        self.assertEqual(emit(spec), "ziro-defer ziro local source $ZIRO_HOME/plugins/wd/wd.plugin.zsh")
-
-    def test_deferred_with_wait(self):
-        spec = LoadSpec("delayed", "lazy", wait="2")
-        self.assertIn('--wait="2"', emit(spec))
+        out = emit(spec)
+        self.assertIn("--stage=5", out)
+        self.assertIn("--slot=b", out)
+        self.assertIn("ziro local source", out)
 
 
 class TestEmitRaw(unittest.TestCase):
@@ -74,11 +81,6 @@ class TestFromResolved(unittest.TestCase):
         spec = from_resolved("p2", "AFTER_PROMPT", defer_slot="b")
         self.assertEqual(spec.strategy, "after-prompt")
         self.assertEqual(spec.sub_slot, "b")
-
-    def test_maps_lazy(self):
-        spec = from_resolved("p3", "LAZY", wait="2")
-        self.assertEqual(spec.strategy, "lazy")
-        self.assertEqual(spec.wait, "2")
 
     def test_unknown_strategy_fallback(self):
         spec = from_resolved("p4", "weird-strategy")

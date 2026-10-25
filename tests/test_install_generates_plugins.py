@@ -97,21 +97,9 @@ class TestInstallGeneratesPlugins(unittest.TestCase):
         lines2 = [line for line in content2.splitlines() if not line.startswith("# Generated:")]
         self.assertEqual(lines1, lines2)
 
-    def test_integration_sources_prompt_adapter(self) -> None:
-        """Case 5: integration.zsh sources prompt adapter when prompt.conf exists."""
-        pconf = self.config_dir / "prompt.conf"
-        pconf.write_text("starship\n", encoding="utf-8")
-
-        script = f"""
-export ZIRO_HOME="{REPO_ROOT}"
-export ZIRO_CONFIG="{self.config_dir}"
-export ZIRO_DATA="{self.data_dir}"
-source "{INTEGRATION_ZSH}"
-echo "ZIRO_PROMPT_NAME=$ZIRO_PROMPT_NAME"
-"""
-        run = subprocess.run(["zsh", "-c", script], capture_output=True, text=True)
-        self.assertEqual(run.returncode, 0, f"zsh failed: {run.stderr}")
-        self.assertIn("ZIRO_PROMPT_NAME=starship", run.stdout)
+    # Moved to tests/_deprecated/ in cleanup phase — prompt.conf is no longer read by integration.zsh.
+    # In post-integration architecture (ADL-014), integration.zsh is a 4-line shim to boot.zsh,
+    # and prompt configuration flows declaratively through load.toml -> ziro-boot.zsh.
 
 
 if __name__ == "__main__":

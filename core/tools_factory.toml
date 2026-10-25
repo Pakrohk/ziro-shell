@@ -137,17 +137,26 @@ description = "Fast, customizable prompt for any shell."
 
 [[tool]]
 name = "fzf"
-type = "binary"
+github = "https://github.com/junegunn/fzf"
+description = "General-purpose command-line fuzzy finder."
 category = "fuzzy_finder"
+type = "binary"
 load_method = "binary-eval"
-load_timing = "eval"
+load_timing = "on-demand"
 load_order = 5
 guard = "binary-check"
 binary_name = "fzf"
-init_command = "fzf --zsh"
+trigger_type = "key"
+trigger_keys = [
+  { key = "^R", widget = "fzf-history-widget" },
+  { key = "^T", widget = "fzf-file-widget" },
+  { key = "^[c", widget = "fzf-cd-widget" },
+]
 cache_key = "fzf"
-github = "https://github.com/junegunn/fzf"
-description = "General-purpose command-line fuzzy finder."
+init_command = "fzf --zsh"
+requires = "fzf"
+theme_supported = false
+notes = "On-demand: first key sources cache; stays loaded for session."
 
 [[tool]]
 name = "ziro-ghost"
@@ -191,18 +200,22 @@ description = "Derives a coherent color theme from LS_COLORS for git, grep, less
 
 [[tool]]
 name = "zoxide"
-type = "binary"
+github = "https://github.com/ajeetdsouza/zoxide"
+description = "Smarter cd command."
 category = "navigation"
+type = "binary"
 load_method = "binary-eval"
-load_timing = "eval"
+load_timing = "on-demand"
 load_order = 9
 guard = "binary-check"
 binary_name = "zoxide"
-init_command = "zoxide init zsh"
+trigger_type = "command"
+trigger_commands = ["z", "zi", "za", "zr", "zq"]
 cache_key = "zoxide"
-conflicts_with = ["z", "wd"]
-github = "https://github.com/ajeetdsouza/zoxide"
-description = "Smarter cd command, inspired by z and autojump."
+init_command = "zoxide init zsh"
+requires = "zoxide"
+theme_supported = false
+notes = "On-demand: first z/zi/za/zr/zq sources cache; stays loaded for session."
 
 [[tool]]
 name = "ohmyzsh-colored-man-pages"
@@ -293,17 +306,20 @@ description = "Tracks most used directories to jump around."
 
 [[tool]]
 name = "wd"
-type = "plugin"
+github = "https://github.com/mfaerevaag/wd"
+description = "Jump to tagged directories."
 category = "navigation"
+type = "plugin"
 load_method = "clone-source"
-load_timing = "defer"
+load_timing = "on-demand"
 load_order = 9
 guard = "none"
-source = "mfaerevaag/wd"
+source = "$ZIRO_HOME/plugins/wd/wd.plugin.zsh"
 alternatives_only = true
-conflicts_with = ["zoxide", "z"]
-github = "https://github.com/mfaerevaag/wd"
-description = "Jump to custom tagged directories."
+trigger_type = "command"
+trigger_commands = ["wd"]
+theme_supported = false
+notes = "On-demand: first wd invocation sources plugin; stays loaded for session."
 
 [[tool]]
 name = "zsh-you-should-use"
@@ -349,15 +365,19 @@ description = "Interactive git operations with fzf (optional)"
 
 [[tool]]
 name = "ziro-helpers"
-type = "plugin"
+description = "Core shell utility functions."
 category = "core"
+type = "plugin"
 load_method = "local-source"
-load_timing = "defer"
+load_timing = "on-demand"
 load_order = 20
 guard = "none"
 local_path = "$ZIRO_HOME/lib/helpers.zsh"
-alternatives_only = false
-description = "Core shell utility functions (mkcd, extract, clipcopy, etc.)"
+trigger_type = "function"
+trigger_functions = ["mkcd", "take", "extract", "clipcopy", "clippaste"]
+source = "$ZIRO_HOME/lib/helpers.zsh"
+theme_supported = false
+notes = "On-demand: first helper invocation sources file; stays loaded for session. Add new helpers to trigger_functions list."
 
 [[tool]]
 name = "ziro-aliases"
@@ -370,5 +390,54 @@ guard = "none"
 local_path = "$ZIRO_HOME/lib/aliases.zsh"
 alternatives_only = false
 description = "Auto-detected modern CLI aliases (eza, bat, rg, fd)"
+
+[[tool]]
+name = "ziro-ssh-config"
+type = "plugin"
+category = "core"
+load_method = "local-source"
+load_timing = "eager"
+load_order = 14
+guard = "none"
+local_path = "$ZIRO_HOME/lib/ssh-config.zsh"
+alternatives_only = false
+description = "SSH agent config: unset gcr/gnome-keyring socket, prefer openssh agent"
+
+[[tool]]
+name = "ohmyzsh-ssh-agent"
+type = "plugin"
+category = "core"
+load_method = "local-source"
+load_timing = "eager"
+load_order = 15
+guard = "none"
+local_path = "$ZIRO_DATA/vendor/ohmyzsh/ohmyzsh/plugins/ssh-agent/ssh-agent.plugin.zsh"
+alternatives_only = false
+description = "SSH agent management: start/reuse openssh agent, forward SSH_AUTH_SOCK"
+
+[[tool]]
+name = "ziro-aliases-core"
+type = "plugin"
+category = "core"
+load_method = "local-source"
+load_timing = "eager"
+load_order = 16
+guard = "none"
+local_path = "$ZIRO_HOME/lib/aliases-core.zsh"
+alternatives_only = false
+description = "Core aliases: ls color, cd navigation (../...), ll/la with eza fallback"
+
+[[tool]]
+name = "ziro-keybindings"
+type = "plugin"
+category = "core"
+load_method = "local-source"
+load_timing = "eager"
+load_order = 17
+guard = "none"
+local_path = "$ZIRO_HOME/lib/keybindings.zsh"
+alternatives_only = false
+description = "Terminal keybindings: Home/End/Delete/PageUp/PageDown"
+
 
 

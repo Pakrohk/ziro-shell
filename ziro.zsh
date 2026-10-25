@@ -8,7 +8,7 @@ _ziro_dispatch() {
 
   case "$cmd" in
     --help|-h) cmd="help" ;;
-    --version|-v) print "ziro-shell v1.0.1"; return 0 ;;
+    --version|-v) print "ziro-shell v1.2.0"; return 0 ;;
   esac
 
   : ${ZIRO_HOME:="$HOME/.ziro"}

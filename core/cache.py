@@ -93,10 +93,17 @@ def load_cached(plugin_name: str, source_hash: str) -> Optional[AnalysisResult]:
         )
         recommended = Recommendation(
             strategy=Strategy(data["recommended"]["strategy"]),
-            wait=data["recommended"].get("wait", ""),
             compile=data["recommended"].get("compile", True),
             eval_cache=data["recommended"].get("eval_cache", False),
             pick=data["recommended"].get("pick", ""),
+            stage=data["recommended"].get("stage", 5),
+            slot=data["recommended"].get("slot", "b"),
+            name=data["recommended"].get("name", ""),
+            depends=tuple(data["recommended"].get("depends", ())),
+            condition=data["recommended"].get("condition"),
+            on_key=data["recommended"].get("on_key"),
+            cache_type=data["recommended"].get("cache_type", "none"),
+            timeout_ms=data["recommended"].get("timeout_ms"),
         )
         return AnalysisResult(
             plugin=data["plugin"],

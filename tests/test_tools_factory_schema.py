@@ -81,7 +81,7 @@ class TestToolsFactorySchema(unittest.TestCase):
 
     def test_load_timing_enum_valid(self) -> None:
         """Case 6: All load_timing values match lifecycle stages."""
-        valid_timings = {"eager", "defer", "eval", "prompt"}
+        valid_timings = {"eager", "defer", "eval", "prompt", "on-demand"}
         for t in self.tools:
             self.assertIn(
                 t["load_timing"],

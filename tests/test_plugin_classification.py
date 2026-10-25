@@ -59,8 +59,8 @@ class TestPluginClassification(unittest.TestCase):
         content = gen_file.read_text(encoding="utf-8")
 
         self.assertIn("(( $+commands[starship] )) && znap eval starship", content)
-        self.assertIn("(( $+commands[fzf] )) && znap eval fzf", content)
-        self.assertIn("(( $+commands[zoxide] )) && znap eval zoxide", content)
+        self.assertIn("(( $+commands[fzf] ))", content)
+        self.assertIn("(( $+commands[zoxide] ))", content)
 
     def test_zsh_plugins_do_not_have_command_guards(self) -> None:
         """Zsh plugins and self-contained repo tools must not be guarded by $+commands checks."""

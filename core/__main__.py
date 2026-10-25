@@ -15,7 +15,7 @@ def main(argv: list[str] | None = None) -> int:
     args = list(argv or sys.argv[1:])
     if not args:
         print("usage: python3 -m core <subcommand> [args...]", file=sys.stderr)
-        print("subcommands: theme, prompt, install, plugin, tag, config, suggest, doctor, bench, completion, update", file=sys.stderr)
+        print("subcommands: theme, prompt, install, plugin, tag, config, suggest, doctor, bench, completion, update, sync, analyze", file=sys.stderr)
         return 2
 
     sub = args[0]
@@ -25,7 +25,7 @@ def main(argv: list[str] | None = None) -> int:
         from core import help_cli
         return help_cli.cmd_help(rest)
     if sub in ("--version", "-v"):
-        print("ziro-shell v1.0.1")
+        print("ziro-shell v1.2.0")
         return 0
     if sub == "help":
         from core import help_cli
@@ -63,6 +63,12 @@ def main(argv: list[str] | None = None) -> int:
     if sub == "update":
         from core import update_cli
         return update_cli.main(rest)
+    if sub == "sync":
+        from core import build
+        return build.main(rest)
+    if sub == "analyze":
+        from core import analyze_cli
+        return analyze_cli.main(rest)
 
     print(f"unknown subcommand: {sub}", file=sys.stderr)
     return 2

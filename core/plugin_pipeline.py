@@ -32,12 +32,29 @@ def _plugins_root(ziro_home: Path) -> Path:
 
 
 def _clone_repo(source: str, dest: Path, dry_run: bool) -> bool:
-    """Clone git repo. Returns True if cloned, False if existed."""
+    """Clone or copy plugin repo. Returns True if cloned/copied, False if existed."""
     if dest.is_dir():
         return False
     if dry_run:
         return False
     dest.parent.mkdir(parents=True, exist_ok=True)
+
+    src_p = Path(source).expanduser()
+    if src_p.is_dir():
+        if (src_p / ".git").is_dir():
+            cmd = ["git", "clone", "--depth=1", str(src_p.resolve()), str(dest)]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+            if result.returncode != 0:
+                raise RuntimeError(f"git clone failed: {result.stderr.strip()}")
+            return True
+        else:
+            shutil.copytree(src_p, dest)
+            return True
+    elif src_p.is_file():
+        dest.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src_p, dest / src_p.name)
+        return True
+
     result = subprocess.run(
         ["git", "clone", "--depth=1", source, str(dest)],
         capture_output=True,
@@ -53,11 +70,13 @@ def add_plugin(
     source: str,
     *,
     name: str = "",
+    subpath: str = "",
     tags: list[str] | None = None,
     ziro_home: Path | None = None,
     config_dir: Path | None = None,
     all_configs: list | None = None,
     dry_run: bool = False,
+    is_local: bool = False,
 ) -> AddResult:
     """Full pipeline: clone → analyze → resolve → regenerate."""
     ziro_home = ziro_home or Path.home() / ".ziro"
@@ -65,11 +84,32 @@ def add_plugin(
     tags = tags or []
     all_configs = all_configs or []
 
-    plugin_name = name or source.rstrip("/").split("/")[-1].removesuffix(".git")
-    dest = _plugins_root(ziro_home) / plugin_name
+    if subpath:
+        sub_name = subpath.rstrip("/").split("/")[-1]
+        plugin_name = name or sub_name
+        repo_name = source.rstrip("/").split("/")[-1].removesuffix(".git")
+        dest_base = _plugins_root(ziro_home) / (name if name and name != sub_name else repo_name)
+        dest = dest_base / subpath
+    else:
+        plugin_name = name or source.rstrip("/").split("/")[-1].removesuffix(".git")
+        dest_base = _plugins_root(ziro_home) / plugin_name
+        dest = dest_base
 
-    # 1. Clone
-    skipped = not _clone_repo(source, dest, dry_run)
+    # 1. Clone or copy
+    if is_local:
+        src_p = Path(source).expanduser()
+        if not dry_run:
+            dest.mkdir(parents=True, exist_ok=True)
+            if src_p.is_file():
+                shutil.copy2(src_p, dest / src_p.name)
+            elif src_p.is_dir():
+                if (src_p / ".git").is_dir():
+                    subprocess.run(["git", "clone", "--depth=1", str(src_p.resolve()), str(dest)], check=True, capture_output=True)
+                else:
+                    shutil.copytree(src_p, dest, dirs_exist_ok=True)
+        skipped = False
+    else:
+        skipped = not _clone_repo(source, dest_base, dry_run)
 
     # 2. Save tags (if any)
     if tags and not dry_run:
@@ -77,9 +117,17 @@ def add_plugin(
 
     # 3. Analyze
     if not dest.is_dir():
-        # dry-run: no source to analyze → fake analysis
-        from core.models import AnalysisResult, Recommendation, Strategy
-        analysis = AnalysisResult.empty(plugin_name, source)
+        if is_local:
+            src_p = Path(source).expanduser()
+            if src_p.exists():
+                analysis_target = src_p.parent if src_p.is_file() else src_p
+                analysis = analyze_with_cache(analysis_target, plugin_name)
+            else:
+                from core.models import AnalysisResult
+                analysis = AnalysisResult.empty(plugin_name, source)
+        else:
+            from core.models import AnalysisResult
+            analysis = AnalysisResult.empty(plugin_name, source)
     else:
         analysis = analyze_with_cache(dest, plugin_name)
 
@@ -89,9 +137,9 @@ def add_plugin(
     except ConflictError as e:
         raise RuntimeError(f"tag conflict: {e}") from e
 
-    # 5. Regenerate plugins.gen.zsh
+    # 5. Regenerate plugins.gen.zsh (preserve factory tools and avoid duplicates)
     generated = default_output_path(config_dir)
-    configs = list(all_configs) + [resolved]
+    configs = [c for c in all_configs if getattr(c, "plugin", "") != plugin_name] + [resolved]
     if not dry_run:
         generate(configs, generated, options=EmitOptions(enforce_order=True))
 

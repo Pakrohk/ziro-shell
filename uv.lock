@@ -1,0 +1,8 @@
+version = 1
+revision = 5
+requires-python = ">=3.11"
+
+[[package]]
+name = "ziro-shell"
+version = "1.2.0"
+source = { virtual = "." }
