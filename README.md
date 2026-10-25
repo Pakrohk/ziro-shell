@@ -1,5 +1,3 @@
-# ziro-shell
-
 <div align="center">
   <img src="./assets/banner.svg" alt="Ziro Shell Banner" width="100%" />
 </div>
