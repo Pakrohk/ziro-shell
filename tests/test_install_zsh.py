@@ -11,6 +11,25 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
+def _isolated_env(fake_home: Path) -> dict[str, str]:
+    """Build a completely hermetic environment for test subshells."""
+    env = os.environ.copy()
+    env["HOME"] = str(fake_home)
+    env["ZIRO_SKIP_VENV_BOOTSTRAP"] = "1"
+    env["PYTHONPATH"] = str(REPO_ROOT)
+    for k in (
+        "ZIRO_HOME",
+        "ZIRO_CONFIG",
+        "ZIRO_CACHE",
+        "ZIRO_DATA",
+        "XDG_CONFIG_HOME",
+        "XDG_CACHE_HOME",
+        "XDG_DATA_HOME",
+    ):
+        env.pop(k, None)
+    return env
+
+
 class TestInstallZsh(unittest.TestCase):
     def test_list_commands_flag(self):
         """Verify python -m core --list-commands outputs expected subcommands."""
@@ -43,14 +62,7 @@ class TestInstallZsh(unittest.TestCase):
             fake_home = Path(td) / "fake_home"
             fake_home.mkdir()
 
-            env = os.environ.copy()
-            env["HOME"] = str(fake_home)
-            env["ZIRO_SKIP_VENV_BOOTSTRAP"] = "1"
-            env["PYTHONPATH"] = str(REPO_ROOT)
-            env.pop("ZIRO_HOME", None)
-            env.pop("ZIRO_CONFIG", None)
-            env.pop("ZIRO_CACHE", None)
-            env.pop("ZIRO_DATA", None)
+            env = _isolated_env(fake_home)
 
             proc = subprocess.run(
                 ["zsh", str(REPO_ROOT / "install.zsh"), "--no-activate", "--default"],
@@ -79,11 +91,7 @@ class TestInstallZsh(unittest.TestCase):
             zshrc = fake_home / ".zshrc"
             zshrc.write_text("# Existing user zshrc\nexport FOO=bar\n", encoding="utf-8")
 
-            env = os.environ.copy()
-            env["HOME"] = str(fake_home)
-            env["ZIRO_SKIP_VENV_BOOTSTRAP"] = "1"
-            env["PYTHONPATH"] = str(REPO_ROOT)
-            env.pop("ZIRO_HOME", None)
+            env = _isolated_env(fake_home)
 
             proc1 = subprocess.run(
                 ["zsh", str(REPO_ROOT / "install.zsh"), "--default"],
@@ -154,11 +162,7 @@ class TestInstallZsh(unittest.TestCase):
             fake_home.mkdir()
             (fake_home / ".ziro").symlink_to(REPO_ROOT)
 
-            env = os.environ.copy()
-            env["HOME"] = str(fake_home)
-            env["ZIRO_SKIP_VENV_BOOTSTRAP"] = "1"
-            env["PYTHONPATH"] = str(REPO_ROOT)
-            env.pop("ZIRO_HOME", None)
+            env = _isolated_env(fake_home)
 
             script_text = (REPO_ROOT / "install.zsh").read_text(encoding="utf-8")
             proc = subprocess.run(
@@ -178,11 +182,7 @@ class TestInstallZsh(unittest.TestCase):
             fake_home = Path(td) / "fake_home"
             fake_home.mkdir()
 
-            env = os.environ.copy()
-            env["HOME"] = str(fake_home)
-            env["ZIRO_SKIP_VENV_BOOTSTRAP"] = "1"
-            env["PYTHONPATH"] = str(REPO_ROOT)
-            env.pop("ZIRO_HOME", None)
+            env = _isolated_env(fake_home)
 
             proc_inst = subprocess.run(
                 ["zsh", str(REPO_ROOT / "install.zsh"), "--no-activate", "--default"],
@@ -196,11 +196,8 @@ class TestInstallZsh(unittest.TestCase):
             boot_zsh = fake_home / ".config" / "ziro" / "boot.zsh"
             self.assertTrue(boot_zsh.is_file())
 
-            clean_env = {
-                "PATH": os.environ["PATH"],
-                "HOME": str(fake_home),
-                "PYTHONPATH": str(REPO_ROOT),
-            }
+            clean_env = _isolated_env(fake_home)
+            clean_env["PATH"] = os.environ["PATH"]
             test_sh = f'source "{boot_zsh}"; ziro --version'
             proc_test = subprocess.run(
                 ["zsh", "-f", "-c", test_sh],
