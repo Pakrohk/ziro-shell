@@ -6,6 +6,7 @@ to make future org migrations trivial.
 
 GITHUB_USER = "Pakrohk"
 REPO_NAME = "ziro-shell"
+VERSION = "1.2.0"
 REPO_URL = f"https://github.com/{GITHUB_USER}/{REPO_NAME}"
 REPO_GIT_URL = f"{REPO_URL}.git"
 REPO_SSH_URL = f"git@github.com:{GITHUB_USER}/{REPO_NAME}.git"

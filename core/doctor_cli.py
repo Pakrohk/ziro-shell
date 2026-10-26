@@ -12,33 +12,34 @@ import sys
 import tomllib
 from pathlib import Path
 
+from core.paths import get_paths
+
 
 def _config_dir() -> Path:
-    base = os.environ.get("ZIRO_CONFIG")
-    if base:
-        return Path(base)
-    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "ziro"
+    return get_paths()["config"]
 
 
 def _ziro_home() -> Path:
-    return Path(os.environ.get("ZIRO_HOME", Path.home() / ".ziro"))
+    return get_paths()["home"]
 
 
 def _expand_path(p: str) -> Path:
     """Expand ~, $VARS, ${VARS} with fallbacks for standard ZIRO_* directories."""
     if not p:
         return Path()
-    home = Path.home()
+    paths = get_paths()
     env = {
-        "ZIRO_DATA": str(home / ".local" / "share" / "ziro"),
-        "ZIRO_CACHE": str(home / ".cache" / "ziro"),
-        "ZIRO_CONFIG": str(home / ".config" / "ziro"),
-        "ZIRO_HOME": str(home / ".ziro"),
+        "ZIRO_DATA": str(paths["data"]),
+        "ZIRO_CACHE": str(paths["cache"]),
+        "ZIRO_CONFIG": str(paths["config"]),
+        "ZIRO_HOME": str(paths["home"]),
     }
+    # Expand ZIRO_* defaults without polluting global os.environ
+    expanded_str = p
     for k, v in env.items():
         if k not in os.environ:
-            os.environ[k] = v
-    expanded = os.path.expandvars(os.path.expanduser(p))
+            expanded_str = expanded_str.replace(f"${{{k}}}", v).replace(f"${k}", v)
+    expanded = os.path.expandvars(os.path.expanduser(expanded_str))
     return Path(expanded)
 
 
@@ -74,21 +75,21 @@ def _check_zsh_version() -> tuple[str, str, str | None]:
 
 def _check_boot_chain() -> tuple[str, str, str | None]:
     """Verify boot chain integrity: load.toml -> boot.zsh -> ziro-boot.zsh -> ziro-boot.zwc."""
-    home = Path.home()
-    load_toml = home / ".config" / "ziro" / "load.toml"
-    boot_shim = home / ".config" / "ziro" / "boot.zsh"
-    boot_script = home / ".cache" / "ziro" / "ziro-boot.zsh"
-    boot_zwc = home / ".cache" / "ziro" / "ziro-boot.zsh.zwc"
+    paths = get_paths()
+    load_toml = paths["config"] / "load.toml"
+    boot_shim = paths["config"] / "boot.zsh"
+    boot_script = paths["cache"] / "ziro-boot.zsh"
+    boot_zwc = paths["cache"] / "ziro-boot.zsh.zwc"
 
     missing = []
     if not load_toml.is_file():
-        missing.append("~/.config/ziro/load.toml")
+        missing.append(str(load_toml))
     if not boot_shim.is_file():
-        missing.append("~/.config/ziro/boot.zsh")
+        missing.append(str(boot_shim))
     if not boot_script.is_file():
-        missing.append("~/.cache/ziro/ziro-boot.zsh")
+        missing.append(str(boot_script))
     if not boot_zwc.is_file():
-        missing.append("~/.cache/ziro/ziro-boot.zsh.zwc")
+        missing.append(str(boot_zwc))
 
     if missing:
         return "error", f"missing boot artifact(s): {', '.join(missing)}", "run `ziro sync`"
@@ -104,8 +105,7 @@ def _check_boot_chain() -> tuple[str, str, str | None]:
 
 def _check_compiled_artifacts() -> tuple[str, str, str | None]:
     """Check that every eager tool has a fresh .zwc sibling."""
-    home = Path.home()
-    load_toml = home / ".config" / "ziro" / "load.toml"
+    load_toml = get_paths()["config"] / "load.toml"
     if not load_toml.is_file():
         return "error", "load.toml not found", "run `ziro sync`"
     try:
@@ -153,8 +153,7 @@ def _check_compiled_artifacts() -> tuple[str, str, str | None]:
 
 def _check_tool_paths() -> tuple[str, str, str | None]:
     """Verify all enabled tools with paths point to existing files on disk."""
-    home = Path.home()
-    load_toml = home / ".config" / "ziro" / "load.toml"
+    load_toml = get_paths()["config"] / "load.toml"
     if not load_toml.is_file():
         return "error", "load.toml not found", "run `ziro sync`"
     try:
@@ -186,8 +185,7 @@ def _check_tool_paths() -> tuple[str, str, str | None]:
 
 def _check_tool_reasons() -> tuple[str, str, str | None]:
     """Report per-tool timing decision + reason from load.toml."""
-    home = Path.home()
-    load_toml = home / ".config" / "ziro" / "load.toml"
+    load_toml = get_paths()["config"] / "load.toml"
     if not load_toml.is_file():
         return "warn", "load.toml not found", "run `ziro analyze`"
     try:
@@ -207,8 +205,7 @@ def _check_tool_reasons() -> tuple[str, str, str | None]:
 
 def _check_loadtoml_schema() -> tuple[str, str, str | None]:
     """Validate load.toml syntax, required sections, and [user] table."""
-    home = Path.home()
-    load_toml = home / ".config" / "ziro" / "load.toml"
+    load_toml = get_paths()["config"] / "load.toml"
     if not load_toml.is_file():
         return "error", "load.toml not found", "run `ziro analyze --full`"
     try:
@@ -236,8 +233,9 @@ def _check_loadtoml_schema() -> tuple[str, str, str | None]:
 
 def _check_defer_loaded() -> tuple[str, str, str | None]:
     """Verify presence of ziro-defer on disk."""
-    home = _ziro_home()
-    data = Path(os.environ.get("XDG_DATA_HOME") or (Path.home() / ".local" / "share")) / "ziro"
+    paths = get_paths()
+    home = paths["home"]
+    data = paths["data"]
     candidates = [
         (home / "ziro-defer" / "ziro-defer.plugin.zsh", "ziro-defer (canonical fork)"),
         (data / "vendor" / "ziro-defer" / "ziro-defer.plugin.zsh", "ziro-defer (fork)"),
@@ -253,8 +251,8 @@ def _check_defer_loaded() -> tuple[str, str, str | None]:
 
 def _check_defer_modules() -> tuple[str, str, str | None]:
     """Verify all eager_modules declared in load.toml exist on disk."""
-    home = Path.home()
-    load_toml = home / ".config" / "ziro" / "load.toml"
+    paths = get_paths()
+    load_toml = paths["config"] / "load.toml"
     if not load_toml.is_file():
         return "warn", "load.toml not found", "run `ziro sync`"
     try:
@@ -268,9 +266,9 @@ def _check_defer_modules() -> tuple[str, str, str | None]:
         return "ok", "no eager defer modules specified", None
 
     candidates = [
-        _ziro_home() / "vendor" / "ziro-defer",
-        _ziro_home() / "ziro-defer",
-        Path.home() / ".local" / "share" / "ziro" / "vendor" / "ziro-defer",
+        paths["home"] / "vendor" / "ziro-defer",
+        paths["home"] / "ziro-defer",
+        paths["data"] / "vendor" / "ziro-defer",
     ]
     defer_root = None
     for cand in candidates:
@@ -294,7 +292,7 @@ def _check_defer_modules() -> tuple[str, str, str | None]:
 def _check_external_overrides() -> tuple[str, str, str | None]:
     """Inspect optional overrides.toml if configured."""
     override_file = os.environ.get("ZIRO_OVERRIDES_FILE")
-    p = Path(override_file).expanduser() if override_file else (Path.home() / ".config" / "ziro" / "overrides.toml")
+    p = Path(override_file).expanduser() if override_file else (get_paths()["config"] / "overrides.toml")
     if not p.is_file():
         return "info", "none configured (optional)", None
     try:

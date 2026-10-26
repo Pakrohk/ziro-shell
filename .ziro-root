@@ -1,0 +1,2 @@
+# Ziro Shell Root Marker
+# Used by install.zsh and core engine to verify a genuine repository checkout.
