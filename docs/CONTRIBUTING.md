@@ -43,9 +43,9 @@ Verify your setup:
 
 ---
 
-## Code Standards (ADR-009)
+## Code Standards
 
-Ziro strictly adheres to **ADR-009 ("Function-Based, Idiom-First")** across both Python and Zsh components.
+Ziro strictly adheres to the **Function-Based, Idiom-First** standard across both Python and Zsh components.
 
 ### Python Guidelines (`core/*.py`)
 

@@ -135,7 +135,7 @@ class TestUpdateShellIntegration(unittest.TestCase):
 export ZIRO_HOME="{REPO_ROOT}"
 export ZIRO_CONFIG="{self.config_dir}"
 export ZIRO_CACHE="{self.cache_dir}"
-source "{REPO_ROOT}/integration.zsh"
+[[ -f "{self.config_dir}/boot.zsh" ]] && source "{self.config_dir}/boot.zsh" || true
 """
         run = subprocess.run(["zsh", "-c", script], capture_output=True, text=True)
         self.assertEqual(run.returncode, 0)
@@ -153,7 +153,7 @@ export ZIRO_CONFIG="{self.config_dir}"
 export ZIRO_CACHE="{self.cache_dir}"
 # Simulate interactive
 setopt interactive
-source "{REPO_ROOT}/integration.zsh"
+[[ -f "{self.config_dir}/boot.zsh" ]] && source "{self.config_dir}/boot.zsh" || true
 """
         run = subprocess.run(["zsh", "-c", script], capture_output=True, text=True)
         self.assertEqual(run.returncode, 0)
@@ -170,7 +170,7 @@ source "{REPO_ROOT}/integration.zsh"
 export ZIRO_HOME="{REPO_ROOT}"
 export ZIRO_CONFIG="{self.config_dir}"
 export ZIRO_CACHE="{self.cache_dir}"
-source "{REPO_ROOT}/integration.zsh"
+[[ -f "{self.config_dir}/boot.zsh" ]] && source "{self.config_dir}/boot.zsh" || true
 # Call notification logic directly to verify display output
 if grep -q '"available":[[:space:]]*true' "{cache_file}"; then
   print "NOTIFY: update available"

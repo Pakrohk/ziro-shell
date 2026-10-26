@@ -142,12 +142,133 @@ def cmd_list(argv: list[str]) -> int:
     ret = handle_help_if_requested(argv, "plugin", subcommand="list")
     if ret is not None:
         return ret
+
+    names_only = "--names" in argv or "-q" in argv or "--raw" in argv
+
+    # Load factory definitions for descriptions and types
+    tf_path = _ziro_home() / "core" / "tools_factory.toml"
+    if not tf_path.is_file():
+        tf_path = Path(__file__).parent / "tools_factory.toml"
+
+    descriptions: dict[str, str] = {}
+    types: dict[str, str] = {}
+    if tf_path.is_file():
+        try:
+            import tomllib
+            with tf_path.open("rb") as f:
+                tfd = tomllib.load(f)
+                for t in tfd.get("tool", []):
+                    name = t.get("name", "")
+                    descriptions[name] = t.get("description", "")
+                    types[name] = t.get("type", "plugin")
+        except Exception:
+            pass
+
+    # 1. Attempt to read from load.toml (active declarative configuration)
+    load_path = _config_dir() / "load.toml"
+    tools: list[dict] = []
+    if load_path.is_file():
+        try:
+            import tomllib
+            with load_path.open("rb") as f:
+                ld = tomllib.load(f)
+                tools = ld.get("tool", [])
+        except Exception:
+            tools = []
+
+    # 2. Collect any in-tree plugins in ~/.ziro/plugins/
     dirs = _list_plugin_dirs(_ziro_home())
-    if not dirs:
+    known_names = {t.get("name") for t in tools}
+    for d in dirs:
+        if d.name not in known_names:
+            tools.append({
+                "name": d.name,
+                "timing": "custom",
+                "method": "local-source",
+                "path": str(d),
+                "reason": "local in-tree plugin",
+            })
+
+    if not tools:
         print("(no plugins installed)")
         return 0
-    for p in dirs:
-        print(p.name)
+
+    if names_only:
+        for t in tools:
+            print(t.get("name", ""))
+        return 0
+
+    rows: list[list[str]] = []
+    eager_cnt = 0
+    deferred_cnt = 0
+    ondemand_cnt = 0
+
+    for t in tools:
+        name = t.get("name", "")
+        timing = t.get("timing", "deferred")
+        stage = t.get("stage")
+        slot = t.get("slot", "b")
+        trigger = t.get("trigger", "")
+        method = t.get("method", "source")
+
+        if timing == "eager":
+            eager_cnt += 1
+            stage_str = "Stage 2/4 (Eager · Pre-Prompt)"
+        elif timing == "deferred":
+            deferred_cnt += 1
+            stage_str = f"Stage {stage or 5} (Deferred · Slot {slot})"
+        elif timing == "on-demand":
+            ondemand_cnt += 1
+            trig_desc = ""
+            if trigger == "command":
+                cmds = t.get("trigger_commands", [])
+                trig_desc = f": {cmds[0]}" if cmds else ""
+            elif trigger == "key":
+                keys = [k.get("key", "") if isinstance(k, dict) else str(k) for k in t.get("trigger_keys", [])]
+                trig_desc = f": {keys[0]}" if keys else ""
+            elif trigger == "function":
+                funcs = t.get("trigger_functions", [])
+                trig_desc = f": {funcs[0]}" if funcs else ""
+            stage_str = f"Stage 7 (On-Demand{trig_desc})"
+        else:
+            stage_str = timing
+
+        ptype = types.get(name, "plugin")
+        if ptype == "binary":
+            ptype_str = "Binary"
+        elif ptype == "builtin":
+            ptype_str = "Builtin"
+        elif ptype == "bootstrap":
+            ptype_str = "Core"
+        else:
+            ptype_str = "Plugin"
+
+        desc = descriptions.get(name, "")
+        if not desc:
+            reason = t.get("reason", "")
+            desc = reason.split(":")[-1].strip() if ":" in reason else reason
+
+        rows.append([name, ptype_str, stage_str, method, desc])
+
+    title = f"Ziro Ecosystem — Plugins & Tools ({len(tools)} total: {eager_cnt} eager, {deferred_cnt} deferred, {ondemand_cnt} on-demand)"
+    headers = ["Name", "Type", "Lifecycle Stage", "Load Method", "Description"]
+
+    from core.rich_helpers import render_table
+    if not render_table(title, headers, rows):
+        w_name = max(len(r[0]) for r in rows) if rows else 10
+        w_type = max(len(r[1]) for r in rows) if rows else 8
+        w_stage = max(len(r[2]) for r in rows) if rows else 15
+        w_method = max(len(r[3]) for r in rows) if rows else 12
+
+        h_name, h_type, h_stage, h_method = "NAME", "TYPE", "LIFECYCLE STAGE", "METHOD"
+        d_name, d_type, d_stage, d_method = "-" * w_name, "-" * w_type, "-" * w_stage, "-" * w_method
+        print(title)
+        print("=" * len(title))
+        print(f"{h_name:<{w_name}}  {h_type:<{w_type}}  {h_stage:<{w_stage}}  {h_method:<{w_method}}  DESCRIPTION")
+        print(f"{d_name}  {d_type}  {d_stage}  {d_method}  -----------------------------------")
+        for r in rows:
+            print(f"{r[0]:<{w_name}}  {r[1]:<{w_type}}  {r[2]:<{w_stage}}  {r[3]:<{w_method}}  {r[4]}")
+
     return 0
 
 

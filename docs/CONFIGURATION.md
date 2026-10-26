@@ -258,6 +258,26 @@ For persistent user variables, place them directly in `~/.zshrc.local`. Ziro's b
 
 ---
 
+## Environment Variables
+
+Ziro respects standard XDG and custom environment variables across both its native Zsh hot-path and offline Python engine:
+
+| Variable | Default Value | Description |
+|---|---|---|
+| `ZIRO_HOME` | `~/.ziro` | Root directory containing the Ziro repository source tree. |
+| `ZIRO_CONFIG` | `${XDG_CONFIG_HOME:-~/.config}/ziro` | Location of user configuration files (`load.toml`, `defaults.toml`). |
+| `ZIRO_DATA` | `${XDG_DATA_HOME:-~/.local/share}/ziro` | Storage for completions, plugin checkouts, and runtime venv. |
+| `ZIRO_CACHE` | `${XDG_CACHE_HOME:-~/.cache}/ziro` | Location for compiled `.zwc` wordcode, `zcompdump`, and caches. |
+| `ZIRO_REF` | Latest release tag | Git ref, branch, or tag targeted during installation or update. |
+| `ZIRO_REPO_URL` | Canonical GitHub URL | Git clone URL for Ziro repository (requires `ZIRO_ALLOW_FORK=1` if non-canonical). |
+| `ZIRO_ALLOW_FORK` | `0` | Set to `1` to permit bootstrapping from third-party forks. |
+| `ZIRO_ALLOW_ROOT` | `0` | Set to `1` to permit installer execution as `root` (e.g. inside Docker containers). |
+| `ZIRO_NONINTERACTIVE`| Auto-detected | Set to `1` to suppress all interactive prompts during install/sync. |
+| `ZIRO_SKIP_VENV_BOOTSTRAP` | `0` | Set to `1` to prevent automatic creation of the optional `rich` venv. |
+| `ZIRO_OVERRIDES_FILE` | `${ZIRO_CONFIG}/overrides.toml` | Path to an external TOML file containing tool overrides. |
+
+---
+
 ## Applying Changes
 
 Edits to `load.toml` do not take effect in the active shell until synchronized:

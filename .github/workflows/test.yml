@@ -36,7 +36,7 @@ jobs:
 
       - name: Validate zsh syntax
         run: |
-          for f in commands/*.zsh lib/*.zsh prompts/*.zsh integration.zsh ziro.zsh; do
+          for f in install.zsh commands/*.zsh lib/*.zsh prompts/*.zsh ziro.zsh scripts/*.zsh; do
             [ -f "$f" ] && zsh -n "$f" || echo "skip: $f"
           done
 

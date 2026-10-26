@@ -1,6 +1,6 @@
 # Declarative Architecture: Plugin Manifests & Build Synthesis
 
-This document specifies Ziro Shell's declarative plugin architecture (Spec 012), its conceptual heritage from Intent-Oriented Programming (IOP), and the mechanisms used to eliminate runtime discovery overhead through build-time synthesis.
+This document details Ziro Shell's declarative plugin architecture, its conceptual heritage from Intent-Oriented Programming (IOP), and the mechanisms used to eliminate runtime discovery overhead through build-time synthesis.
 
 ---
 

@@ -75,7 +75,7 @@ Clone the repository and run the setup script:
 ```bash
 git clone https://github.com/Pakrohk/ziro-shell.git ~/.ziro
 cd ~/.ziro
-./install.sh
+./install.zsh
 ```
 
 The installer establishes:

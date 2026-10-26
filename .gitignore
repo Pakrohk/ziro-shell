@@ -104,3 +104,4 @@ opencode-rag.json
 vendor/
 /plugins/
 plugins/**/*.zwc
+docs/_build/

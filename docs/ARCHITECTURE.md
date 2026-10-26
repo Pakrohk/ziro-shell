@@ -17,9 +17,9 @@ Budget: ≤ 5.0s (Async / Python 3.12+ stdlib)       Budget: ≤ 5.0ms (Zero-for
                      │                                               │
                      ▼                                               ▼
 ┌─────────────────────────────────────────┐       ┌──────────────────────────────────────┐
-│  Layer 1: Static Analyzer (spec 001)    │       │  ~/.zshrc                            │
+│  Layer 1: Static Analyzer (Cold Path)   │       │  ~/.zshrc                            │
 │  - AST & regex heuristic inspection     │       │  └── source ~/.config/ziro/boot.zsh  │
-│  - Security trust engine (ADL-024)      │       └──────────────────┬───────────────────┘
+│  - Security trust engine                │       └──────────────────┬───────────────────┘
 └────────────────────┬────────────────────┘                          │ (7-line shim)
                      │                                               ▼
                      ▼                                    ┌──────────────────────┐
@@ -58,7 +58,7 @@ Budget: ≤ 5.0s (Async / Python 3.12+ stdlib)       Budget: ≤ 5.0ms (Zero-for
   - `exit_time`: **20.57ms** (versus Zinit Turbo: 40.12ms, 2x faster).
 - **Subprocess Fork Budget**: Exactly **0 forks** permitted across Stages 0 through 4. No `cat`, `sed`, `grep`, `awk`, subshells `(...)`, or command substitutions `$(...)`. All file and environment checks use native Zsh parameter expansions and modules (`zsh/datetime`, `zsh/stat`, `zsh/parameter`).
 
-### 1.2 The Compiled-Only Bytecode Invariant (ADL-015)
+### 1.2 The Compiled-Only Bytecode Invariant
 To eliminate filesystem stat overhead and on-the-fly parsing in the hot path, every eager artifact loaded during boot must exist as compiled Zsh bytecode (`.zwc`):
 1. **Boot Shim Guard**: `~/.config/ziro/boot.zsh` checks for `~/.cache/ziro/ziro-boot.zsh.zwc`. If missing, execution halts immediately with `return 1` and a diagnostic message. Fallback to uncompiled `.zsh` is prohibited.
 2. **Build Freshness Verification**: `core/build.py` validates that for every eager entry in `load.toml`, `file.zsh.zwc` exists and `mtime(.zwc) > mtime(.zsh)`. Builds fail with exit code 1 if any eager bytecode artifact is missing or stale.
@@ -68,7 +68,7 @@ To eliminate filesystem stat overhead and on-the-fly parsing in the hot path, ev
 
 ## 2. The 4-Layer Architectural Model
 
-Ziro structures responsibilities across four distinct layers (Spec 000):
+Ziro structures responsibilities across four distinct architectural layers:
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
@@ -171,7 +171,7 @@ Stored at `~/.cache/ziro/analysis/<plugin>.json`:
 
 ## 3. 4-Tier Load Timing Model
 
-Ziro replaces binary load choices (eager vs. post-prompt) with a deterministic 4-tier loading model (ADL-004, ADL-025):
+Ziro replaces binary load choices (eager vs. post-prompt) with a deterministic 4-tier loading model:
 
 | Tier | Lifecycle Point | Defer Stage | Typical Components | Execution Budget | Trigger / Mechanism |
 |---|---|:---:|---|---|---|
@@ -324,8 +324,8 @@ When a new Zsh session begins:
    - Section 5 CLI lazy loader wrapper (`ziro() { ... }`).
    - Section 6 precmd dispatcher hook registration.
 
-### 4.3 On-Demand Proxy Un-Stubbing Mechanics (ADL-022)
-Early proxy implementations relied on Zsh `$0` dynamic evaluation inside aliased functions, triggering infinite recursion loops (`FUNCNEST` limit exceeded) due to `FUNCTION_ARGZERO` behavior. Ziro implements Candidate A (Explicit Stub Injection + Self-Unfunction):
+### 4.3 On-Demand Proxy Un-Stubbing Mechanics
+Early proxy implementations relied on Zsh `$0` dynamic evaluation inside aliased functions, triggering infinite recursion loops (`FUNCNEST` limit exceeded) due to `FUNCTION_ARGZERO` behavior. Ziro implements Explicit Stub Injection with Self-Unfunction:
 
 ```zsh
 # Generated proxy for command 'wd'
@@ -348,7 +348,7 @@ Execution flow:
 
 ---
 
-## 5. Security Engine Architecture (ADL-024)
+## 5. Security Engine Architecture
 
 Ziro incorporates an automated security heuristic within Layer 1 to evaluate plugin provenance, repository stability, and source safety before granting eager execution privileges.
 

@@ -1,6 +1,6 @@
 # Plugin Authoring Guide
 
-This guide details how to build and package plugins for the `ziro-shell` ecosystem. It covers the Spec 012 `ziro-plugin.toml` manifest specification, analyzer classification heuristics, trust scoring systems, local testing workflows, and publication requirements.
+This guide details how to build and package plugins for the `ziro-shell` ecosystem. It covers the `ziro-plugin.toml` manifest specification, analyzer classification heuristics, trust scoring systems, local testing workflows, and publication requirements.
 
 ---
 
@@ -16,14 +16,14 @@ Ziro supports four categories of plugins:
 
 ---
 
-## Spec 012 `ziro-plugin.toml` Manifest Specification
+## The `ziro-plugin.toml` Manifest Specification
 
 Native Ziro plugins place a `ziro-plugin.toml` manifest at the repository root. All sections and fields are optional, but defining them provides deterministic loading behavior.
 
 ### Manifest Schema Reference
 
 ```toml
-# ziro-plugin.toml — Plugin Manifest Specification (Spec 012)
+# ziro-plugin.toml — Plugin Manifest Specification
 
 [plugin]
 name = "ziro-ghost"
@@ -207,7 +207,7 @@ Before tagging and publishing your plugin for the Ziro ecosystem:
 - [ ] **Manifest Valid**: `ziro-plugin.toml` placed at repository root and validates with `tomllib`.
 - [ ] **Plugin Sovereignty**: Plugin must remain functional if sourced in pure Zsh without Ziro present (Constitution Principle XIV). Never assume `ziro` binary exists at runtime.
 - [ ] **No Shell Forks**: No `$(...)` subshells executed during the top-level script body. Store state via Zsh parameter expansion.
-- [ ] **Zsh Idioms**: Follow ADR-009 guidelines:
+- [ ] **Zsh Idioms**: Follow idiom-first guidelines:
   - Guard paths: `[[ -f "$file" ]] || return 0`
   - Fallbacks: `${VAR:-default}` instead of multi-line `if` checks.
   - Suffix/prefix removal via native parameter expansion (`${var#prefix}`).
