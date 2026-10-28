@@ -178,7 +178,7 @@ Ziro replaces binary load choices (eager vs. post-prompt) with a deterministic 4
 | **Eager (Pre-Compinit)** | Before `compinit` parses namespace | Stage 2 | `zsh-completions`, core git completion paths | `< 1.0ms` | `$fpath` injection, `#compdef` queue |
 | **Eager (Pre-Prompt)** | Immediately before interactive prompt | Stage 4 | `starship` (eval-cache), `zcolors`, `ziro-aliases-core`, `ziro-keybindings`, `ohmyzsh-ssh-agent`, `ziro-ssh-config` | `< 1.0ms` (cached) `< 10ms` (uncached) | Direct `.zwc` source, eval-cache hits |
 | **Deferred** | Immediately after primary prompt | Stage 5 | `fast-syntax-highlighting`, `ziro-ghost`, `fzf-tab`, `aliases.zsh` (extended safety aliases) | `< 5000ms` per task | Single `precmd` dispatcher, priority slots `a`–`d` |
-| **On-Demand** | User invokes command, function, or key | Stage 7 | `fzf` (`^R`, `^T`, `^[c`), `zoxide` (`z`, `zi`), `wd`, helpers (`mkcd`, `take`, `extract`, `clipcopy`, `clippaste`) | `< 30ms` perceived latency | Dynamic un-stubbing proxy functions |
+| **On-Demand** | User invokes command, function, or key | Stage 7 | `fzf` (`^R`, `^T`, `^[c`), `zoxide` (`z`, `zi`), `wd`, helpers (`mkcd`, `take`, `extract`, `clipcopy`, `clippaste`, `ff`, `fy`, `fb`, `fl`) | `< 30ms` perceived latency | Dynamic un-stubbing proxy functions |
 
 ### 3.1 Tier Details & Mechanics
 

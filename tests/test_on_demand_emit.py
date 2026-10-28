@@ -67,7 +67,7 @@ def test_emit_wd_contains_proxy():
 def test_emit_helpers_contains_proxies():
     out = emit_on_demand_function(load_tools()['ziro-helpers'])
     assert '_ziro_ziro_helpers_ensure' in out or '_ziro_helpers_ensure' in out
-    for fn in ('mkcd', 'take', 'extract', 'clipcopy', 'clippaste'):
+    for fn in ('mkcd', 'take', 'extract', 'clipcopy', 'clippaste', 'ff', 'fy', 'fb', 'fl'):
         assert f'{fn}() {{' in out
         assert 'unfunction' in out
 

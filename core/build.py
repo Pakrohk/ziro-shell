@@ -178,7 +178,7 @@ timing = "on-demand"
 order = 13
 method = "local-source"
 trigger = "function"
-trigger_functions = ["mkcd", "take", "extract", "clipcopy", "clippaste"]
+trigger_functions = ["mkcd", "take", "extract", "clipcopy", "clippaste", "ff", "fy", "fb", "fl"]
 path = "${ZIRO_HOME}/lib/helpers.zsh"
 
 [[tool]]
