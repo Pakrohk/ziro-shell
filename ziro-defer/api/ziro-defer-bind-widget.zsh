@@ -23,12 +23,7 @@ _ziro_defer_api_bind_key() {
   # The cmd is stored in $cmd_var and read at press time (not baked into widget).
   eval "${widget_name}() {
     emulate -L zsh
-    zle -D '${widget_name}' 2>/dev/null
-    bindkey -r '${key}' 2>/dev/null
-    local _c=\"\${${cmd_var}}\"
-    unset ${cmd_var}
-    eval \"\$_c\"
-    zle -R 2>/dev/null || true
+    eval \"\${${cmd_var}}\"
   }"
 
   zle -N "$widget_name" 2>/dev/null || { unset "$cmd_var"; return 1; }
