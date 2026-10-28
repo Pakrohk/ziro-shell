@@ -71,15 +71,33 @@ def write_theme_conf(config_dir: Path, sel: ThemeSelection) -> None:
     _theme_conf_path(config_dir).write_text("\n".join(lines))
 
 
-def list_themes(themes_dir: Path, component: str) -> list[str]:
+def list_themes(themes_dir: Path, component: str, include_starship_presets: bool = False) -> list[str]:
     """List available themes for component."""
+    themes: set[str] = set()
     comp_dir = themes_dir / component
-    if not comp_dir.is_dir():
-        return []
-    return sorted(
-        p.stem for p in comp_dir.iterdir()
-        if p.is_file() and not p.name.startswith(".")
-    )
+    if comp_dir.is_dir():
+        for p in comp_dir.iterdir():
+            if p.is_file() and not p.name.startswith("."):
+                themes.add(p.stem)
+
+    # Optionally include built-in starship presets if available
+    if component == "prompt" and include_starship_presets:
+        import shutil
+        import subprocess
+        if shutil.which("starship"):
+            try:
+                res = subprocess.run(["starship", "preset", "--list"], capture_output=True, text=True, timeout=2)
+                if res.returncode == 0:
+                    for line in res.stdout.splitlines():
+                        preset = line.strip()
+                        if preset:
+                            themes.add(preset)
+            except Exception:
+                pass
+
+    return sorted(themes)
+
+
 
 
 def theme_path(themes_dir: Path, component: str, name: str) -> Path:

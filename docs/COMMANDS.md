@@ -97,7 +97,7 @@ ziro <command> [arguments...]
 | `sync` | `ziro sync` | **Build Pipeline**: Compiles eager scripts to `.zwc` bytecode, bakes absolute paths into `~/.config/ziro/boot.zsh`, and regenerates dispatch caches. |
 | `update` | `ziro update` | **Non-blocking Update**: Pulls repository updates, rebuilds `.zwc` artifacts, and refreshes vendor plugins. |
 | `plugin` | `ziro plugin list [--names]`<br>`ziro plugin add <repo>`<br>`ziro plugin remove <name>` | **Plugin Manager**: Lists all managed plugins and binaries with their lifecycle stage (Eager, Deferred, On-Demand), load method, and descriptions. Installs, audits security trust scores (0–4), and manages ecosystem plugins. |
-| `theme` | `ziro theme list`<br>`ziro theme apply <theme>` | **Theme Manager**: Switches between Starship presets and shell prompt themes. |
+| `theme` | `ziro theme list`<br>`ziro theme apply <theme>`<br>`ziro theme edit [theme]` | **Theme Manager**: Switches between Starship presets (`tokyo-night`, `gruvbox-rainbow`, `pastel-powerline`, etc.) and opens them directly in `$EDITOR` for custom tweaking. |
 | `bench` | `ziro bench [--iters 11]` | **Startup Benchmark**: Measures honest microsecond startup latency across multiple iterations with min/median telemetry. |
 | `analyze` | `ziro analyze [--full]` | **Static Analyzer**: Inspects plugins for hooks, syntax safety, completion definitions, and auto-generates `load.toml`. |
 | `help` | `ziro help [command]` | Displays usage instructions and flag references for any subcommand. |

@@ -53,9 +53,17 @@ class TestThemeCli(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("applied", buf.getvalue())
 
+    def test_edit_non_tty(self):
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = theme_cli.main(["edit"])
+        self.assertEqual(rc, 0)
+        self.assertIn("opening", buf.getvalue())
+
     def test_unknown_subcommand(self):
         rc = theme_cli.main(["bogus"])
         self.assertEqual(rc, 2)
+
 
 
 if __name__ == "__main__":
