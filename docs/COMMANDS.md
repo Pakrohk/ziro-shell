@@ -3,7 +3,7 @@
 > A practical guide to daily workflows, navigation aliases, the `ziro` CLI suite, and smart directory jumping with real-time history synchronization.
 
 <div align="center">
-  <img src="../assets/terminal-demo.svg" alt="Ziro Shell Commands Demo" width="100%" />
+  <img src="../assets/demo.gif" alt="Ziro Shell Commands Demo" width="100%" />
 </div>
 
 ---
