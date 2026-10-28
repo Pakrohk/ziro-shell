@@ -1,31 +1,54 @@
 """ziro-shell — Python CLI dispatcher.
 
 Layer: 3 (Python core, cold-path only)
-Spec: 006 R4
+Spec: 006 R4, Spec 013 (Cyclopts Modernization)
 
 Usage: python3 -m core <subcommand> [args...]
 """
 
 from __future__ import annotations
 
+import os
 import sys
 
+from core.constants import VERSION
 
-def main(argv: list[str] | None = None) -> int:
+COMMANDS: tuple[str, ...] = (
+    "analyze",
+    "bench",
+    "completion",
+    "config",
+    "doctor",
+    "install",
+    "plugin",
+    "prompt",
+    "suggest",
+    "sync",
+    "tag",
+    "theme",
+    "update",
+)
+
+
+def legacy_main(argv: list[str] | None = None) -> int:
+    """Legacy manual sys.argv dispatcher retained for emergency rollback."""
     args = list(argv or sys.argv[1:])
     if not args:
         print("usage: python3 -m core <subcommand> [args...]", file=sys.stderr)
-        print("subcommands: theme, prompt, install, plugin, tag, config, suggest, doctor, bench, completion, update, sync, analyze", file=sys.stderr)
+        print(f"subcommands: {', '.join(COMMANDS)}", file=sys.stderr)
         return 2
 
     sub = args[0]
     rest = args[1:]
 
+    if sub == "--list-commands":
+        print(" ".join(COMMANDS))
+        return 0
     if sub in ("--help", "-h"):
         from core import help_cli
         return help_cli.cmd_help(rest)
     if sub in ("--version", "-v"):
-        print("ziro-shell v1.2.0")
+        print(f"ziro-shell v{VERSION}")
         return 0
     if sub == "help":
         from core import help_cli
@@ -72,6 +95,31 @@ def main(argv: list[str] | None = None) -> int:
 
     print(f"unknown subcommand: {sub}", file=sys.stderr)
     return 2
+
+
+def main(argv: list[str] | None = None) -> int:
+    """Main CLI entrypoint delegating to Cyclopts application."""
+    if os.environ.get("ZIRO_LEGACY_CLI") == "1":
+        return legacy_main(argv)
+
+    args = list(argv or sys.argv[1:])
+
+    if not args:
+        print("usage: python3 -m core <subcommand> [args...]", file=sys.stderr)
+        print(f"subcommands: {', '.join(COMMANDS)}", file=sys.stderr)
+        return 2
+
+    if args[0] == "--list-commands":
+        print(" ".join(COMMANDS))
+        return 0
+
+    try:
+        from core.cli import run
+        return run(args)
+    except ModuleNotFoundError as exc:
+        if "cyclopts" in str(exc):
+            return legacy_main(argv)
+        raise
 
 
 if __name__ == "__main__":

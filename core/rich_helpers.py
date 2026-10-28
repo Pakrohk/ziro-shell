@@ -61,9 +61,12 @@ def render_table(title: str, headers: list[str], rows: list[list[str]]) -> bool:
     try:
         from rich.table import Table
         from rich import box
-        table = Table(title=title, box=box.ROUNDED)
-        for h in headers:
-            table.add_column(h, style="cyan", no_wrap=False)
+        table = Table(title=title, box=box.ROUNDED, expand=True, header_style="bold cyan")
+        styles = ["cyan", "green", "yellow", "magenta", "white"]
+        for i, h in enumerate(headers):
+            no_wrap = (i < len(headers) - 1)
+            col_style = styles[i % len(styles)]
+            table.add_column(h, style=col_style, no_wrap=no_wrap)
         for row in rows:
             table.add_row(*row)
         console.print(table)

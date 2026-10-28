@@ -32,11 +32,12 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
     "install": HelpEntry(
         name="install",
         summary="Install ziro with defaults or custom profile",
-        usage="ziro install [--default | --custom] [--dry-run]",
+        usage="ziro install [--default | --custom] [--dry-run] [--no-activate]",
         flags=[
             ("--default", "Install with pre-configured defaults (Starship, recommended plugins)"),
             ("--custom", "Interactive prompt to choose components manually"),
             ("--dry-run", "Preview files that would be written without writing"),
+            ("--no-activate", "Skip modifying ~/.zshrc during install"),
         ],
         examples=[
             "ziro install",

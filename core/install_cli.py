@@ -13,6 +13,9 @@ import sys
 from pathlib import Path
 
 
+from core.paths import get_paths
+
+
 def _verify_starship() -> tuple[bool, str]:
     """Verify starship is installed and working."""
     if not shutil.which("starship"):
@@ -32,17 +35,11 @@ def _verify_starship() -> tuple[bool, str]:
 
 
 def _config_dir() -> Path:
-    base = os.environ.get("ZIRO_CONFIG")
-    if base:
-        return Path(base)
-    return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "ziro"
+    return get_paths()["config"]
 
 
 def _ziro_home() -> Path:
-    env = os.environ.get("ZIRO_HOME")
-    if env:
-        return Path(env)
-    return Path.home() / ".ziro"
+    return get_paths()["home"]
 
 
 def _write_defaults(cfg: Path) -> None:
@@ -139,13 +136,7 @@ def _configure_ghost_nerd_font(cfg: Path, argv: list[str] | None = None) -> None
 
 
 def _data_dir() -> Path:
-    base = os.environ.get("ZIRO_DATA")
-    if base:
-        return Path(base)
-    base_xdg = os.environ.get("XDG_DATA_HOME")
-    if base_xdg:
-        return Path(base_xdg) / "ziro"
-    return Path.home() / ".local" / "share" / "ziro"
+    return get_paths()["data"]
 
 
 def _write_completion(data_dir: Path) -> Path:
@@ -202,6 +193,68 @@ def _ensure_venv() -> Path | None:
         return None
 
 
+def _activate_zshrc(cfg: Path, dry_run: bool = False, no_activate: bool = False) -> tuple[bool, str]:
+    """Idempotently append source <boot.zsh> to ~/.zshrc with a timestamped backup."""
+    if no_activate:
+        return True, "skipped (--no-activate)"
+
+    zdotdir = os.environ.get("ZDOTDIR")
+    zshrc_dir = Path(zdotdir) if zdotdir else Path(os.environ.get("HOME", str(Path.home())))
+
+    # Protect real user home from pollution when tests run with unmocked HOME
+    try:
+        import pwd
+        real_user_home = Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
+    except Exception:
+        real_user_home = Path.home().resolve()
+
+    if (zshrc_dir.resolve() == real_user_home) and (os.environ.get("PYTEST_CURRENT_TEST") or "unittest" in sys.modules):
+        return True, "skipped (real home protected in test mode)"
+
+    zshrc = zshrc_dir / ".zshrc"
+    boot_shim = cfg / "boot.zsh"
+    source_line = f"source {boot_shim}"
+
+    if zshrc.is_file():
+        try:
+            content = zshrc.read_text(encoding="utf-8")
+            for line in content.splitlines():
+                stripped = line.strip()
+                clean = stripped.rstrip('"\'')
+                if (
+                    stripped == source_line
+                    or stripped == f'source "{boot_shim}"'
+                    or (clean.startswith("source ") and clean.endswith("boot.zsh"))
+                    or "boot.zsh" in stripped
+                ):
+                    return True, "already activated"
+        except Exception as e:
+            return False, f"error reading {zshrc}: {e}"
+
+    if dry_run:
+        return True, f"[dry-run] would activate in {zshrc}"
+
+    backup_str = ""
+    if zshrc.is_file():
+        from datetime import datetime, timezone
+        ts = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+        backup = zshrc_dir / f".zshrc.bak.{ts}"
+        try:
+            shutil.copy2(zshrc, backup)
+            backup_str = f" (backup: {backup})"
+        except Exception as e:
+            print(f"⚠️  warning: failed to create zshrc backup: {e}", file=sys.stderr)
+
+    try:
+        zshrc.parent.mkdir(parents=True, exist_ok=True)
+        append_text = f'\n# Ziro Shell initialization\nsource "{boot_shim}"\n'
+        with zshrc.open("a", encoding="utf-8") as f:
+            f.write(append_text)
+        return True, f"activated in {zshrc}{backup_str}"
+    except Exception as e:
+        return False, f"failed to write {zshrc}: {e}"
+
+
 def cmd_install(argv: list[str]) -> int:
     from core.help_cli import handle_help_if_requested
     ret = handle_help_if_requested(argv, "install")
@@ -211,6 +264,7 @@ def cmd_install(argv: list[str]) -> int:
     dry_run = "--dry-run" in argv
     default_mode = "--default" in argv
     custom_mode = "--custom" in argv
+    no_activate = "--no-activate" in argv
 
     cfg = _config_dir()
 
@@ -314,8 +368,27 @@ def cmd_install(argv: list[str]) -> int:
         print("     ziro prompt set none     # no prompt management", file=sys.stderr)
         # Non-fatal: install still succeeds
 
+    # Step: Execute Build Pipeline (ziro sync)
+    print("\nRunning build pipeline...")
+    from core.build import build
+    ok_build, msg_build, _ = build()
+    if not ok_build:
+        print(f"❌ build pipeline failed: {msg_build}", file=sys.stderr)
+        return 1
+    print(f"✅ boot chain compiled: {cfg / 'boot.zsh'}")
+
+    # Step: Shell activation in .zshrc
+    ok_act, msg_act = _activate_zshrc(cfg, dry_run=dry_run, no_activate=no_activate)
+    if not ok_act:
+        print(f"⚠️  warning: activation failed: {msg_act}", file=sys.stderr)
+    else:
+        print(f"✅ shell activation: {msg_act}")
+
     print("")
-    print("Next: ziro plugin add <name>")
+    print("────────────────────────────────────────")
+    print("🚀 Installation complete!")
+    print("Run: exec zsh")
+    print("────────────────────────────────────────")
     return 0
 
 

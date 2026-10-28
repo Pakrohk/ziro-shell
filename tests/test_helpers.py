@@ -114,6 +114,34 @@ class TestHelpers(unittest.TestCase):
         self.assertEqual(res.returncode, 1)
         self.assertIn("no supported clipboard tool found", res.stdout + res.stderr)
 
+    def test_fzf_helpers_missing_fzf(self) -> None:
+        """ff, fy, fb, fl fail gracefully when fzf is not in PATH."""
+        for cmd in ("ff", "fy", "fb", "fl"):
+            script = f'PATH="/nonexistent" {cmd} 2>&1'
+            res = self._run_zsh(script)
+            self.assertEqual(res.returncode, 1)
+            self.assertIn("fzf not found in PATH", res.stdout + res.stderr)
+
+    def test_fzf_helpers_cancel_returns_cleanly(self) -> None:
+        """ff, fy, fb, fl return 0 when fzf is cancelled (exit code 130 or 1)."""
+        with tempfile.TemporaryDirectory() as td:
+            mock_fzf = os.path.join(td, "fzf")
+            with open(mock_fzf, "w") as f:
+                f.write("#!/bin/sh\nexit 130\n")
+            os.chmod(mock_fzf, 0o755)
+
+            mock_yazi = os.path.join(td, "yazi")
+            with open(mock_yazi, "w") as f:
+                f.write("#!/bin/sh\nexit 0\n")
+            os.chmod(mock_yazi, 0o755)
+
+            for cmd in ("ff", "fy", "fb", "fl"):
+                script = f'PATH="{td}:$PATH" {cmd}'
+                res = self._run_zsh(script)
+                self.assertEqual(res.returncode, 0, f"{cmd} failed on cancel: {res.stderr}")
+
+
+
 
 def shutil_which(cmd: str) -> bool:
     import shutil

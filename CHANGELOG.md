@@ -13,6 +13,34 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.0] — Native Zsh Bootstrap & Declarative Engine (2026-10-25)
+
+### Added
+- **Zsh-Native Bootstrap (`install.zsh`)**:
+  - Pure Zsh, zero-dependency bootstrap installer with stream-truncation protection.
+  - Hard prerequisite validation (Zsh >= 5.8, Python >= 3.11, Git).
+  - Atomic cloning to staging directory with local EXIT/SIGINT cleanup traps.
+  - Strict repository origin verification preventing execution of unverified directories or unknown forks.
+- **Unified Path Baking**:
+  - `BOOT_SHIM_TEMPLATE` and `write_boot_shim` bake resolved runtime paths (`ZIRO_HOME`, `ZIRO_CONFIG`, `ZIRO_DATA`, `ZIRO_CACHE`) into `~/.config/ziro/boot.zsh`.
+  - Guarantees fresh interactive shells gain full access to `ziro` CLI without requiring external environment variable definitions.
+- **Idempotent Shell Profile Activation**:
+  - `ziro install` automatically configures `${ZDOTDIR:-$HOME}/.zshrc` with timestamped backups (`.zshrc.bak.*`).
+  - Added `--no-activate` flag to support developer checkouts and isolated testing.
+- **CLI Subcommand Discovery**:
+  - Added `--list-commands` flag to `core/__main__.py` for introspection.
+  - Added single-source versioning in `core/constants.py`.
+- **Background Update Checker**:
+  - Implemented `scripts/background-update.zsh` for non-blocking idle checks.
+- **Hermetic Test Suite**:
+  - Added `tests/test_install_zsh.py` and `tests/test_boot_shim_paths.py`.
+
+### Changed
+- Native Zsh Bootstrap: Retired legacy `install.sh` and replaced with native, zero-dependency `install.zsh`.
+- `core/install_cli.py`: Integrated build pipeline execution (`build()`) directly into the installation process, eliminating circular post-install sync requirements.
+- `core/doctor_cli.py`: Unified all path inspections using shared `core/paths.py`.
+- `pyproject.toml`: Compliant PEP 621 structure with `[build-system]`.
+
 ## [v1.1.3] — Ghost Integration (2026-10-16)
 
 ### Added

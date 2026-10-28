@@ -11,6 +11,12 @@ def _import_check(name):
     return getattr(core.doctor_cli, name)
 
 
+@pytest.fixture(autouse=True)
+def _clean_ziro_env(monkeypatch):
+    for var in ("ZIRO_HOME", "ZIRO_CONFIG", "ZIRO_DATA", "ZIRO_CACHE"):
+        monkeypatch.delenv(var, raising=False)
+
+
 def test_check_python_version_returns_tuple():
     fn = _import_check('_check_python_version')
     result = fn()

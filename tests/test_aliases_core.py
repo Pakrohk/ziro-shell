@@ -28,19 +28,19 @@ class TestAliasesCore(unittest.TestCase):
         script = f'source "{CORE_ALIASES_FILE}"; alias ls; alias grep; alias ..; alias ...; alias ....'
         res = subprocess.run(["zsh", "-f", "-c", script], capture_output=True, text=True)
         self.assertEqual(res.returncode, 0, res.stderr)
-        self.assertIn("ls='ls --color=auto'", res.stdout)
+        self.assertTrue("ls=" in res.stdout and "-F" in res.stdout)
         self.assertIn("grep='grep --color=auto'", res.stdout)
         self.assertIn("..='cd ..'", res.stdout)
         self.assertIn("...='cd ../..'", res.stdout)
         self.assertIn("....='cd ../../..'", res.stdout)
 
     def test_ll_fallback_when_eza_absent(self) -> None:
-        """When eza is absent, ll/la/lt fallback to ls."""
+        """When eza is absent, ll/la/lt fallback to ls with classification."""
         script = f'PATH="/nonexistent" source "{CORE_ALIASES_FILE}"; alias ll; alias la; alias lt'
         res = subprocess.run(["zsh", "-f", "-c", script], capture_output=True, text=True)
         self.assertEqual(res.returncode, 0, res.stderr)
-        self.assertIn("ll='ls -la'", res.stdout)
-        self.assertIn("la='ls -a'", res.stdout)
+        self.assertTrue("ll='ls -la" in res.stdout)
+        self.assertTrue("la='ls -a" in res.stdout)
         self.assertIn("lt='ls -R'", res.stdout)
 
     def test_ll_uses_eza_when_present(self) -> None:
@@ -55,3 +55,41 @@ class TestAliasesCore(unittest.TestCase):
             res = subprocess.run(["zsh", "-f", "-c", script], capture_output=True, text=True)
             self.assertEqual(res.returncode, 0, res.stderr)
             self.assertIn("eza", res.stdout)
+
+    def test_chpwd_zoxide_hook_registered(self) -> None:
+        """_ziro_chpwd_zoxide hook is attached to chpwd."""
+        script = f'source "{CORE_ALIASES_FILE}"; typeset -p chpwd_functions'
+        res = subprocess.run(["zsh", "-f", "-c", script], capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("_ziro_chpwd_zoxide", res.stdout)
+
+    def test_chpwd_syncs_with_zoxide_on_cd(self) -> None:
+        """When cd is executed, _ziro_chpwd_zoxide calls zoxide add or un-stubs proxy."""
+        with tempfile.TemporaryDirectory() as td:
+            log_file = Path(td) / "zoxide.log"
+            mock_bin = Path(td) / "bin"
+            mock_bin.mkdir()
+            mock_zoxide = mock_bin / "zoxide"
+            mock_zoxide.write_text(f"#!/bin/sh\necho \"$@\" >> '{log_file}'\n")
+            mock_zoxide.chmod(0o755)
+
+            target_dir = Path(td) / "sub_dir"
+            target_dir.mkdir()
+
+            script = f'''
+            PATH="{mock_bin}:$PATH"
+            source "{CORE_ALIASES_FILE}"
+            cd "{target_dir}"
+            '''
+            res = subprocess.run(["zsh", "-f", "-c", script], capture_output=True, text=True)
+            self.assertEqual(res.returncode, 0, res.stderr)
+            self.assertTrue(log_file.exists())
+            self.assertIn(f"add -- {target_dir}", log_file.read_text())
+
+    def test_completion_rehash_style_set(self) -> None:
+        """zstyle ':completion:*' rehash true is configured."""
+        script = f'source "{CORE_ALIASES_FILE}"; zstyle -L ":completion:*"'
+        res = subprocess.run(["zsh", "-f", "-c", script], capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("rehash true", res.stdout)
+

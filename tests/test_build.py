@@ -280,3 +280,35 @@ def test_validate_zwc_ignores_non_eager(tmp_path):
     assert len(result["stale"]) == 0
 
 
+def test_render_deferred_section_syntax_highlighting_loads_last():
+    """Syntax highlighting plugins must sort after any other deferred plugins."""
+    tools = [
+        {"name": "fast-syntax-highlighting", "timing": "deferred", "category": "syntax_highlighting", "order": 1, "path": "/path/to/fsh.zsh", "enabled": True},
+        {"name": "my-custom-plugin", "timing": "deferred", "category": "custom", "order": 100, "path": "/path/to/custom.zsh", "enabled": True},
+        {"name": "fzf-tab", "timing": "deferred", "category": "completion", "order": 50, "path": "/path/to/fzf-tab.zsh", "enabled": True},
+    ]
+    out = render_deferred_section(tools)
+    idx_fzf_tab = out.index("fzf-tab")
+    idx_custom = out.index("my-custom-plugin")
+    idx_fsh = out.index("fast-syntax-highlighting")
+
+    assert idx_fzf_tab < idx_custom
+    assert idx_custom < idx_fsh
+
+
+def test_render_ondemand_section_refreshes_highlight_widgets():
+    """On-demand key loader functions must invoke _zsh_highlight_bind_widgets to prevent ZLE desync."""
+    tools = [
+        {
+            "name": "fzf",
+            "timing": "on-demand",
+            "trigger": "key",
+            "trigger_keys": [{"key": "^R", "widget": "fzf-history-widget"}],
+            "cache_path": "/path/to/fzf.zsh",
+            "enabled": True,
+        }
+    ]
+    out = render_ondemand_section(tools)
+    assert "_zsh_highlight_bind_widgets" in out
+
+

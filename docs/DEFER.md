@@ -1,6 +1,6 @@
 # Ziro-Defer v2.0.0: Runtime Task Scheduler Guide
 
-`ziro-defer` v2.0.0 (Spec 005) is a stage-aware, priority-partitioned runtime task scheduler for Zsh. It supersedes legacy binary deferral mechanisms (which merely delayed execution until after the prompt) by orchestrating shell startup, background tasks, and on-demand proxies across 8 deterministic stages with strict latency budgets.
+`ziro-defer` v2.0.0 is a stage-aware, priority-partitioned runtime task scheduler for Zsh. It supersedes legacy binary deferral mechanisms (which merely delayed execution until after the prompt) by orchestrating shell startup, background tasks, and on-demand proxies across 8 deterministic stages with strict latency budgets.
 
 ---
 
@@ -196,7 +196,7 @@ ziro defer stats
 ```
 
 ### 8.2 Module-Level Lazy Loading in `ziro-boot.zsh`
-To avoid paying a ~2.5ms startup penalty for all 33 scheduler source files (ADL-008, ADL-011), `ziro sync` inlines 10 core eager modules into `ziro-boot.zsh` and stubs 22 lazy modules behind `_ziro_defer_need`:
+To avoid paying a ~2.5ms startup penalty for all 33 scheduler source files, `ziro sync` inlines 10 core eager modules into `ziro-boot.zsh` and stubs 22 lazy modules behind `_ziro_defer_need`:
 ```zsh
 # Core eager modules (inlined):
 # stage-0, version, defaults, queue, task-registry, scheduler, hooks, ziro-defer, bind-widget, dispatch

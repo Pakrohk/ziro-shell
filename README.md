@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="./assets/banner.svg" alt="Ziro Shell Banner" width="100%" />
+  <img src="./assets/banner.svg" alt="Ziro Shell — The intent-oriented Zsh" width="100%" />
 </div>
 
 <!-- S2: Badges, Tagline & Mini-TOC -->
@@ -9,7 +9,7 @@
   <a href="https://www.zsh.org/"><img src="https://img.shields.io/badge/zsh-5.8%2B-orange.svg" alt="Zsh 5.8+"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
   <a href="https://github.com/Pakrohk/ziro-shell/releases"><img src="https://img.shields.io/badge/version-v1.2.0-blueviolet.svg" alt="Version: v1.2.0"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-434%20passing-success.svg" alt="Tests: 434 passing"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-449%20passing-success.svg" alt="Tests: 449 passing"></a>
 </p>
 
 <h3 align="center">The intent-oriented Zsh</h3>
@@ -17,6 +17,7 @@
 
 <p align="center">
   <a href="#installation">Install</a> ·
+  <a href="#essential-commands--daily-workflow">Commands</a> ·
   <a href="#features">Features</a> ·
   <a href="#benchmarks--comparison">Benchmarks & Comparison</a> ·
   <a href="#how-it-works">How It Works</a> ·
@@ -35,7 +36,7 @@ Ziro is an intent-oriented Zsh runtime: every plugin is analyzed at install time
 - **Compile (`.zwc`)**: Sourced files and functions are pre-compiled into native Zsh wordcode (`.zwc`), bypassing tokenization on shell startup.
 - **Lazy (On-Demand)**: A deterministic 4-tier scheduler defers execution so non-essential components materialize post-prompt or on invocation.
 
-Measured baseline: **~16-21ms startup** (compinit sync floor: ~6.75ms / 67% of startup), **27 pre-configured tools**, and **434 passing tests**. Ziro is an execution runtime enforcing lifecycle isolation, cache coherence, and deterministic scheduling.
+Measured baseline: **~16-21ms startup** (compinit sync floor: ~6.75ms / 67% of startup), **28 pre-configured tools**, and **447 passing tests**. Ziro is an execution runtime enforcing lifecycle isolation, cache coherence, and deterministic scheduling.
 
 ---
 
@@ -82,44 +83,99 @@ Ziro enforces a strict compiled-only rule: execution paths require fresh `.zwc` 
 
 - **Zsh**: 5.8+ · **Python**: 3.11+ (standard library only; cold-path only) · **Git**: 2.25+ · **OS**: Linux or macOS
 
-### Quick Install
+### 1. One-Line Native Installer (Recommended)
 
-Run the automated installer directly:
+Run the automated native Zsh installer directly:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.sh | zsh
+curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.zsh | zsh
 ```
 
-### Manual Install
+Or inspect before running:
 
-Clone Ziro into your target runtime directory and run setup:
+```bash
+curl -fsSLO https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.zsh
+less install.zsh
+zsh install.zsh
+```
+
+### 2. Manual Git Clone
+
+Clone Ziro into your target directory and execute the bootstrap script:
 
 ```bash
 git clone https://github.com/Pakrohk/ziro-shell.git ~/.ziro
-~/.ziro/install.sh --default
+~/.ziro/install.zsh --default
 ```
 
-### Activate in `.zshrc`
+The installer verifies environment integrity, compiles initial `.zwc` wordcode, bakes runtime paths directly into `~/.config/ziro/boot.zsh`, and automatically activates Ziro in `~/.zshrc` (use `--no-activate` to skip shell activation).
 
-Append the lightweight 7-line bootstrap entrypoint to your `~/.zshrc`:
+### 3. Start Shell & Verify
 
-```zsh
-source ~/.config/ziro/boot.zsh
+Restart your shell:
+
+```bash
+exec zsh
 ```
 
-Restart your shell or run `exec zsh`. The `ziro` CLI function is now available directly in your interactive sessions.
-
-### 4. Verify & Sync
-
-Verify runtime health and compile initial bytecode artifacts:
+Audit runtime health with the diagnostic doctor:
 
 ```bash
 ziro doctor
-ziro analyze --full
-ziro sync
 ```
 
 For migrating an existing Oh My Zsh, Prezto, or Zinit setup, see [docs/MIGRATION.md](docs/MIGRATION.md).
+
+---
+
+## Essential Commands & Daily Workflow
+
+Ziro combines defensive shell defaults, classified file listings, and unified navigation into an effortless terminal experience:
+
+<details>
+  <summary><b>🎬 Click to expand Live Terminal Showcase (Demo GIF & HD Video)</b></summary>
+
+<div align="center">
+  <br />
+  <img src="./assets/demo.gif" alt="Ziro Shell Live Showcase" width="100%" />
+  <p align="center">
+    <em>Watch full-resolution 60fps recording:</em>
+    <a href="./assets/demo.mp4"><strong>MP4 (1.8 MB)</strong></a> · 
+    <a href="./assets/demo.webm"><strong>WebM (1.3 MB)</strong></a>
+  </p>
+</div>
+
+</details>
+
+### 1. Directory Listing & Inspection
+- **`ls`**: Grouped directories first with classified indicators (`/` for directories, `*` for executables).
+- **`ll`**: Detailed view with icons, permissions, and file sizes (`eza` powered with defensive fallback).
+- **`la`**: Complete listing including hidden dotfiles.
+- **`lt`**: 2-level hierarchical directory tree view.
+- **`..` / `...` / `....`**: Jump up 1, 2, or 3 directories without repetitive typing.
+
+### 2. Smart Navigation with `z` (Real-Time History Sync)
+- **`z <keyword>`**: Jump directly into any frequent directory (e.g., `z ziro` ➔ `~/Projects/ziro-shell`).
+- **`zi`**: Interactive fuzzy finder with live directory preview.
+- **Unified `cd` ↔ `z`**: In Ziro, `cd` and `z` histories are synchronized in real-time. Visiting any directory with `cd` automatically teaches `z` where it is.
+
+### 3. Interactive FZF & Productivity Helpers
+- **`ff`**: Interactive file search with `fzf` + `bat` preview; opens selection in `$EDITOR` / `nvim`.
+- **`fy`**: Interactive directory search with `fzf` + `eza`/`ls` tree preview; launches `yazi`.
+- **`fb`**: Fast file search and preview with `fzf` + `bat` (read-only inspection without opening editor).
+- **`fl`**: Interactive directory switcher (`fzf` directory picker with live preview, then `cd`).
+- **`mkcd <dir>` / `take <dir>`**: Create directory structure and switch into it in a single step.
+- **`extract <archive>`**: Universal decompression for `.tar.gz`, `.zip`, `.tar.xz`, `.bz2`, `.7z`, etc.
+- **`clipcopy` / `clippaste`**: Unified clipboard across Wayland, X11, macOS, and WSL.
+
+### 4. Ziro Management CLI
+- **`ziro doctor`**: Diagnose system dependencies, compiled bytecode health, and scheduler states.
+- **`ziro sync`**: Recompile eager artifacts to `.zwc` wordcode and bake absolute boot shims.
+- **`ziro update`**: Background, non-blocking core and plugin updates.
+- **`ziro plugin [list|add|remove]`**: Audit security trust scores (0–4) and manage ecosystem plugins.
+- **`ziro bench`**: Measure microsecond cold and warm shell startup latency.
+
+👉 **For complete flags, cheatsheets, and examples, see [docs/COMMANDS.md](docs/COMMANDS.md).**
 
 ---
 
@@ -130,7 +186,7 @@ For migrating an existing Oh My Zsh, Prezto, or Zinit setup, see [docs/MIGRATION
 - **Analyzed (Cold Path)**: The offline analyzer inspects ZLE widgets, options, hooks, and completions to generate deterministic loading plans without runtime heuristics.
 - **Compiled (Hot Path)**: Managed scripts and completion files are pre-compiled to `.zwc` wordcode, eliminating parsing overhead and disk I/O on startup.
 - **Lazy (On-Demand)**: Tools remain dormant until invoked via autoload wrappers that intercept command execution.
-- **Batteries Included (27 Tools)**: Pre-configured integrations for Starship prompt (including upcoming `ziro theme` manager), `zoxide`, `fzf`, `fzf-tab`, `zsh-completions`, `fast-syntax-highlighting`, `ziro-ghost`, `eza`, `bat`, `ripgrep`, `fd`, `git`, and core navigation.
+- **Batteries Included (28 Tools)**: Pre-configured integrations for Starship prompt (including upcoming `ziro theme` manager), `zoxide`, `fzf`, `fzf-tab`, `zsh-completions`, `fast-syntax-highlighting`, `ziro-ghost`, `eza`, `bat`, `ripgrep`, `fd`, `git`, and core navigation.
 - **Observable**: `ziro doctor` audits health and symlinks; `ziro analyze` inspects classifications; `ziro bench` tracks startup metrics.
 
 ### Benchmark Data
@@ -165,10 +221,15 @@ Under identical workloads running the standard `zsh-bench --isolation docker` su
 | Framework / Setup | `first_prompt_lag` | `first_command_lag` | `input_lag` | `exit_time` | Architectural Reality |
 |---|:---:|:---:|:---:|:---:|---|
 | **`no-rcs` (Baseline)** | 1.49 ms | 1.60 ms | 0.17 ms | 1.94 ms | Native `zsh -f` zero-overhead ceiling |
+| **`ziro` (Bare Engine)** | **3.33 ms** | **3.63 ms** | **0.17 ms** | **3.80 ms** | **Core scheduler & runtime with 0 plugins** |
 | **`minimal` (compinit)** | 24.72 ms | 25.07 ms | 0.18 ms | 25.24 ms | Standard uncompiled completion setup |
 | **`zim`** | 53.41 ms | 69.98 ms | 14.91 ms | 28.99 ms | High input lag, blocking sequential sourcing |
-| **`zinit-turbo`** | 2.25 ms* | 56.97 ms | 14.69 ms | 40.12 ms | *Fake prompt: buffers input, terminal unresponsive |
-| **`ziro` (Full Battery)** | **19.59 ms** | **19.93 ms** | **0.18 ms** | **20.57 ms** | **Honest interactive readiness; zero input lag** |
+| **`zinit-turbo`** | 2.25 ms* | 56.97 ms | 14.69 ms | 40.12 ms | *Fake prompt: buffers input, terminal unresponsive (56ms lag) |
+| **`ziro` (Full Battery: 28 Tools)** | **19.59 ms** | **19.93 ms** | **0.18 ms** | **20.57 ms** | **Honest interactive readiness with complete battery; zero input lag** |
+
+> 💡 **Fair Comparison Note**: Frameworks like Zinit Turbo often benchmark in a stripped-down "bare" mode without active prompts or heavy completions. When measured on equal ground:
+> - **Ziro Bare Engine** (core scheduler, zero plugins) clocks in at just **~3.3 ms**.
+> - **Ziro Full Battery** (loaded with 28 tools including Starship prompt, completions, Git integration, syntax highlighting, and autosuggestions) clocks in at **~19.6 ms** — all with an honest, fully responsive prompt (**0.18 ms** input lag) and zero input buffering tricks.
 
 *Methodology: Measured with `zsh-bench` using Docker cgroups to eliminate CPU frequency and caching artifacts. Detailed numbers in [docs/BENCHMARKS.md](docs/BENCHMARKS.md).*
 
@@ -199,7 +260,7 @@ quadrantChart
 2. **Native Keystroke Latency (80x lower input lag)**  
    Frameworks with complex runtime hook loops introduce 14–15ms of typing latency. Ziro executes at **0.18 ms** input lag—identical to unconfigured native Zsh (`0.17 ms`). Your terminal feels completely instantaneous.
 
-3. **Pre-configured Battery Without Bloat (27 Tools)**  
+3. **Pre-configured Battery Without Bloat (28 Tools)**  
    You do not need to choose between an empty shell and a 300ms startup penalty. Ziro includes Starship prompt, Zoxide, Fzf, Fzf-tab, Git integrations, syntax highlighting, autosuggestions, SSH agent isolation, and defensive navigation out of the box.
 
 4. **Deterministic Declarative Stability**  
@@ -300,7 +361,7 @@ ln -sfn ~/Projects/ziro-shell ~/.ziro
 
 ### Testing, PR Process & Disclosure
 
-- **Test Suite**: All 434 tests must pass without regressions: `PYTHONPATH=. uv run --with pytest pytest tests/ -q`.
+- **Test Suite**: All 447 tests must pass without regressions: `PYTHONPATH=. uv run --with pytest pytest tests/ -q`.
 - **Performance Budget**: Hot-path modifications carry a strict budget constraint: startup latency increase must remain `< +5ms`.
 - **Pull Requests**: Open an issue first for non-trivial changes. Submit minimal PRs accompanied by verified command output traces.
 - **Security Disclosure**: Report vulnerabilities privately via GitHub Security Advisories or email maintainers at `pakrohk-security@pm.me`. See [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) and [CONTRIBUTORS.md](CONTRIBUTORS.md). Full guide in [docs/CONTRIBUTING.md](docs/CONTRIBUTING.md).
@@ -311,6 +372,7 @@ ln -sfn ~/Projects/ziro-shell ~/.ziro
 
 Comprehensive guides and architectural specifications:
 
+- **[Commands & Cheatsheet](docs/COMMANDS.md)** — Complete daily command reference (`ziro`, `ls`, `lt`, `z`, and aliases).
 - **[Architecture](docs/ARCHITECTURE.md)** — 4-tier load model, boot chain, analyzer, and security heuristic.
 - **[Configuration](docs/CONFIGURATION.md)** — `load.toml` schema, `[user]` overrides, and per-tool fields.
 - **[Plugin Authoring](docs/PLUGIN_AUTHORING.md)** — `ziro-plugin.toml` manifest specification, testing, and publishing.
@@ -326,7 +388,7 @@ Comprehensive guides and architectural specifications:
 
 | Version | Milestone | Status | Scope |
 |---|---|---|---|
-| **v1.2.0** | Stable Runtime Core | Released | Bytecode compilation pipeline, 4-tier scheduler, 27 tool profiles, 434 tests |
+| **v1.2.0** | Stable Runtime Core | Released | Bytecode compilation pipeline, 4-tier scheduler, 28 tool profiles, 447 tests |
 | **v1.3.0** | Starship Theme Manager & Cache Persistence | In Progress | Interactive theme switcher (`ziro theme`), pre-computed shell state cache |
 | **v1.4.0** | Package Federation (`pf`) | Planned | Standalone cross-distro package manager dispatch and lockfile synthesis |
 | **v2.0.0** | Ghost Engine v2 | Design Complete | Deep ZLE integration with asynchronous ghost-text completions |

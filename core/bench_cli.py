@@ -18,9 +18,14 @@ def _ziro_home() -> Path:
 
 
 def _bench_shell_load(n: int = 11) -> list[float]:
-    """Measure zsh startup time loading integration.zsh."""
-    home = _ziro_home()
-    script = f"source {home}/integration.zsh"
+    """Measure zsh startup time loading boot.zsh."""
+    config_home = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "ziro"
+    boot_shim = config_home / "boot.zsh"
+    if not boot_shim.exists():
+        cache_home = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "ziro"
+        boot_shim = cache_home / "ziro-boot.zsh"
+    target = str(boot_shim) if boot_shim.exists() else "~/.config/ziro/boot.zsh"
+    script = f"source {target}"
     times: list[float] = []
     for _ in range(n):
         t0 = time.perf_counter()
@@ -80,7 +85,7 @@ def cmd_bench(argv: list[str]) -> int:
     ]
 
     if not render_table(f"Startup Benchmark ({iters} iters)", ["Metric", "Value", "Budget Status"], table_rows):
-        print(" zsh + integration.zsh")
+        print(" zsh + ziro (boot.zsh)")
         print(f" min: {mn:.2f} ms")
         print(f" median: {med:.2f} ms")
         print(f" max: {max(times):.2f} ms" if times else " max: n/a")

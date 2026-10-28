@@ -18,15 +18,15 @@ take() {
   mkcd "$@"
 }
 
-..() {
+'..'() {
   builtin cd ..
 }
 
-...() {
+'...'() {
   builtin cd ../..
 }
 
-....() {
+'....'() {
   builtin cd ../../..
 }
 
@@ -111,3 +111,61 @@ clippaste() {
     return 1
   fi
 }
+
+# ─── FZF interactive helpers ───
+ff() {
+  emulate -L zsh
+  (( $+commands[fzf] )) || { print -u2 "ff: fzf not found in PATH"; return 1; }
+  local editor="${EDITOR:-nvim}"
+  (( $+commands[$editor] )) || editor="vim"
+  (( $+commands[$editor] )) || editor="vi"
+
+  local preview_cmd='cat {}'
+  (( $+commands[bat] )) && preview_cmd='bat --style=numbers --color=always --line-range :500 {} 2>/dev/null || cat {}'
+
+  local file
+  file=$(fzf --preview "$preview_cmd" --header 'Enter: Open in Editor | Esc: Cancel' "$@") || return 0
+  [[ -n "$file" ]] && "$editor" "$file"
+}
+
+fy() {
+  emulate -L zsh
+  (( $+commands[fzf] )) || { print -u2 "fy: fzf not found in PATH"; return 1; }
+  (( $+commands[yazi] )) || { print -u2 "fy: yazi not found in PATH"; return 1; }
+
+  local preview_cmd='ls -la {}'
+  (( $+commands[eza] )) && preview_cmd='eza -la --icons --color=always {} 2>/dev/null || ls -la {}'
+
+  local dir
+  dir=$( ( (( $+commands[fd] )) && fd -t d --hidden -E .git 2>/dev/null || find . -mindepth 1 -maxdepth 4 -type d 2>/dev/null ) | \
+    fzf --preview "$preview_cmd" --header 'Enter: Open in Yazi | Esc: Cancel' "$@") || return 0
+  [[ -n "$dir" ]] && yazi "$dir"
+}
+
+fb() {
+  emulate -L zsh
+  (( $+commands[fzf] )) || { print -u2 "fb: fzf not found in PATH"; return 1; }
+  local viewer="cat"
+  (( $+commands[bat] )) && viewer="bat"
+
+  local preview_cmd='cat {}'
+  (( $+commands[bat] )) && preview_cmd='bat --style=numbers --color=always --line-range :500 {} 2>/dev/null || cat {}'
+
+  local file
+  file=$(fzf --preview "$preview_cmd" --header 'Enter: View | Esc: Cancel' "$@") || return 0
+  [[ -n "$file" ]] && "$viewer" "$file"
+}
+
+fl() {
+  emulate -L zsh
+  (( $+commands[fzf] )) || { print -u2 "fl: fzf not found in PATH"; return 1; }
+
+  local preview_cmd='ls -la {}'
+  (( $+commands[eza] )) && preview_cmd='eza -la --icons --color=always {} 2>/dev/null || ls -la {}'
+
+  local dir
+  dir=$( ( (( $+commands[fd] )) && fd -t d --hidden -E .git 2>/dev/null || find . -mindepth 1 -maxdepth 4 -type d 2>/dev/null ) | \
+    fzf --preview "$preview_cmd" --header 'Enter: cd | Esc: Cancel' "$@") || return 0
+  [[ -n "$dir" ]] && cd "$dir"
+}
+
