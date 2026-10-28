@@ -85,3 +85,11 @@ class TestAliasesCore(unittest.TestCase):
             self.assertEqual(res.returncode, 0, res.stderr)
             self.assertTrue(log_file.exists())
             self.assertIn(f"add -- {target_dir}", log_file.read_text())
+
+    def test_completion_rehash_style_set(self) -> None:
+        """zstyle ':completion:*' rehash true is configured."""
+        script = f'source "{CORE_ALIASES_FILE}"; zstyle -L ":completion:*"'
+        res = subprocess.run(["zsh", "-f", "-c", script], capture_output=True, text=True)
+        self.assertEqual(res.returncode, 0, res.stderr)
+        self.assertIn("rehash true", res.stdout)
+

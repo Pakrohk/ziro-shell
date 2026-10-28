@@ -4,6 +4,12 @@
 
 setopt autocd 2>/dev/null
 
+# ─── Live path completion & binary detection ───
+# Automatically update the internal command hash table when completing commands,
+# allowing newly installed packages/binaries to be found immediately without shell restart.
+zstyle ':completion:*' rehash true
+
+
 # ─── Defensive navigation: functions + aliases ───
 unalias .. ... .... 2>/dev/null
 function .. { cd ..; }
