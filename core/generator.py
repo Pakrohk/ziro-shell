@@ -293,14 +293,17 @@ def generate(
             if t_name and not t.get("alternatives_only", False):
                 tool_order_map[t_name] = t.get("load_order", 999)
 
-        def order_key(cfg: Any) -> int:
+        def order_key(cfg: Any) -> tuple[int, int]:
             plugin_name = getattr(cfg, "plugin", "")
+            is_syntax = 1 if "syntax-highlighting" in plugin_name else 0
+            order = 999
             if plugin_name in tool_order_map:
-                return tool_order_map[plugin_name]
-            omz_name = f"ohmyzsh-{plugin_name}"
-            if omz_name in tool_order_map:
-                return tool_order_map[omz_name]
-            return 999
+                order = tool_order_map[plugin_name]
+            else:
+                omz_name = f"ohmyzsh-{plugin_name}"
+                if omz_name in tool_order_map:
+                    order = tool_order_map[omz_name]
+            return (is_syntax, order)
 
         ordered = sorted(configs, key=order_key)
 

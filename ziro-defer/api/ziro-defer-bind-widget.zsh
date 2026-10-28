@@ -24,6 +24,7 @@ _ziro_defer_api_bind_key() {
   eval "${widget_name}() {
     emulate -L zsh
     eval \"\${${cmd_var}}\"
+    (( $+functions[_zsh_highlight_bind_widgets] )) && _zsh_highlight_bind_widgets 2>/dev/null || true
   }"
 
   zle -N "$widget_name" 2>/dev/null || { unset "$cmd_var"; return 1; }

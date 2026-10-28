@@ -511,9 +511,21 @@ def render_eager_section(tools: list[dict[str, Any]]) -> str:
 
 
 def render_deferred_section(tools: list[dict[str, Any]]) -> str:
-    """Render Section 3: Deferred tasks."""
+    """Render Section 3: Deferred tasks.
+    
+    Guarantees syntax_highlighting plugins always sort last to prevent
+    ZLE widget wrapping desynchronization on any present or future plugin.
+    """
     def_tools = [t for t in tools if t.get("timing") == "deferred" and t.get("enabled", True)]
-    def_tools.sort(key=lambda t: t.get("order", 100))
+
+    def _deferred_sort_key(t: dict[str, Any]) -> tuple[int, int]:
+        is_syntax = 1 if (
+            t.get("category") == "syntax_highlighting"
+            or "syntax-highlighting" in t.get("name", "")
+        ) else 0
+        return (is_syntax, t.get("order", 100))
+
+    def_tools.sort(key=_deferred_sort_key)
 
     lines: list[str] = ["# --- Section 3: Deferred tasks ---"]
 
@@ -555,6 +567,7 @@ def render_ondemand_section(tools: list[dict[str, Any]]) -> str:
             lines.append(f'  [[ -n "${{_ZIRO_{slug.upper()}_LOADED:-}}" ]] && return 0')
             lines.append(f'  source "{target_path}" || return 1')
             lines.append(f"  typeset -g _ZIRO_{slug.upper()}_LOADED=1")
+            lines.append("  (( $+functions[_zsh_highlight_bind_widgets] )) && _zsh_highlight_bind_widgets 2>/dev/null || true")
             lines.append("}")
 
             for kdef in trigger_keys:
