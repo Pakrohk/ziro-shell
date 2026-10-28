@@ -132,9 +132,20 @@ For migrating an existing Oh My Zsh, Prezto, or Zinit setup, see [docs/MIGRATION
 
 Ziro combines defensive shell defaults, classified file listings, and unified navigation into an effortless terminal experience:
 
+<details>
+  <summary><b>🎬 Click to expand Live Terminal Showcase (Demo GIF & HD Video)</b></summary>
+
 <div align="center">
+  <br />
   <img src="./assets/demo.gif" alt="Ziro Shell Live Showcase" width="100%" />
+  <p align="center">
+    <em>Watch full-resolution 60fps recording:</em>
+    <a href="./assets/demo.mp4"><strong>MP4 (1.8 MB)</strong></a> · 
+    <a href="./assets/demo.webm"><strong>WebM (1.3 MB)</strong></a>
+  </p>
 </div>
+
+</details>
 
 ### 1. Directory Listing & Inspection
 - **`ls`**: Grouped directories first with classified indicators (`/` for directories, `*` for executables).

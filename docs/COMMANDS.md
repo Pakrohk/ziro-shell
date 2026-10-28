@@ -2,9 +2,20 @@
 
 > A practical guide to daily workflows, navigation aliases, the `ziro` CLI suite, and smart directory jumping with real-time history synchronization.
 
+<details>
+  <summary><b>🎬 Click to expand Live Terminal Showcase (Demo GIF & HD Video)</b></summary>
+
 <div align="center">
+  <br />
   <img src="../assets/demo.gif" alt="Ziro Shell Commands Demo" width="100%" />
+  <p align="center">
+    <em>Watch full-resolution 60fps recording:</em>
+    <a href="../assets/demo.mp4"><strong>MP4 (1.8 MB)</strong></a> · 
+    <a href="../assets/demo.webm"><strong>WebM (1.3 MB)</strong></a>
+  </p>
 </div>
+
+</details>
 
 ---
 
