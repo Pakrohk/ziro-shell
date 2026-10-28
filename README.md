@@ -159,7 +159,16 @@ Ziro combines defensive shell defaults, classified file listings, and unified na
 - **`zi`**: Interactive fuzzy finder with live directory preview.
 - **Unified `cd` ↔ `z`**: In Ziro, `cd` and `z` histories are synchronized in real-time. Visiting any directory with `cd` automatically teaches `z` where it is.
 
-### 3. Ziro Management CLI
+### 3. Interactive FZF & Productivity Helpers
+- **`ff`**: Interactive file search with `fzf` + `bat` preview; opens selection in `$EDITOR` / `nvim`.
+- **`fy`**: Interactive directory search with `fzf` + `eza`/`ls` tree preview; launches `yazi`.
+- **`fb`**: Fast file search and preview with `fzf` + `bat` (read-only inspection without opening editor).
+- **`fl`**: Interactive directory switcher (`fzf` directory picker with live preview, then `cd`).
+- **`mkcd <dir>` / `take <dir>`**: Create directory structure and switch into it in a single step.
+- **`extract <archive>`**: Universal decompression for `.tar.gz`, `.zip`, `.tar.xz`, `.bz2`, `.7z`, etc.
+- **`clipcopy` / `clippaste`**: Unified clipboard across Wayland, X11, macOS, and WSL.
+
+### 4. Ziro Management CLI
 - **`ziro doctor`**: Diagnose system dependencies, compiled bytecode health, and scheduler states.
 - **`ziro sync`**: Recompile eager artifacts to `.zwc` wordcode and bake absolute boot shims.
 - **`ziro update`**: Background, non-blocking core and plugin updates.

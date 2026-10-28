@@ -123,7 +123,23 @@ To prevent accidental data loss, interactive confirmation is enabled by default:
 
 ---
 
-## 6. Daily Workflow Example
+## 6. Interactive FZF Workflows & Shell Helpers
+
+Ziro packages on-demand interactive helpers in `lib/helpers.zsh`. These functions add **zero startup overhead** (proxied until first call):
+
+| Helper | Backends Used | Key Interaction | Description |
+|:---|:---|:---|:---|
+| `ff [path]` | `fzf`, `bat`, `$EDITOR` / `nvim` | `Enter`: Edit<br>`Esc`: Cancel | Fuzzy-search files with syntax-highlighted `bat` preview; opens target in Neovim/Vim. |
+| `fy [path]` | `fzf`, `eza` / `ls`, `yazi` | `Enter`: Open Yazi<br>`Esc`: Cancel | Fuzzy-search directories with colorized icon listing preview; launches `yazi` file manager inside it. |
+| `fb [path]` | `fzf`, `bat` / `cat` | `Enter`: View<br>`Esc`: Cancel | Fast fuzzy-find and read-only inspection with `bat` syntax highlighting (no editor spawned). |
+| `fl [path]` | `fzf`, `eza` / `ls`, `cd` | `Enter`: Change dir<br>`Esc`: Cancel | Interactive fuzzy directory navigator; changes shell working directory (`cd`) to selection. |
+| `mkcd <dir>`<br>`take <dir>` | native `mkdir`, `cd` | Direct argument | Atomically creates nested directory hierarchy (`mkdir -p`) and immediately enters it. |
+| `extract <file>` | `tar`, `unzip`, `7z`, `unrar`, `xz`, `bzip2` | Direct argument | Universal archive extractor detecting format and flags automatically. |
+| `clipcopy`<br>`clippaste` | `wl-clipboard`, `xclip`, `pbcopy`, `powershell.exe` | Stdin / Stdout | Universal system clipboard integration across Wayland, X11, macOS, and WSL. |
+
+---
+
+## 7. Daily Workflow Example
 
 Here is a typical session leveraging Ziro's unified environment:
 
@@ -139,9 +155,12 @@ z ziro
 # 4. Explore repo structure 2 levels deep
 lt
 
-# 5. Jump back 2 directories
+# 5. Fuzzy-find a config or source file with live bat preview and open in Neovim
+ff
+
+# 6. Jump back 2 directories
 ..
 
-# 6. Audit shell health after pulling changes
+# 7. Audit shell health after pulling changes
 ziro doctor
 ```
