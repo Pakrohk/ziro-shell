@@ -213,10 +213,10 @@ def cmd_list(argv: list[str]) -> int:
 
         if timing == "eager":
             eager_cnt += 1
-            stage_str = "Stage 2/4 (Eager · Pre-Prompt)"
+            stage_str = "Stage 2/4 (Eager)"
         elif timing == "deferred":
             deferred_cnt += 1
-            stage_str = f"Stage {stage or 5} (Deferred · Slot {slot})"
+            stage_str = f"Stage {stage or 5} (Deferred)"
         elif timing == "on-demand":
             ondemand_cnt += 1
             trig_desc = ""
@@ -251,7 +251,7 @@ def cmd_list(argv: list[str]) -> int:
         rows.append([name, ptype_str, stage_str, method, desc])
 
     title = f"Ziro Ecosystem — Plugins & Tools ({len(tools)} total: {eager_cnt} eager, {deferred_cnt} deferred, {ondemand_cnt} on-demand)"
-    headers = ["Name", "Type", "Lifecycle Stage", "Load Method", "Description"]
+    headers = ["Name", "Type", "Stage", "Method", "Description"]
 
     from core.rich_helpers import render_table
     if not render_table(title, headers, rows):
@@ -260,7 +260,7 @@ def cmd_list(argv: list[str]) -> int:
         w_stage = max(len(r[2]) for r in rows) if rows else 15
         w_method = max(len(r[3]) for r in rows) if rows else 12
 
-        h_name, h_type, h_stage, h_method = "NAME", "TYPE", "LIFECYCLE STAGE", "METHOD"
+        h_name, h_type, h_stage, h_method = "NAME", "TYPE", "STAGE", "METHOD"
         d_name, d_type, d_stage, d_method = "-" * w_name, "-" * w_type, "-" * w_stage, "-" * w_method
         print(title)
         print("=" * len(title))
