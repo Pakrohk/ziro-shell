@@ -25,7 +25,7 @@ _ziro_defer_api_bind_key() {
     emulate -L zsh
     zle -D '${widget_name}' 2>/dev/null
     bindkey -r '${key}' 2>/dev/null
-    local _c=\\$${cmd_var}
+    local _c=\"\${${cmd_var}}\"
     unset ${cmd_var}
     eval \"\$_c\"
     zle -R 2>/dev/null || true
