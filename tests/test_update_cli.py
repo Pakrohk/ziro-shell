@@ -157,3 +157,108 @@ def test_update_dev_flag_bypasses_dirty_guard(monkeypatch):
     assert entry is not None
     help_text = render_entry(entry)
     assert "--dev" in help_text
+
+
+def test_sync_missing_core_tools(tmp_path: Path):
+    """Verify _sync_missing_core_tools appends essential core tools to older load.toml."""
+    cfg_dir = tmp_path / "config"
+    cfg_dir.mkdir(parents=True)
+    load_toml = cfg_dir / "load.toml"
+    load_toml.write_text(
+        """[meta]
+schema_version = "1.0.0"
+
+[[tool]]
+name = "my-custom-plugin"
+timing = "eager"
+""",
+        encoding="utf-8",
+    )
+
+    added = update_cli._sync_missing_core_tools(cfg_dir)
+    assert "ziro-aliases-core" in added
+    assert "ziro-keybindings" in added
+    assert "ziro-helpers" in added
+    assert "ziro-aliases" in added
+
+    # Verify content
+    content = load_toml.read_text(encoding="utf-8")
+    assert "ziro-aliases-core" in content
+    assert "my-custom-plugin" in content
+
+    # Second run should add nothing
+    added_second = update_cli._sync_missing_core_tools(cfg_dir)
+    assert added_second == []
+
+
+def test_update_self_repository_not_git(tmp_path: Path):
+    """Verify update_self_repository returns error on non-git directory."""
+    non_git = tmp_path / "not_git"
+    non_git.mkdir()
+    rc, msg, updated = update_cli.update_self_repository(repo_dir=non_git)
+    assert rc == 1
+    assert "not a git repository" in msg
+    assert updated is False
+
+
+def test_update_self_repository_dirty_guard(tmp_path: Path):
+    """Verify update_self_repository respects dirty working tree unless force=True."""
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    subprocess.run(["git", "init", "-q", "-b", "main", str(repo)], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.name", "Test"], check=True)
+    subprocess.run(["git", "-C", str(repo), "config", "user.email", "test@test.com"], check=True)
+
+    f = repo / "tracked.txt"
+    f.write_text("initial\n")
+    subprocess.run(["git", "-C", str(repo), "add", "tracked.txt"], check=True)
+    subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "init"], check=True)
+
+    # Dirty modification
+    f.write_text("modified\n")
+
+    rc, msg, updated = update_cli.update_self_repository(repo_dir=repo, force=False)
+    assert rc == 1
+    assert "uncommitted tracked changes" in msg
+    assert updated is False
+
+
+def test_update_self_repository_pulls_when_behind(tmp_path: Path):
+    """Verify update_self_repository actively pulls upstream commits and returns updated=True."""
+    origin = tmp_path / "origin.git"
+    origin.mkdir()
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(origin)], check=True)
+
+    # Initial clone to populate origin
+    work = tmp_path / "work"
+    subprocess.run(["git", "clone", "-q", str(origin), str(work)], check=True)
+    subprocess.run(["git", "-C", str(work), "config", "user.name", "Test"], check=True)
+    subprocess.run(["git", "-C", str(work), "config", "user.email", "test@test.com"], check=True)
+    (work / "file.txt").write_text("v1\n")
+    subprocess.run(["git", "-C", str(work), "add", "file.txt"], check=True)
+    subprocess.run(["git", "-C", str(work), "commit", "-q", "-m", "v1"], check=True)
+    subprocess.run(["git", "-C", str(work), "push", "-q", "origin", "main"], check=True)
+
+    # User clone at v1
+    client = tmp_path / "client"
+    subprocess.run(["git", "clone", "-q", str(origin), str(client)], check=True)
+    subprocess.run(["git", "-C", str(client), "config", "user.name", "Test"], check=True)
+    subprocess.run(["git", "-C", str(client), "config", "user.email", "test@test.com"], check=True)
+
+    # Add commit to upstream
+    (work / "file.txt").write_text("v2\n")
+    subprocess.run(["git", "-C", str(work), "commit", "-q", "-a", "-m", "v2"], check=True)
+    subprocess.run(["git", "-C", str(work), "push", "-q", "origin", "main"], check=True)
+
+    # Client runs update_self_repository
+    rc, msg, updated = update_cli.update_self_repository(repo_dir=client, force=False)
+    assert rc == 0
+    assert updated is True
+    assert "Updated Ziro Shell repository" in msg
+    assert (client / "file.txt").read_text() == "v2\n"
+
+    # Running again should report up to date
+    rc2, msg2, updated2 = update_cli.update_self_repository(repo_dir=client, force=False)
+    assert rc2 == 0
+    assert updated2 is False
+    assert "up to date" in msg2

@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import time
+import tomllib
 from pathlib import Path
 
 
@@ -190,38 +191,203 @@ def check_update(
     return result
 
 
-def perform_update(
+def _sync_missing_core_tools(config_dir: Path | None = None) -> list[str]:
+    """Ensure essential core tools are present in load.toml.
+
+    Appends missing core tools if an earlier installation's load.toml lacks them.
+    """
+    cfg_dir = config_dir or _config_dir()
+    load_toml = cfg_dir / "load.toml"
+    if not load_toml.is_file():
+        return []
+
+    try:
+        with load_toml.open("rb") as f:
+            data = tomllib.load(f)
+        existing_names = {t.get("name") for t in data.get("tool", []) if isinstance(t, dict)}
+    except Exception:
+        return []
+
+    essential_tools = [
+        (
+            "ziro-aliases-core",
+            '\n[[tool]]\nname = "ziro-aliases-core"\ntiming = "eager"\norder = 6\nmethod = "source"\npath = "${ZIRO_HOME}/lib/aliases-core.zsh"\n',
+        ),
+        (
+            "ziro-keybindings",
+            '\n[[tool]]\nname = "ziro-keybindings"\ntiming = "eager"\norder = 7\nmethod = "source"\npath = "${ZIRO_HOME}/lib/keybindings.zsh"\n',
+        ),
+        (
+            "ziro-helpers",
+            '\n[[tool]]\nname = "ziro-helpers"\ntiming = "on-demand"\norder = 13\nmethod = "local-source"\ntrigger = "function"\ntrigger_functions = ["mkcd", "take", "extract", "clipcopy", "clippaste", "ff", "fy", "fb", "fl"]\npath = "${ZIRO_HOME}/lib/helpers.zsh"\n',
+        ),
+        (
+            "ziro-aliases",
+            '\n[[tool]]\nname = "ziro-aliases"\ntiming = "deferred"\norder = 26\nmethod = "source"\nstage = 5\nslot = "g"\npath = "${ZIRO_HOME}/lib/aliases.zsh"\n',
+        ),
+    ]
+
+    added = []
+    to_append = []
+    for name, snippet in essential_tools:
+        if name not in existing_names:
+            to_append.append(snippet)
+            added.append(name)
+
+    if to_append:
+        try:
+            with load_toml.open("a", encoding="utf-8") as f:
+                f.write("\n# Core tools auto-synced during update\n" + "".join(to_append))
+        except Exception:
+            pass
+
+    return added
+
+
+def update_self_repository(
     repo_dir: Path | None = None,
     force: bool = False,
-) -> tuple[int, str]:
-    """Execute update check with dirty working tree protection."""
+) -> tuple[int, str, bool]:
+    """Actively fetch and pull the latest changes for the Ziro Shell repository.
+
+    Returns:
+        (returncode, status_message, was_updated)
+    """
     repo = repo_dir or _repo_dir()
     git_dir = repo / ".git"
     if not git_dir.exists():
-        return 1, f"ziro: {repo} is not a git repository"
+        return 1, f"ziro: {repo} is not a git repository", False
 
     # Check for uncommitted changes in tracked files
     status_res = subprocess.run(
         ["git", "-C", str(repo), "status", "--porcelain", "-uno"],
         capture_output=True,
         text=True,
+        timeout=10,
     )
-    if status_res.stdout.strip() and not force:
-        return 1, "ziro: working directory has uncommitted tracked changes. Stash or commit before updating (or pass --force)."
+    is_dirty = bool(status_res.stdout.strip())
+    if is_dirty and not force:
+        return (
+            1,
+            "ziro update: repository has uncommitted tracked changes. Stash or commit before updating (or pass --force).",
+            False,
+        )
 
-    short_local = "current"
+    # Check remote origin
+    remotes = subprocess.run(
+        ["git", "-C", str(repo), "remote"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    if "origin" not in remotes.stdout.split():
+        return 0, f"ziro update: no 'origin' remote configured for {repo}; skipped self-update.", False
+
+    # Fetch origin
     try:
-        rev_res = subprocess.run(
+        fetch_res = subprocess.run(
+            ["git", "-C", str(repo), "fetch", "-q", "origin"],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if fetch_res.returncode != 0:
+            err = fetch_res.stderr.strip() or "network error"
+            return 1, f"ziro update: failed to fetch origin ({err})", False
+    except Exception as e:
+        return 1, f"ziro update: fetch failed: {e}", False
+
+    # Determine branch
+    branch_res = subprocess.run(
+        ["git", "-C", str(repo), "symbolic-ref", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    branch = branch_res.stdout.strip() or "main"
+
+    target_ref = f"origin/{branch}"
+    ref_check = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "--verify", target_ref],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    if ref_check.returncode != 0:
+        target_ref = "FETCH_HEAD"
+
+    # Check how many commits behind
+    rev_res = subprocess.run(
+        ["git", "-C", str(repo), "rev-list", "--count", f"HEAD..{target_ref}"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    behind = int(rev_res.stdout.strip()) if rev_res.returncode == 0 and rev_res.stdout.strip().isdigit() else 0
+
+    if behind <= 0:
+        short_local = "current"
+        rev_local = subprocess.run(
             ["git", "-C", str(repo), "rev-parse", "--short", "HEAD"],
             capture_output=True,
             text=True,
+            timeout=5,
         )
-        if rev_res.returncode == 0:
-            short_local = rev_res.stdout.strip()
-    except Exception:
-        pass
+        if rev_local.returncode == 0:
+            short_local = rev_local.stdout.strip()
+        return 0, f"Ziro Shell repository is up to date ({short_local}).", False
 
-    return 0, f"Ziro Shell repository is up to date ({short_local})."
+    # Pull latest commits
+    if force and is_dirty:
+        reset_res = subprocess.run(
+            ["git", "-C", str(repo), "reset", "--hard", target_ref],
+            capture_output=True,
+            text=True,
+            timeout=20,
+        )
+        if reset_res.returncode != 0:
+            return 1, f"ziro update: forced reset failed ({reset_res.stderr.strip()})", False
+    else:
+        pull_res = subprocess.run(
+            ["git", "-C", str(repo), "pull", "--ff-only", "origin", branch],
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if pull_res.returncode != 0:
+            if force:
+                reset_res = subprocess.run(
+                    ["git", "-C", str(repo), "reset", "--hard", target_ref],
+                    capture_output=True,
+                    text=True,
+                    timeout=20,
+                )
+                if reset_res.returncode != 0:
+                    return 1, f"ziro update: pull and forced reset failed ({reset_res.stderr.strip()})", False
+            else:
+                return (
+                    1,
+                    f"ziro update: git pull --ff-only failed ({pull_res.stderr.strip()}). Re-run with --force or rebase manually.",
+                    False,
+                )
+
+    rev_after = subprocess.run(
+        ["git", "-C", str(repo), "rev-parse", "--short", "HEAD"],
+        capture_output=True,
+        text=True,
+        timeout=5,
+    )
+    new_hash = rev_after.stdout.strip() if rev_after.returncode == 0 else "latest"
+    return 0, f"✔ Updated Ziro Shell repository ({behind} new commit(s), now at {new_hash}).", True
+
+
+def perform_update(
+    repo_dir: Path | None = None,
+    force: bool = False,
+) -> tuple[int, str]:
+    """Execute update check and pull with dirty working tree protection."""
+    rc, msg, _ = update_self_repository(repo_dir=repo_dir, force=force)
+    return rc, msg
 
 
 def find_vendor_plugins(target_plugin: str | None = None) -> list[tuple[str, Path]]:
@@ -432,16 +598,26 @@ def cmd_update(argv: list[str]) -> int:
         return 0
 
     # Mode 5: Orchestration flow
-    # Step 1: Self check
+    # Step 1: Self repository update
+    repo_updated = False
     if not plugins_only:
-        res = check_update(repo, fetch=True)
-        if res.get("available"):
-            behind = res.get("behind", 1)
-            print(f"ℹ️  Update available: {behind} commit(s) behind origin/main.")
-            print(f"   To update Ziro Shell repository manually (H2 safety): run 'git -C {repo} pull'")
+        rc, update_msg, repo_updated = update_self_repository(repo_dir=repo, force=force)
+        if rc != 0:
+            if not quiet:
+                print(f"⚠️  {update_msg}", file=sys.stderr)
+            return rc
         elif not quiet:
-            short_local = (res.get("local") or "current")[:7]
-            print(f"Ziro Shell repository is up to date ({short_local}).")
+            print(update_msg)
+
+        if repo_updated:
+            try:
+                from core.install_cli import _install_cli_launcher, _install_man_page
+                _install_cli_launcher(repo)
+                _install_man_page(repo)
+            except Exception:
+                pass
+
+        _sync_missing_core_tools(_config_dir())
 
     # Step 2: Plugin updates
     plugins = find_vendor_plugins(target_plugin=target_plugin)
@@ -471,7 +647,8 @@ def cmd_update(argv: list[str]) -> int:
     # Step 4: Rebuild boot artifacts
     if not plugins_only:
         from core.build import build
-        ok, msg, counts = build()
+        force_build = repo_updated or bool(updated_plugins)
+        ok, msg, counts = build(force=force_build, rebuild_eval_caches=repo_updated)
         if not quiet:
             print(f"✔ {msg}")
         if not ok:
