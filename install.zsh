@@ -38,8 +38,8 @@ _ziro_bootstrap() {
     fi
 
     if (( $+commands[apt-get] )); then
-      $sudo_cmd apt-get update -qq >/dev/null 2>&1 || true
-      $sudo_cmd apt-get install -y -qq "${pkgs[@]}" >/dev/null 2>&1
+      DEBIAN_FRONTEND=noninteractive $sudo_cmd apt-get update -qq >/dev/null 2>&1 || true
+      DEBIAN_FRONTEND=noninteractive $sudo_cmd apt-get install -y -qq --no-install-recommends "${pkgs[@]}" >/dev/null 2>&1
     elif (( $+commands[pacman] )); then
       $sudo_cmd pacman -Sy --noconfirm "${pkgs[@]}" >/dev/null 2>&1
     elif (( $+commands[dnf] )); then
@@ -73,7 +73,7 @@ _ziro_bootstrap() {
   if [[ -z "$py" ]]; then
     print "[*] Python 3.11+ not found. Attempting automatic installation..."
     if (( $+commands[apt-get] )); then
-      _ziro_pkg_install python3 python3-venv python3-pip || true
+      _ziro_pkg_install python3 python3-venv ca-certificates || true
     elif (( $+commands[pacman] )); then
       _ziro_pkg_install python || true
     elif (( $+commands[dnf] )); then
@@ -95,7 +95,21 @@ _ziro_bootstrap() {
     return 11
   fi
 
-  # 3b. Starship Check & Auto-Install
+  # 3b. Ensure git is installed
+  if ! (( $+commands[git] )); then
+    print "[*] git not found. Attempting automatic installation..."
+    if (( $+commands[apt-get] )); then
+      _ziro_pkg_install git ca-certificates || true
+    else
+      _ziro_pkg_install git || true
+    fi
+  fi
+  if ! (( $+commands[git] )); then
+    print -u2 "ziro: git is required to clone repository"
+    return 12
+  fi
+
+  # 3c. Starship Check & Auto-Install
   if ! (( $+commands[starship] )) && ! [[ -x "$HOME/.local/bin/starship" || -x "/usr/local/bin/starship" ]]; then
     print "[*] starship prompt engine not found. Attempting automatic installation..."
     if (( $+commands[pacman] )); then
