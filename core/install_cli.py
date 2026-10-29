@@ -6,6 +6,7 @@ Spec: 006 R1
 
 from __future__ import annotations
 
+from datetime import datetime, timezone
 import os
 import shutil
 import subprocess
@@ -218,6 +219,154 @@ def _install_cli_launcher(ziro_home: Path) -> Path | None:
         return None
 
 
+def _prompt_user(prompt_text: str, default: str = "") -> str:
+    """Prompt user for input, using sys.stdin or falling back to /dev/tty."""
+    if sys.stdin.isatty():
+        try:
+            val = input(prompt_text).strip()
+            return val if val else default
+        except (EOFError, OSError):
+            return default
+
+    # Try /dev/tty if stdin was redirected or piped
+    try:
+        with open("/dev/tty", "r", encoding="utf-8") as tty_in:
+            sys.stdout.write(prompt_text)
+            sys.stdout.flush()
+            val = tty_in.readline().strip()
+            return val if val else default
+    except Exception:
+        return default
+
+
+def _is_ziro_only_zshrc(zshrc: Path) -> bool:
+    """Return True if ~/.zshrc contains only Ziro initialization or comments."""
+    if not zshrc.is_file():
+        return False
+    try:
+        content = zshrc.read_text(encoding="utf-8").strip()
+        if not content:
+            return True
+        lines = [
+            line.strip()
+            for line in content.splitlines()
+            if line.strip() and not line.strip().startswith("#")
+        ]
+        if not lines:
+            return True
+        ziro_patterns = ("boot.zsh", "$HOME/.local/bin", "${HOME}/.local/bin", "ZIRO_")
+        return all(any(pat in line for pat in ziro_patterns) for line in lines)
+    except Exception:
+        return False
+
+
+def detect_existing_zsh_configs(zsh_dir: Path | None = None) -> list[Path]:
+    """Detect existing Zsh configuration files and framework directories."""
+    if zsh_dir is None:
+        zdotdir = os.environ.get("ZDOTDIR")
+        zsh_dir = Path(zdotdir) if zdotdir else Path(os.environ.get("HOME", str(Path.home())))
+
+    existing: list[Path] = []
+
+    # Standard Zsh startup files
+    candidate_files = [".zshrc", ".zshenv", ".zprofile", ".zlogin", ".zlogout"]
+    for fname in candidate_files:
+        p = zsh_dir / fname
+        if p.is_file() or p.is_symlink():
+            if fname == ".zshrc" and _is_ziro_only_zshrc(p):
+                continue
+            existing.append(p)
+
+    # Completion dump caches in user home
+    try:
+        for p in zsh_dir.glob(".zcompdump*"):
+            if p.is_file() or p.is_symlink():
+                existing.append(p)
+    except Exception:
+        pass
+
+    # Known Zsh framework and plugin directories
+    candidate_dirs = [
+        ".oh-my-zsh",
+        ".zim",
+        ".zprezto",
+        ".zsh",
+        ".antigen",
+        ".zplug",
+        ".antibody",
+        ".sheldon",
+    ]
+    for dname in candidate_dirs:
+        p = zsh_dir / dname
+        if p.exists() and "ziro" not in p.name.lower():
+            existing.append(p)
+
+    # XDG zsh config directory (~/.config/zsh)
+    try:
+        xdg_cfg = Path(os.environ.get("XDG_CONFIG_HOME", str(Path(os.environ.get("HOME", str(Path.home()))) / ".config")))
+        xdg_zsh = xdg_cfg / "zsh"
+        if xdg_zsh.exists() and xdg_zsh.resolve() != zsh_dir.resolve():
+            existing.append(xdg_zsh)
+    except Exception:
+        pass
+
+    return existing
+
+
+def backup_and_clean_zsh_configs(
+    items: list[Path],
+    dry_run: bool = False,
+    zsh_dir: Path | None = None,
+) -> Path | None:
+    """Back up detected Zsh config files/directories to ~/.zsh-backup-<ts> and wipe them."""
+    if not items:
+        return None
+
+    if zsh_dir is None:
+        zdotdir = os.environ.get("ZDOTDIR")
+        zsh_dir = Path(zdotdir) if zdotdir else Path(os.environ.get("HOME", str(Path.home())))
+
+    # Protect developer's real home during automated unit tests
+    try:
+        import pwd
+        real_user_home = Path(pwd.getpwuid(os.getuid()).pw_dir).resolve()
+    except Exception:
+        real_user_home = Path.home().resolve()
+
+    if (
+        zsh_dir.resolve() == real_user_home
+        and (os.environ.get("PYTEST_CURRENT_TEST") or "unittest" in sys.modules)
+        and os.environ.get("ZIRO_ALLOW_TEST_WIPE") != "1"
+    ):
+        return None
+
+    ts = datetime.now(timezone.utc).strftime("%Y%m%d_%H%M%S")
+    backup_dir = zsh_dir / f".zsh-backup-{ts}"
+
+    if dry_run:
+        print(f"[dry-run] would back up {len(items)} item(s) to {backup_dir} and remove them:")
+        for it in items:
+            print(f"  [dry-run] backup and remove: {it}")
+        return backup_dir
+
+    backup_dir.mkdir(parents=True, exist_ok=True)
+    for item in items:
+        try:
+            if not item.exists() and not item.is_symlink():
+                continue
+            dest = backup_dir / item.name
+            if item.is_dir() and not item.is_symlink():
+                shutil.copytree(item, dest, symlinks=True, dirs_exist_ok=True)
+                shutil.rmtree(item, ignore_errors=True)
+            else:
+                shutil.copy2(item, dest, follow_symlinks=False)
+                item.unlink(missing_ok=True)
+        except Exception as e:
+            print(f"⚠️  warning: failed to backup/remove {item}: {e}", file=sys.stderr)
+
+    return backup_dir
+
+
 def _activate_zshrc(cfg: Path, dry_run: bool = False, no_activate: bool = False) -> tuple[bool, str]:
     """Idempotently append source <boot.zsh> to ~/.zshrc with a timestamped backup."""
     if no_activate:
@@ -273,10 +422,12 @@ def _activate_zshrc(cfg: Path, dry_run: bool = False, no_activate: bool = False)
     try:
         zshrc.parent.mkdir(parents=True, exist_ok=True)
         append_text = (
-            "\n# Ziro Shell initialization\n"
+            "# Ziro Shell initialization\n"
             '[[ ":$PATH:" != *":$HOME/.local/bin:"* ]] && export PATH="$HOME/.local/bin:$PATH"\n'
             f'source "{boot_shim}"\n'
         )
+        if zshrc.is_file() and zshrc.stat().st_size > 0:
+            append_text = "\n" + append_text
         with zshrc.open("a", encoding="utf-8") as f:
             f.write(append_text)
         return True, f"activated in {zshrc}{backup_str}"
@@ -293,6 +444,8 @@ def cmd_install(argv: list[str]) -> int:
     dry_run = "--dry-run" in argv
     default_mode = "--default" in argv
     custom_mode = "--custom" in argv
+    clean_mode = "--clean" in argv
+    no_clean_mode = "--no-clean" in argv
     no_activate = "--no-activate" in argv
 
     cfg = _config_dir()
@@ -300,23 +453,55 @@ def cmd_install(argv: list[str]) -> int:
     print("ziro-shell installer")
     print("─" * 40)
 
+    # 1. Detect existing Zsh configurations and offer clean install
+    existing_configs = detect_existing_zsh_configs()
+    if existing_configs:
+        do_clean = False
+        if clean_mode:
+            do_clean = True
+        elif no_clean_mode:
+            do_clean = False
+        else:
+            print("⚠️  Existing Zsh configuration detected:")
+            for item in existing_configs[:6]:
+                try:
+                    rel = f"~/{item.relative_to(Path.home())}"
+                except ValueError:
+                    rel = str(item)
+                print(f"   • {rel}")
+            if len(existing_configs) > 6:
+                print(f"   • ... and {len(existing_configs) - 6} more")
+            print()
+            print("Would you like to perform a clean install?")
+            print("(This will back up all your existing Zsh configs, then wipe them to start fresh with Ziro)")
+            ans = _prompt_user("Clean install? [y/N]: ", default="n")
+            do_clean = ans.lower() in ("y", "yes")
+
+        if do_clean:
+            backup_dir = backup_and_clean_zsh_configs(existing_configs, dry_run=dry_run)
+            if backup_dir:
+                try:
+                    rel_backup = f"~/{backup_dir.relative_to(Path.home())}"
+                except ValueError:
+                    rel_backup = str(backup_dir)
+                print(f"📦 Backed up existing Zsh config to: {rel_backup}")
+                print("🧹 Cleaned up old Zsh configuration.")
+                print()
+
     if default_mode:
         choice = "default"
     elif custom_mode:
         choice = "custom"
     else:
         # Interactive question (only if TTY)
-        if sys.stdin.isatty():
-            print("How would you like to proceed?")
-            print(" [1] Default — install with pre-configured defaults")
-            print(" [2] Custom — choose each component manually")
-            try:
-                ans = input("Choice [1]: ").strip() or "1"
-            except EOFError:
-                ans = "1"
-            choice = "custom" if ans == "2" else "default"
-        else:
-            choice = "default"  # non-TTY → default
+        ans = _prompt_user(
+            "How would you like to proceed?\n"
+            " [1] Default — install with pre-configured defaults\n"
+            " [2] Custom — choose each component manually\n"
+            "Choice [1]: ",
+            default="1",
+        )
+        choice = "custom" if ans == "2" else "default"
 
     print(f"mode: {choice}")
 
