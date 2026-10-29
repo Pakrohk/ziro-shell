@@ -1,0 +1,67 @@
+# Ziro starship prompt config
+# Ship a static file; user edits survive ziro install/update.
+# To reset: cp starship.toml ~/.config/starship.toml
+
+add_newline = true
+command_timeout = 2000
+
+format = """$python$rust$golang$nodejs${custom.userinfo}$directory$git_status($git_branch) $cmd_duration
+$character
+"""
+
+[python]
+format = "([$symbol$version (venv: $virtualenv)]($style) )"
+style = "bold yellow"
+
+[rust]
+format = "([$symbol$version]($style) )"
+style = "bold red"
+
+[golang]
+format = "([$symbol$version]($style) )"
+style = "bold cyan"
+
+[nodejs]
+format = "([$symbol$version]($style) )"
+style = "bold green"
+
+[custom.userinfo]
+command = "printf '%s@%s ➜ ' \"$USER\" \"$(uname -n)\""
+when = "true"
+style = "bold 242"
+
+[directory]
+truncate_to_repo = true
+format = "[$path ](bold blue)"
+style = "bold blue"
+
+[git_branch]
+symbol = "  "
+format = "[$symbol$branch](bold yellow)"
+truncation_length = 8
+style = "bold yellow"
+
+[git_status]
+format = "[$all_status$ahead_behind](bold purple)"
+style = "bold purple"
+conflicted = "⚔️($count)"
+ahead = "↑($count)"
+behind = "↓($count)"
+diverged = "↕($count)"
+untracked = "★($count)"
+stashed = "📍($count)"
+modified = " ✏️($count)"
+staged = "✔($count)"
+renamed = "➜($count)"
+deleted = "🗑($count)"
+
+[cmd_duration]
+min_time = 2000
+format = "[ ⏱ took $duration](bold green)"
+style = "bold green"
+
+[character]
+success_symbol = "[ λ](bold green)"
+error_symbol = "[ λ](bold red)"
+vicmd_symbol = "[ λ](bold yellow)"
+format = "$symbol "

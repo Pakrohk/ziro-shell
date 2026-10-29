@@ -278,11 +278,12 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
     "theme": HelpEntry(
         name="theme",
         summary="Manage shell themes and appearance",
-        usage="ziro theme <list|current|apply|reset> [args...]",
+        usage="ziro theme <list|current|apply|edit|reset> [args...]",
         subcommands={
-            "list": "List available theme components",
+            "list": "List available theme components and presets",
             "current": "Show currently active theme selection",
             "apply": "Apply a theme or component style",
+            "edit": "Edit active prompt theme or custom theme configuration",
             "reset": "Reset theme configuration to defaults",
         },
         flags=[
@@ -291,7 +292,8 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         examples=[
             "ziro theme current",
             "ziro theme list",
-            "ziro theme apply default",
+            "ziro theme apply tokyo-night",
+            "ziro theme edit",
         ],
         related=["prompt", "suggest"],
     ),
@@ -306,7 +308,7 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
             "ziro theme list",
             "ziro theme list --component prompt",
         ],
-        related=["theme current", "theme apply"],
+        related=["theme current", "theme apply", "theme edit"],
     ),
     "theme current": HelpEntry(
         name="theme current",
@@ -315,7 +317,7 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         examples=[
             "ziro theme current",
         ],
-        related=["theme apply"],
+        related=["theme apply", "theme edit"],
     ),
     "theme apply": HelpEntry(
         name="theme apply",
@@ -325,10 +327,21 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
             ("--component <comp>", "Component target: prompt, auto_suggest, colors, syntax_highlighting"),
         ],
         examples=[
-            "ziro theme apply default",
-            "ziro theme apply iris --component prompt",
+            "ziro theme apply tokyo-night",
+            "ziro theme apply gruvbox-rainbow",
+            "ziro theme apply lambda",
         ],
-        related=["theme current"],
+        related=["theme current", "theme edit"],
+    ),
+    "theme edit": HelpEntry(
+        name="theme edit",
+        summary="Edit active prompt theme or custom theme in your editor",
+        usage="ziro theme edit [name]",
+        examples=[
+            "ziro theme edit",
+            "ziro theme edit tokyo-night",
+        ],
+        related=["theme apply", "theme list"],
     ),
     "theme reset": HelpEntry(
         name="theme reset",

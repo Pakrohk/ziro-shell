@@ -941,6 +941,15 @@ def build(
     # Step 7: Write boot.zsh shim
     write_boot_shim(paths["config"] / "boot.zsh", paths=paths)
 
+    # Step 7b: Synchronize shell completion script
+    try:
+        from core.completion_cli import generate_zsh_completion
+        comp_dir = paths["data"] / "completions"
+        comp_dir.mkdir(parents=True, exist_ok=True)
+        (comp_dir / "_ziro").write_text(generate_zsh_completion(), encoding="utf-8")
+    except Exception:
+        pass
+
     # Step 8: Verify boot script loads cleanly
     test_cmd = f"source '{boot_artifact}'; exit 0"
     r_test = subprocess.run(

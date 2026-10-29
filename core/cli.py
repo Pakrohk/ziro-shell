@@ -288,11 +288,20 @@ def theme_apply(name: str, component: Optional[str] = None) -> int:
     return theme_cli.cmd_apply(args)
 
 
+@theme_app.command(name="edit")
+def theme_edit(name: Optional[str] = None) -> int:
+    """Edit active prompt theme or a specific custom theme configuration."""
+    from core import theme_cli
+    args = [name] if name else []
+    return theme_cli.cmd_edit(args)
+
+
 @theme_app.command(name="reset")
 def theme_reset() -> int:
     """Reset theme configuration to defaults."""
     from core import theme_cli
     return theme_cli.cmd_reset([])
+
 
 
 # ---------------------------------------------------------------------------
