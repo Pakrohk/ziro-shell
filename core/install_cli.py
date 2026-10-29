@@ -353,6 +353,31 @@ def _install_cli_launcher(ziro_home: Path) -> Path | None:
         return None
 
 
+def _install_man_page(ziro_home: Path) -> Path | None:
+    """Install ziro.1 manual page to ~/.local/share/man/man1/ziro.1."""
+    try:
+        source_candidates = [
+            ziro_home / "man" / "man1" / "ziro.1",
+            ziro_home / "docs" / "_build" / "man" / "ziro.1",
+        ]
+        src: Path | None = None
+        for cand in source_candidates:
+            if cand.is_file():
+                src = cand
+                break
+        if not src:
+            return None
+
+        xdg_data = os.environ.get("XDG_DATA_HOME")
+        man_dir = (Path(xdg_data) if xdg_data else (Path.home() / ".local" / "share")) / "man" / "man1"
+        man_dir.mkdir(parents=True, exist_ok=True)
+        dest = man_dir / "ziro.1"
+        dest.write_bytes(src.read_bytes())
+        return dest
+    except Exception:
+        return None
+
+
 def _prompt_user(prompt_text: str, default: str = "") -> str:
     """Prompt user for input, using sys.stdin or falling back to /dev/tty."""
     if sys.stdin.isatty():
@@ -558,6 +583,7 @@ def _activate_zshrc(cfg: Path, dry_run: bool = False, no_activate: bool = False)
         append_text = (
             "# Ziro Shell initialization\n"
             '[[ ":$PATH:" != *":$HOME/.local/bin:"* ]] && export PATH="$HOME/.local/bin:$PATH"\n'
+            '[[ -d "$HOME/.local/share/man" && ":$MANPATH:" != *":$HOME/.local/share/man:"* ]] && export MANPATH="$HOME/.local/share/man:${MANPATH:-}"\n'
             f'source "{boot_shim}"\n'
         )
         if zshrc.is_file() and zshrc.stat().st_size > 0:
@@ -803,6 +829,11 @@ def cmd_install(argv: list[str]) -> int:
     launcher = _install_cli_launcher(_ziro_home())
     if launcher:
         print(f"✅ installed launcher: {launcher}")
+
+    # Step: Install manual page (~/.local/share/man/man1/ziro.1)
+    man_page = _install_man_page(_ziro_home())
+    if man_page:
+        print(f"✅ installed manual page: {man_page}")
 
     # Step: Shell activation in .zshrc
     ok_act, msg_act = _activate_zshrc(cfg, dry_run=dry_run, no_activate=no_activate)

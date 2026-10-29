@@ -1,0 +1,704 @@
+.\" Man page generated from reStructuredText
+.\" by the Docutils 0.23 manpage writer.
+.
+.
+.nr rst2man-indent-level 0
+.
+.de1 rstReportMargin
+\\$1 \\n[an-margin]
+level \\n[rst2man-indent-level]
+level margin: \\n[rst2man-indent\\n[rst2man-indent-level]]
+-
+\\n[rst2man-indent0]
+\\n[rst2man-indent1]
+\\n[rst2man-indent2]
+..
+.de1 INDENT
+.\" .rstReportMargin pre:
+. RS \\$1
+. nr rst2man-indent\\n[rst2man-indent-level] \\n[an-margin]
+. nr rst2man-indent-level +1
+.\" .rstReportMargin post:
+..
+.de UNINDENT
+. RE
+.\" indent \\n[an-margin]
+.\" old: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.nr rst2man-indent-level -1
+.\" new: \\n[rst2man-indent\\n[rst2man-indent-level]]
+.in \\n[rst2man-indent\\n[rst2man-indent-level]]u
+..
+.TH "ZIRO" "1" "Oct 26, 2026" "" "ziro"
+.SH NAME
+ziro \- Ziro Shell CLI Manual
+.SH ZIRO SHELL CLI MANUAL
+.sp
+Fast, layered Zsh runtime customization
+.SS help
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro help [ARGS...]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show help documentation for ziro or a specific command.
+.sp
+\fBArguments:\fP
+.sp
+\fBTOKENS\fP
+.SS doctor
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro doctor [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Run full system health checks on runtime, bytecode, and dependencies.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBVERBOSE, \-\-verbose, \-\-no\-verbose\fP
+Default: \fBFalse\fP
+.UNINDENT
+.SS sync
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro sync [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Synchronize configuration, compile bytecode artifacts, and validate freshness.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBREBUILD\-CACHES, \-\-rebuild\-caches, \-\-no\-rebuild\-caches\fP
+Default: \fBFalse\fP
+.TP
+.B \fBFORCE, \-\-force, \-\-no\-force\fP
+Default: \fBFalse\fP
+.TP
+.B \fBNO\-STRICT\-ZWC, \-\-no\-strict\-zwc, \-\-no\-no\-strict\-zwc\fP
+Default: \fBFalse\fP
+.UNINDENT
+.sp
+\fBCONFIG, \-\-config\fP
+.SS analyze
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro analyze [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Analyze tools and generate or audit load.toml configuration.
+.sp
+\fBParameters:\fP
+.sp
+\fBTOOL, \-\-tool\fP
+\fBFULL, \-\-full, \-\-no\-full\fP
+.INDENT 0.0
+.INDENT 3.5
+Default: \fBFalse\fP
+.UNINDENT
+.UNINDENT
+.INDENT 0.0
+.TP
+.B \fBDRY\-RUN, \-\-dry\-run, \-\-no\-dry\-run\fP
+Default: \fBFalse\fP
+.UNINDENT
+.SS update
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro update [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Update ziro repository, plugins, and recompile runtime artifacts.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBCHECK, \-\-check, \-\-no\-check\fP
+Default: \fBFalse\fP
+.TP
+.B \fBFORCE, \-\-force, \-\-no\-force\fP
+Default: \fBFalse\fP
+.TP
+.B \fBDEV, \-\-dev, \-\-no\-dev\fP
+Default: \fBFalse\fP
+.TP
+.B \fBDRY\-RUN, \-\-dry\-run, \-\-no\-dry\-run\fP
+Default: \fBFalse\fP
+.TP
+.B \fBYES, \-\-yes, \-\-no\-yes\fP
+Default: \fBFalse\fP
+.TP
+.B \fBPLUGINS\-ONLY, \-\-plugins\-only, \-\-no\-plugins\-only\fP
+Default: \fBFalse\fP
+.TP
+.B \fBSYNC\-ONLY, \-\-sync\-only, \-\-no\-sync\-only\fP
+Default: \fBFalse\fP
+.TP
+.B \fBNO\-ANALYZE, \-\-no\-analyze, \-\-no\-no\-analyze\fP
+Default: \fBFalse\fP
+.UNINDENT
+.sp
+\fBPLUGIN, \-\-plugin\fP
+\fBQUIET, \-\-quiet, \-\-no\-quiet\fP
+.INDENT 0.0
+.INDENT 3.5
+Default: \fBFalse\fP
+.UNINDENT
+.UNINDENT
+.SS plugin
+.sp
+Manage shell plugins (install, remove, list, inspect)
+.sp
+\fBSubcommands::\fP
+.INDENT 0.0
+.TP
+.B \fBadd\fP
+Add a plugin from git source, local path, or catalog with tags.
+.TP
+.B \fBlist\fP
+List installed plugins with stage, method, and status.
+.TP
+.B \fBremove\fP
+Remove an installed plugin and its configuration tags.
+.TP
+.B \fBshow\fP
+Show detailed metadata and files for an installed plugin.
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro plugin list [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+List installed plugins with stage, method, and status.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBNAMES, \-\-names, \-\-no\-names\fP
+Default: \fBFalse\fP
+.TP
+.B \fBRAW, \-\-raw, \-\-no\-raw\fP
+Default: \fBFalse\fP
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro plugin show NAME
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show detailed metadata and files for an installed plugin.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBNAME, \-\-name\fP
+\fBRequired\fP
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro plugin remove NAME [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Remove an installed plugin and its configuration tags.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBNAME, \-\-name\fP
+\fBRequired\fP
+.TP
+.B \fBDRY\-RUN, \-\-dry\-run, \-\-no\-dry\-run\fP
+Default: \fBFalse\fP
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro plugin add [ARGS...]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Add a plugin from git source, local path, or catalog with tags.
+.sp
+\fBArguments:\fP
+.sp
+\fBTOKENS\fP
+.SS tag
+.sp
+Manage tags assigned to plugins and tools
+.sp
+\fBSubcommands::\fP
+.INDENT 0.0
+.TP
+.B \fBadd\fP
+Add a tag to a plugin or tool.
+.TP
+.B \fBdefine\fP
+Define a custom tag with optional description.
+.TP
+.B \fBlist\fP
+List all available and user\-defined tags.
+.TP
+.B \fBremove\fP
+Remove a tag from a plugin or tool.
+.TP
+.B \fBreset\fP
+Reset tags for a plugin or tool to defaults.
+.TP
+.B \fBshow\fP
+Show tags assigned to a specific plugin or tool.
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro tag list
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+List all available and user\-defined tags.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro tag show NAME
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show tags assigned to a specific plugin or tool.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBNAME, \-\-name\fP
+\fBRequired\fP
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro tag add NAME TAG
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Add a tag to a plugin or tool.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBNAME, \-\-name\fP
+\fBRequired\fP
+.TP
+.B \fBTAG, \-\-tag\fP
+\fBRequired\fP
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro tag remove NAME TAG
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Remove a tag from a plugin or tool.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBNAME, \-\-name\fP
+\fBRequired\fP
+.TP
+.B \fBTAG, \-\-tag\fP
+\fBRequired\fP
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro tag reset NAME
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Reset tags for a plugin or tool to defaults.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBNAME, \-\-name\fP
+\fBRequired\fP
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro tag define TAG [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Define a custom tag with optional description.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBTAG, \-\-tag\fP
+\fBRequired\fP
+.UNINDENT
+.sp
+\fBDESCRIPTION, \-\-description\fP
+.SS suggest
+.sp
+Manage autosuggestion provider (ziro\-ghost, zsh\-autosuggestions, none)
+.sp
+\fBSubcommands::\fP
+.INDENT 0.0
+.TP
+.B \fBdisable\fP
+Disable autosuggestions.
+.TP
+.B \fBlist\fP
+List available autosuggestion options.
+.TP
+.B \fBset\fP
+Set the active autosuggestion provider.
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro suggest list
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+List available autosuggestion options.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro suggest set NAME
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Set the active autosuggestion provider.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBNAME, \-\-name\fP
+\fBRequired\fP
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro suggest disable
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Disable autosuggestions.
+.SS theme
+.sp
+Manage shell themes and appearance
+.sp
+\fBSubcommands::\fP
+.INDENT 0.0
+.TP
+.B \fBapply\fP
+Apply a theme preset or component style.
+.TP
+.B \fBcurrent\fP
+Show currently active theme selection.
+.TP
+.B \fBlist\fP
+List available theme presets and components.
+.TP
+.B \fBreset\fP
+Reset theme configuration to defaults.
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro theme list [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+List available theme presets and components.
+.sp
+\fBParameters:\fP
+.sp
+\fBCOMPONENT, \-\-component\fP
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro theme current
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show currently active theme selection.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro theme apply NAME [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Apply a theme preset or component style.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBNAME, \-\-name\fP
+\fBRequired\fP
+.UNINDENT
+.sp
+\fBCOMPONENT, \-\-component\fP
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro theme reset
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Reset theme configuration to defaults.
+.SS prompt
+.sp
+Manage shell prompt style and engine
+.sp
+\fBSubcommands::\fP
+.INDENT 0.0
+.TP
+.B \fBcurrent\fP
+Show currently configured prompt.
+.TP
+.B \fBlist\fP
+List available prompt engines.
+.TP
+.B \fBset\fP
+Set the active prompt engine.
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro prompt list
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+List available prompt engines.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro prompt current
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Show currently configured prompt.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro prompt set NAME
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Set the active prompt engine.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBNAME, \-\-name\fP
+\fBRequired\fP
+.UNINDENT
+.SS config
+.sp
+Inspect and modify Ziro user configuration
+.sp
+\fBSubcommands::\fP
+.INDENT 0.0
+.TP
+.B \fBedit\fP
+Open configuration file in default editor.
+.TP
+.B \fBset\fP
+Set a configuration parameter.
+.TP
+.B \fBshow\fP
+Display configuration key or full settings.
+.UNINDENT
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro config show [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Display configuration key or full settings.
+.sp
+\fBParameters:\fP
+.sp
+\fBKEY, \-\-key\fP
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro config edit
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Open configuration file in default editor.
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro config set KEY VALUE
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Set a configuration parameter.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBKEY, \-\-key\fP
+\fBRequired\fP
+.TP
+.B \fBVALUE, \-\-value\fP
+\fBRequired\fP
+.UNINDENT
+.SS bench
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro bench [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Benchmark interactive shell startup time across iterations.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBITERS, \-\-iters\fP
+Default: \fB10\fP
+.TP
+.B \fBWARMUP, \-\-warmup\fP
+Default: \fB2\fP
+.TP
+.B \fBQUIET, \-\-quiet, \-\-no\-quiet\fP
+Default: \fBFalse\fP
+.UNINDENT
+.SS completion
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro completion [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Generate and manage shell completions.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBSHELL, \-\-shell\fP
+Default: \fBzsh\fP
+.TP
+.B \fBREBUILD, \-\-rebuild, \-\-no\-rebuild\fP
+Default: \fBFalse\fP
+.TP
+.B \fBCLEAN, \-\-clean, \-\-no\-clean\fP
+Default: \fBFalse\fP
+.UNINDENT
+.SS install
+.INDENT 0.0
+.INDENT 3.5
+.sp
+.EX
+ziro install [ARGS]
+.EE
+.UNINDENT
+.UNINDENT
+.sp
+Install Ziro shell framework with defaults or custom profile.
+.sp
+\fBParameters:\fP
+.INDENT 0.0
+.TP
+.B \fBDEFAULT, \-\-default, \-\-no\-default\fP
+Default: \fBFalse\fP
+.TP
+.B \fBCUSTOM, \-\-custom, \-\-no\-custom\fP
+Default: \fBFalse\fP
+.TP
+.B \fBDRY\-RUN, \-\-dry\-run, \-\-no\-dry\-run\fP
+Default: \fBFalse\fP
+.TP
+.B \fBNO\-ACTIVATE, \-\-no\-activate, \-\-no\-no\-activate\fP
+Default: \fBFalse\fP
+.UNINDENT
+.SH Author
+Pakrohk
+.SH Copyright
+2026, Pakrohk
+.\" End of generated man page.

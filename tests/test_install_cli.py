@@ -70,6 +70,13 @@ class TestInstallCli(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertIn("Starship not available", err_buf.getvalue())
 
+    def test_install_man_page(self):
+        repo_root = Path(__file__).resolve().parent.parent
+        installed = install_cli._install_man_page(repo_root)
+        self.assertIsNotNone(installed)
+        self.assertTrue(installed.is_file())
+        self.assertIn("ziro", installed.read_text())
+
     def test_custom_install_wizard(self):
         from unittest.mock import patch
         import tomllib

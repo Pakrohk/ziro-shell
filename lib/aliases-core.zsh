@@ -9,6 +9,11 @@ setopt autocd 2>/dev/null
 # allowing newly installed packages/binaries to be found immediately without shell restart.
 zstyle ':completion:*' rehash true
 
+# ─── User manual pages (~/.local/share/man) ───
+if [[ -d "$HOME/.local/share/man" && ":$MANPATH:" != *":$HOME/.local/share/man:"* ]]; then
+  export MANPATH="$HOME/.local/share/man:${MANPATH:-}"
+fi
+
 
 # ─── Defensive navigation: functions + aliases ───
 unalias .. ... .... 2>/dev/null

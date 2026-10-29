@@ -168,6 +168,7 @@ alias .. >/dev/null 2>&1 || missing+=(..)
 (( $+functions[mkcd] )) || missing+=(mkcd)
 (( $+functions[extract] )) || missing+=(extract)
 (( $+functions[ziro] )) || (( $+commands[ziro] )) || missing+=(ziro)
+(( $+commands[man] )) && { man -w ziro >/dev/null 2>&1 || missing+=(man-ziro); }
 if (( ${#missing} > 0 )); then
   print "missing: ${(j:, :)missing}"
   exit 1
@@ -184,7 +185,7 @@ print "ok"
         if r.returncode != 0:
             out = r.stdout.strip() or r.stderr.strip() or f"exit code {r.returncode}"
             return "error", f"runtime load check failed: {out}", "run `ziro sync`"
-        return "ok", "runtime commands and functions loaded (ll, la, lt, .., mkcd, extract, ziro)", None
+        return "ok", "runtime commands and functions loaded (ll, la, lt, .., mkcd, extract, ziro, man)", None
     except subprocess.TimeoutExpired:
         return "error", "runtime load check timed out (zsh boot hung)", "run `ziro sync`"
     except Exception as e:
