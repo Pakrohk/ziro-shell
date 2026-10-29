@@ -176,6 +176,11 @@ _ziro_bootstrap() {
   if [[ -e "$target_home" ]]; then
     if _ziro_verify_tree "$target_home"; then
       skip_clone=1
+      if [[ -d "$target_home/.git" ]] && (( $+commands[git] )); then
+        print "[*] Existing Ziro Shell installation detected. Fetching latest updates..."
+        git -C "$target_home" fetch -q origin main 2>/dev/null || git -C "$target_home" fetch -q origin 2>/dev/null || true
+        git -C "$target_home" pull --ff-only origin main 2>/dev/null || git -C "$target_home" pull --ff-only 2>/dev/null || true
+      fi
     else
       print -u2 "ziro: existing target directory $target_home is not a valid Ziro repository"
       return 14
