@@ -53,6 +53,7 @@ _ziro_bootstrap() {
     else
       return 1
     fi
+    rehash 2>/dev/null || true
   }
 
   # 2. Zsh Version Check (>= 5.8)
@@ -83,8 +84,9 @@ _ziro_bootstrap() {
     elif (( $+commands[brew] )); then
       _ziro_pkg_install python@3.11 || true
     fi
+    rehash 2>/dev/null || true
     for cand in python3 python python3.13 python3.12 python3.11; do
-      if (( $+commands[$cand] )) && "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
+      if (command -v "$cand" >/dev/null 2>&1 || (( $+commands[$cand] ))) && "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
         py="$cand"
         break
       fi
@@ -96,7 +98,7 @@ _ziro_bootstrap() {
   fi
 
   # 3b. Ensure git is installed
-  if ! (( $+commands[git] )); then
+  if ! command -v git >/dev/null 2>&1 && ! (( $+commands[git] )); then
     print "[*] git not found. Attempting automatic installation..."
     if (( $+commands[apt-get] )); then
       _ziro_pkg_install git ca-certificates || true
@@ -104,7 +106,7 @@ _ziro_bootstrap() {
       _ziro_pkg_install git || true
     fi
   fi
-  if ! (( $+commands[git] )); then
+  if ! command -v git >/dev/null 2>&1 && ! (( $+commands[git] )); then
     print -u2 "ziro: git is required to clone repository"
     return 12
   fi
@@ -188,7 +190,7 @@ _ziro_bootstrap() {
 
   # 7. Clone if needed (atomic staging via $target_home.tmp.$$)
   if (( skip_clone == 0 )); then
-    if ! (( $+commands[git] )); then
+    if ! command -v git >/dev/null 2>&1 && ! (( $+commands[git] )); then
       print -u2 "ziro: git is required to clone repository"
       return 12
     fi
