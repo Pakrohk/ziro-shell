@@ -105,14 +105,18 @@ Run the automated native Zsh installer directly:
 curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.zsh | zsh
 ```
 
-> 💡 **Tip — Passing installer flags with `curl | zsh`**:  
-> To pass flags through a pipe, pass them to `zsh -s -- <flags>` or use environment variables:
-> ```bash
-> # Force automated clean install (back up old zsh configs and start fresh):
-> curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.zsh | zsh -s -- --clean
-> # Or:
-> ZIRO_CLEAN=1 curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.zsh | zsh
-> ```
+> ⚠️ **Common Mistake — Where to place installer flags**:  
+> Flags placed immediately after the URL are read by `curl`, which causes `curl: option --clean: is unknown`.  
+> - ❌ **Wrong**: `curl -fsSL https://.../install.zsh --clean | zsh`
+> - ✅ **Right (Option A — Environment Variable, Recommended)**:
+>   ```bash
+>   ZIRO_CLEAN=1 curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.zsh | zsh
+>   ```
+> - ✅ **Right (Option B — Pipe Arguments to Zsh)**:
+>   ```bash
+>   curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.zsh | zsh -s -- --clean
+>   ```
+> - ℹ️ *Note: If you run without any flags, the installer automatically detects old configs and interactively asks `Clean install? [y/N]`.*
 
 Or inspect before running:
 
