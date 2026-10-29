@@ -114,6 +114,11 @@ class TestCompletion(unittest.TestCase):
 {script}
 (( $+functions[_ziro] )) || exit 1
 (( $+functions[_ziro_plugin] )) || exit 2
+(( $+functions[__ziro_plugins] )) || exit 3
+(( $+functions[__ziro_themes] )) || exit 4
+(( $+functions[__ziro_prompts] )) || exit 5
+(( $+functions[__ziro_suggests] )) || exit 6
+(( $+functions[__ziro_tags] )) || exit 7
 exit 0
 """
         run = subprocess.run(
@@ -122,6 +127,29 @@ exit 0
             text=True,
         )
         self.assertEqual(run.returncode, 0, f"Failed to source completion script: {run.stderr}")
+
+    def test_completion_covers_positional_arguments(self) -> None:
+        script = generate_zsh_completion()
+        self.assertIn("1:theme:__ziro_themes", script)
+        self.assertIn("1:plugin:__ziro_plugins", script)
+        self.assertIn("1:engine:__ziro_prompts", script)
+        self.assertIn("1:provider:__ziro_suggests", script)
+        self.assertIn("1:file:__ziro_config_files", script)
+        self.assertIn("1:key:__ziro_config_keys", script)
+
+    def test_cmd_completion_rebuild(self) -> None:
+        import tempfile
+        from unittest import mock
+        with tempfile.TemporaryDirectory() as tmp_data:
+            with mock.patch.dict("os.environ", {"ZIRO_DATA": tmp_data}):
+                buf = io.StringIO()
+                with redirect_stdout(buf):
+                    rc = cmd_completion(["--rebuild"])
+                self.assertEqual(rc, 0)
+                out = buf.getvalue()
+                self.assertIn("completion script updated", out)
+                comp_file = Path(tmp_data) / "completions" / "_ziro"
+                self.assertTrue(comp_file.is_file())
 
     def test_install_writes_completion_file(self) -> None:
         import tempfile
