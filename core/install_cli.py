@@ -18,11 +18,12 @@ from core.paths import get_paths
 
 def _verify_starship() -> tuple[bool, str]:
     """Verify starship is installed and working."""
-    if not shutil.which("starship"):
+    starship_cmd = shutil.which("starship")
+    if not starship_cmd:
         return False, "starship not found on PATH"
     try:
         r = subprocess.run(
-            ["starship", "--version"],
+            [starship_cmd, "--version"],
             capture_output=True,
             text=True,
             timeout=5,
@@ -193,6 +194,30 @@ def _ensure_venv() -> Path | None:
         return None
 
 
+def _install_cli_launcher(ziro_home: Path) -> Path | None:
+    """Create ~/.local/bin/ziro executable launcher so ziro is callable from any terminal."""
+    try:
+        local_bin = Path.home() / ".local" / "bin"
+        local_bin.mkdir(parents=True, exist_ok=True)
+        launcher = local_bin / "ziro"
+        content = (
+            "#!/usr/bin/env zsh\n"
+            f': ${{ZIRO_HOME:="{ziro_home}"}}\n'
+            'if [[ -f "$ZIRO_HOME/ziro.zsh" ]]; then\n'
+            '  source "$ZIRO_HOME/ziro.zsh"\n'
+            '  _ziro_dispatch "$@"\n'
+            "else\n"
+            '  print -u2 "ziro: ZIRO_HOME not found at $ZIRO_HOME"\n'
+            "  exit 1\n"
+            "fi\n"
+        )
+        launcher.write_text(content, encoding="utf-8")
+        launcher.chmod(0o755)
+        return launcher
+    except Exception:
+        return None
+
+
 def _activate_zshrc(cfg: Path, dry_run: bool = False, no_activate: bool = False) -> tuple[bool, str]:
     """Idempotently append source <boot.zsh> to ~/.zshrc with a timestamped backup."""
     if no_activate:
@@ -247,7 +272,11 @@ def _activate_zshrc(cfg: Path, dry_run: bool = False, no_activate: bool = False)
 
     try:
         zshrc.parent.mkdir(parents=True, exist_ok=True)
-        append_text = f'\n# Ziro Shell initialization\nsource "{boot_shim}"\n'
+        append_text = (
+            "\n# Ziro Shell initialization\n"
+            '[[ ":$PATH:" != *":$HOME/.local/bin:"* ]] && export PATH="$HOME/.local/bin:$PATH"\n'
+            f'source "{boot_shim}"\n'
+        )
         with zshrc.open("a", encoding="utf-8") as f:
             f.write(append_text)
         return True, f"activated in {zshrc}{backup_str}"
@@ -371,11 +400,16 @@ def cmd_install(argv: list[str]) -> int:
     # Step: Execute Build Pipeline (ziro sync)
     print("\nRunning build pipeline...")
     from core.build import build
-    ok_build, msg_build, _ = build()
+    ok_build, msg_build, _ = build(rebuild_eval_caches=True)
     if not ok_build:
         print(f"❌ build pipeline failed: {msg_build}", file=sys.stderr)
         return 1
     print(f"✅ boot chain compiled: {cfg / 'boot.zsh'}")
+
+    # Step: Install CLI launcher (~/.local/bin/ziro)
+    launcher = _install_cli_launcher(_ziro_home())
+    if launcher:
+        print(f"✅ installed launcher: {launcher}")
 
     # Step: Shell activation in .zshrc
     ok_act, msg_act = _activate_zshrc(cfg, dry_run=dry_run, no_activate=no_activate)

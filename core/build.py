@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import os
 from pathlib import Path
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -500,9 +501,19 @@ def render_eager_section(tools: list[dict[str, Any]]) -> str:
                 lines.append('  unset _ziro_compdef_queue _cd')
                 lines.append('fi')
         elif method == "source" and path:
-            lines.append(f'source "{path}"')
+            lines.append(f'_ziro_source_safe "{path}"')
         elif method == "eval-cache" and cache_path:
-            lines.append(f'[[ -f "{cache_path}" ]] && source "{cache_path}"')
+            if name == "starship":
+                lines.append(f'if [[ -f "{cache_path}" ]]; then')
+                lines.append(f'  source "{cache_path}"')
+                lines.append('elif (( $+commands[starship] )); then')
+                lines.append('  eval "$(starship init zsh)"')
+                lines.append('else')
+                lines.append('  autoload -Uz colors 2>/dev/null && colors 2>/dev/null')
+                lines.append('  PROMPT="%F{cyan}%~%f %F{green}❯%f "')
+                lines.append('fi')
+            else:
+                lines.append(f'[[ -f "{cache_path}" ]] && source "{cache_path}"')
 
         if post_source:
             lines.append(post_source)
@@ -538,7 +549,7 @@ def render_deferred_section(tools: list[dict[str, Any]]) -> str:
         name = t.get("name", "")
         if path:
             name_flag = f'--name="{name}" ' if name else ""
-            lines.append(f'ziro-defer --stage={stage} --slot={slot} {name_flag}source "{path}"')
+            lines.append(f'ziro-defer --stage={stage} --slot={slot} {name_flag}_ziro_source_safe "{path}"')
 
     return "\n".join(lines)
 
@@ -640,6 +651,7 @@ def render_boot_script(
         f"# Generated: {now_iso}",
         "# Schema: 1.0.0 · Post-Integration Pipeline",
         "emulate -L zsh",
+        '_ziro_source_safe() { [[ -f "$1" ]] && source "$1" || true; }',
     ]
 
     parts = [
@@ -892,16 +904,30 @@ def build(
         if cand.is_dir():
             defer_root = cand
 
-    # Rebuild eval caches if starship is installed
-    if rebuild_eval_caches:
-        eval_cache_dir = paths["cache"] / "eval-cache"
-        eval_cache_dir.mkdir(parents=True, exist_ok=True)
-        try:
-            r = subprocess.run(["starship", "init", "zsh", "--print-full-init"], capture_output=True, text=True, timeout=5)
-            if r.returncode == 0:
-                (eval_cache_dir / "starship.zsh").write_text(r.stdout, encoding="utf-8")
-        except Exception:
-            pass
+    # Step 3b: Ensure vendor tools from manifest exist on disk
+    try:
+        from core.vendor import ensure_vendor_tools
+        ensure_vendor_tools(manifest, paths=paths, quiet=False)
+    except Exception as e:
+        print(f"[vendor] warning: failed to ensure vendor tools: {e}")
+
+    # Rebuild eval caches if starship is installed or cache missing
+    eval_cache_dir = paths["cache"] / "eval-cache"
+    eval_cache_dir.mkdir(parents=True, exist_ok=True)
+    starship_cache = eval_cache_dir / "starship.zsh"
+    if rebuild_eval_caches or not starship_cache.is_file():
+        starship_cmd = shutil.which("starship")
+        if not starship_cmd:
+            local_star = Path.home() / ".local" / "bin" / "starship"
+            if local_star.is_file() and os.access(local_star, os.X_OK):
+                starship_cmd = str(local_star)
+        if starship_cmd:
+            try:
+                r = subprocess.run([starship_cmd, "init", "zsh", "--print-full-init"], capture_output=True, text=True, timeout=5)
+                if r.returncode == 0:
+                    starship_cache.write_text(r.stdout, encoding="utf-8")
+            except Exception:
+                pass
 
     # Step 4: Render ziro-boot.zsh
     boot_content = render_boot_script(manifest, merged_tools, defer_root)

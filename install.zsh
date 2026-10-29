@@ -6,6 +6,11 @@ _ziro_bootstrap() {
   emulate -L zsh
   setopt err_return no_unset pipe_fail local_options local_traps
 
+  # Auto-allow root in container environments
+  if [[ -f /.dockerenv || -f /run/.containerenv || -n "${container:-}" || "${CI:-}" == "true" ]]; then
+    ZIRO_ALLOW_ROOT=1
+  fi
+
   # 1. Platform & User Check
   local kernel="$(uname -s 2>/dev/null || echo "Unknown")"
   if [[ "$kernel" != "Linux" && "$kernel" != "Darwin" ]]; then
@@ -18,6 +23,38 @@ _ziro_bootstrap() {
     return 16
   fi
 
+  # Helper: Automatic package installation using system package manager
+  _ziro_pkg_install() {
+    local pkgs=("$@")
+    local sudo_cmd=""
+    if (( EUID != 0 )); then
+      if (( $+commands[sudo] )); then
+        sudo_cmd="sudo"
+      elif (( $+commands[doas] )); then
+        sudo_cmd="doas"
+      else
+        return 1
+      fi
+    fi
+
+    if (( $+commands[apt-get] )); then
+      $sudo_cmd apt-get update -qq >/dev/null 2>&1 || true
+      $sudo_cmd apt-get install -y -qq "${pkgs[@]}" >/dev/null 2>&1
+    elif (( $+commands[pacman] )); then
+      $sudo_cmd pacman -Sy --noconfirm "${pkgs[@]}" >/dev/null 2>&1
+    elif (( $+commands[dnf] )); then
+      $sudo_cmd dnf install -y "${pkgs[@]}" >/dev/null 2>&1
+    elif (( $+commands[apk] )); then
+      $sudo_cmd apk add "${pkgs[@]}" >/dev/null 2>&1
+    elif (( $+commands[brew] )); then
+      brew install "${pkgs[@]}" >/dev/null 2>&1
+    elif (( $+commands[zypper] )); then
+      $sudo_cmd zypper install -y "${pkgs[@]}" >/dev/null 2>&1
+    else
+      return 1
+    fi
+  }
+
   # 2. Zsh Version Check (>= 5.8)
   autoload -Uz is-at-least
   if ! is-at-least 5.8 "${ZSH_VERSION:-0}"; then
@@ -27,15 +64,59 @@ _ziro_bootstrap() {
 
   # 3. Locate Python 3.11+
   local py=""
-  for cand in python3 python; do
+  for cand in python3 python python3.13 python3.12 python3.11; do
     if (( $+commands[$cand] )) && "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
       py="$cand"
       break
     fi
   done
   if [[ -z "$py" ]]; then
+    print "[*] Python 3.11+ not found. Attempting automatic installation..."
+    if (( $+commands[apt-get] )); then
+      _ziro_pkg_install python3 python3-venv python3-pip || true
+    elif (( $+commands[pacman] )); then
+      _ziro_pkg_install python || true
+    elif (( $+commands[dnf] )); then
+      _ziro_pkg_install python3 || true
+    elif (( $+commands[apk] )); then
+      _ziro_pkg_install python3 || true
+    elif (( $+commands[brew] )); then
+      _ziro_pkg_install python@3.11 || true
+    fi
+    for cand in python3 python python3.13 python3.12 python3.11; do
+      if (( $+commands[$cand] )) && "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
+        py="$cand"
+        break
+      fi
+    done
+  fi
+  if [[ -z "$py" ]]; then
     print -u2 "ziro: Python 3.11 or newer is required (engine uses tomllib and modern dataclasses)"
     return 11
+  fi
+
+  # 3b. Starship Check & Auto-Install
+  if ! (( $+commands[starship] )) && ! [[ -x "$HOME/.local/bin/starship" || -x "/usr/local/bin/starship" ]]; then
+    print "[*] starship prompt engine not found. Attempting automatic installation..."
+    if (( $+commands[pacman] )); then
+      _ziro_pkg_install starship || true
+    elif (( $+commands[brew] )); then
+      _ziro_pkg_install starship || true
+    elif (( $+commands[apk] )); then
+      _ziro_pkg_install starship || true
+    fi
+    if ! (( $+commands[starship] )) && ! [[ -x "$HOME/.local/bin/starship" || -x "/usr/local/bin/starship" ]]; then
+      local starship_bin_dir="$HOME/.local/bin"
+      mkdir -p "$starship_bin_dir"
+      if (( $+commands[curl] )); then
+        curl -fsSL https://starship.rs/install.sh | sh -s -- -y -b "$starship_bin_dir" >/dev/null 2>&1 || true
+      elif (( $+commands[wget] )); then
+        wget -qO- https://starship.rs/install.sh | sh -s -- -y -b "$starship_bin_dir" >/dev/null 2>&1 || true
+      fi
+    fi
+  fi
+  if [[ -x "$HOME/.local/bin/starship" && ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    export PATH="$HOME/.local/bin:$PATH"
   fi
 
   # 4. Resolve ZIRO_HOME (env > XDG > default ~/.ziro)
