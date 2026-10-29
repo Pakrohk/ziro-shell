@@ -173,10 +173,10 @@ def _load_toml_tags(path: Path) -> dict[str, Tag]:
     return out
 
 
-def ensure_builtin_tags_file(config_dir: Path) -> Path:
-    """Ensure builtin.toml exists on disk; writes standard template if missing."""
+def ensure_builtin_tags_file(config_dir: Path, force: bool = False) -> Path:
+    """Ensure builtin.toml exists on disk; writes standard template if missing or force=True."""
     target = config_dir / "tags" / "builtin.toml"
-    if not target.is_file():
+    if not target.is_file() or force:
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(BUILTIN_TOML_CONTENT)
     return target

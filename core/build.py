@@ -611,7 +611,11 @@ def render_ondemand_section(tools: list[dict[str, Any]]) -> str:
             lines.append(f"{proxy_fn}() {{")
             lines.append('  local _target_cmd="$1"; shift')
             lines.append(f"  unfunction {proxy_fn} {cmd_list} 2>/dev/null")
-            lines.append(f'  source "{target_path}"')
+            lines.append(f'  _ziro_source_safe "{target_path}"')
+            if slug == "zoxide":
+                lines.append('  if (( ! $+functions[__zoxide_z] )) && (( $+commands[zoxide] )); then')
+                lines.append('    eval "$(zoxide init zsh)"')
+                lines.append('  fi')
             lines.append('  "$_target_cmd" "$@"')
             lines.append("}")
             for cmd in cmds:
@@ -953,6 +957,36 @@ def build(
                 r = subprocess.run([str(zcolors_bin), ""], capture_output=True, text=True, timeout=5)
                 if r.returncode == 0:
                     zcolors_cache.write_text(r.stdout, encoding="utf-8")
+            except Exception:
+                pass
+
+    zoxide_cache = eval_cache_dir / "zoxide.zsh"
+    if rebuild_eval_caches or not zoxide_cache.is_file():
+        zoxide_cmd = shutil.which("zoxide")
+        if not zoxide_cmd:
+            local_zox = Path.home() / ".local" / "bin" / "zoxide"
+            if local_zox.is_file() and os.access(local_zox, os.X_OK):
+                zoxide_cmd = str(local_zox)
+        if zoxide_cmd:
+            try:
+                r = subprocess.run([zoxide_cmd, "init", "zsh"], capture_output=True, text=True, timeout=5)
+                if r.returncode == 0:
+                    zoxide_cache.write_text(r.stdout, encoding="utf-8")
+            except Exception:
+                pass
+
+    fzf_cache = eval_cache_dir / "fzf.zsh"
+    if rebuild_eval_caches or not fzf_cache.is_file():
+        fzf_cmd = shutil.which("fzf")
+        if not fzf_cmd:
+            local_fzf = Path.home() / ".local" / "bin" / "fzf"
+            if local_fzf.is_file() and os.access(local_fzf, os.X_OK):
+                fzf_cmd = str(local_fzf)
+        if fzf_cmd:
+            try:
+                r = subprocess.run([fzf_cmd, "--zsh"], capture_output=True, text=True, timeout=5)
+                if r.returncode == 0:
+                    fzf_cache.write_text(r.stdout, encoding="utf-8")
             except Exception:
                 pass
 

@@ -40,18 +40,32 @@ def _config_dir() -> Path:
     return get_paths()["config"]
 
 
+def _cache_dir() -> Path:
+    return get_paths()["cache"]
+
+
 def _ziro_home() -> Path:
     return get_paths()["home"]
 
 
-def _write_defaults(cfg: Path, custom_opts: dict[str, Any] | None = None) -> None:
+def is_ziro_installed(cfg: Path | None = None) -> bool:
+    """Return True if an existing Ziro installation is detected."""
+    c = cfg or _config_dir()
+    if (c / "defaults.toml").is_file() or (c / "tools.toml").is_file() or (c / "boot.zsh").is_file():
+        return True
+    return False
+
+
+def _write_defaults(
+    cfg: Path, custom_opts: dict[str, Any] | None = None, force: bool = False
+) -> None:
     """Write defaults.toml reflecting user choices."""
     cfg.mkdir(parents=True, exist_ok=True)
     defaults = cfg / "defaults.toml"
-    if defaults.is_file() and custom_opts is None:
+    if defaults.is_file() and custom_opts is None and not force:
         return
 
-    prompt_val = custom_opts.get("prompt", "starship") if custom_opts else "starship"
+    prompt_val = "starship"
     ghost_val = "ziro-ghost" if (not custom_opts or custom_opts.get("enable_ghost", True)) else "none"
     fsh_val = "fast-syntax-highlighting" if (not custom_opts or custom_opts.get("enable_fsh", True)) else "none"
     comp_val = "zsh-completions" if (not custom_opts or custom_opts.get("enable_fzf_tab", True)) else "none"
@@ -93,11 +107,12 @@ def _write_defaults(cfg: Path, custom_opts: dict[str, Any] | None = None) -> Non
     defaults.write_text(content, encoding="utf-8")
 
 
-def _write_prompt_conf(cfg: Path, prompt_name: str = "starship") -> None:
+def _write_prompt_conf(cfg: Path, prompt_name: str = "starship", force: bool = False) -> None:
     """Ensure prompt.conf exists with chosen prompt."""
     cfg.mkdir(parents=True, exist_ok=True)
     pconf = cfg / "prompt.conf"
-    pconf.write_text(f"{prompt_name}\n", encoding="utf-8")
+    if not pconf.is_file() or force:
+        pconf.write_text(f"{prompt_name}\n", encoding="utf-8")
 
 
 def _write_custom_load_toml(cfg: Path, custom_opts: dict[str, Any]) -> None:
@@ -134,48 +149,37 @@ def _run_custom_wizard() -> dict[str, Any]:
     print("└──────────────────────────────────────────────┘")
     print()
 
-    # 1. Prompt engine
-    print("1. Prompt Engine:")
-    print("   [1] Starship (Recommended — fast, highly customizable)")
-    print("   [2] Pure (Minimal, clean)")
-    print("   [3] Powerlevel10k (p10k)")
-    print("   [4] None (Keep standard Zsh prompt)")
-    p_ans = _prompt_user("   Select prompt engine [1]: ", default="1")
-    prompt_map = {"1": "starship", "2": "pure", "3": "p10k", "4": "none"}
-    selected_prompt = prompt_map.get(p_ans, "starship")
+    # 1. Starship Theme Preset (Starship is Ziro's exclusive prompt engine)
+    print("1. Starship Theme Preset:")
+    print("   [1] tokyo-night (Recommended)")
+    print("   [2] catppuccin-powerline")
+    print("   [3] pure-preset")
+    print("   [4] pastel-powerline")
+    print("   [5] nerd-font-symbols")
+    print("   [6] plain-text-symbols")
+    print("   [7] default (official Starship default)")
+    t_ans = _prompt_user("   Select preset [1]: ", default="1")
+    theme_map = {
+        "1": "tokyo-night",
+        "2": "catppuccin-powerline",
+        "3": "pure-preset",
+        "4": "pastel-powerline",
+        "5": "nerd-font-symbols",
+        "6": "plain-text-symbols",
+        "7": "default",
+    }
+    selected_theme = theme_map.get(t_ans, "tokyo-night")
 
-    selected_theme = "tokyo-night"
-    if selected_prompt == "starship":
-        print()
-        print("2. Starship Theme Preset:")
-        print("   [1] tokyo-night (Recommended)")
-        print("   [2] catppuccin-powerline")
-        print("   [3] pure-preset")
-        print("   [4] pastel-powerline")
-        print("   [5] nerd-font-symbols")
-        print("   [6] plain-text-symbols")
-        print("   [7] default (official Starship default)")
-        t_ans = _prompt_user("   Select preset [1]: ", default="1")
-        theme_map = {
-            "1": "tokyo-night",
-            "2": "catppuccin-powerline",
-            "3": "pure-preset",
-            "4": "pastel-powerline",
-            "5": "nerd-font-symbols",
-            "6": "plain-text-symbols",
-            "7": "default",
-        }
-        selected_theme = theme_map.get(t_ans, "tokyo-night")
+    # 2. Nerd Font check (Prerequisite for Starship prompt icons, glyphs, and badges)
+    print()
+    print("2. Nerd Font (Required for theme icons, glyphs, and status badges):")
+    nf_ans = _prompt_user("   Do you have a Nerd Font installed in your terminal? [Y/n]: ", default="y")
+    nerd_font = nf_ans.lower() not in ("n", "no")
 
     # 3. AI Ghost Text / Autosuggestions
     print()
     ghost_ans = _prompt_user("3. Enable ghost text / autosuggestions (ziro-ghost)? [Y/n]: ", default="y")
     enable_ghost = ghost_ans.lower() not in ("n", "no")
-
-    nerd_font = True
-    if enable_ghost:
-        nf_ans = _prompt_user("   Do you use a Nerd Font in your terminal (for icons)? [Y/n]: ", default="y")
-        nerd_font = nf_ans.lower() not in ("n", "no")
 
     # 4. Syntax Highlighting
     print()
@@ -204,10 +208,10 @@ def _run_custom_wizard() -> dict[str, Any]:
 
     print()
     return {
-        "prompt": selected_prompt,
+        "prompt": "starship",
         "theme": selected_theme,
-        "enable_ghost": enable_ghost,
         "nerd_font": nerd_font,
+        "enable_ghost": enable_ghost,
         "enable_fsh": enable_fsh,
         "enable_fzf_tab": enable_fzf_tab,
         "enable_zoxide": enable_zoxide,
@@ -216,11 +220,11 @@ def _run_custom_wizard() -> dict[str, Any]:
     }
 
 
-def _write_tools(cfg: Path) -> None:
+def _write_tools(cfg: Path, force: bool = False) -> None:
     """Write minimal tools.toml (empty registry)."""
     cfg.mkdir(parents=True, exist_ok=True)
     tools = cfg / "tools.toml"
-    if tools.is_file():
+    if tools.is_file() and not force:
         return
     content = "# AUTO-GENERATED by ziro — do not edit manually\n"
     content += "# Registry of known tools.\n"
@@ -231,18 +235,21 @@ def _write_tools(cfg: Path) -> None:
     tools.write_text(content)
 
 
-def _write_tags(cfg: Path) -> None:
+def _write_tags(cfg: Path, force: bool = False) -> None:
     """Ensure ~/.config/ziro/tags/builtin.toml exists."""
     from core.tags import ensure_builtin_tags_file
-    ensure_builtin_tags_file(cfg)
+    ensure_builtin_tags_file(cfg, force=force)
 
 
 def _configure_ghost_nerd_font(
-    cfg: Path, argv: list[str] | None = None, nerd_font: bool | None = None
+    cfg: Path,
+    argv: list[str] | None = None,
+    nerd_font: bool | None = None,
+    force: bool = False,
 ) -> None:
     """Ensure ~/.config/ziro/ghost.conf exists with nerd_font setting (Spec 009 R19)."""
     ghost_conf = cfg / "ghost.conf"
-    if ghost_conf.exists() and nerd_font is None:
+    if ghost_conf.exists() and nerd_font is None and not force:
         return  # don't overwrite
 
     if nerd_font is not None:
@@ -573,6 +580,12 @@ def cmd_install(argv: list[str]) -> int:
     custom_mode = "--custom" in argv
     clean_mode = "--clean" in argv or os.environ.get("ZIRO_CLEAN") == "1"
     no_clean_mode = "--no-clean" in argv or os.environ.get("ZIRO_NO_CLEAN") == "1"
+    rebuild_flag = (
+        "--rebuild" in argv
+        or "--reinstall" in argv
+        or os.environ.get("ZIRO_REBUILD") == "1"
+    )
+    no_rebuild_flag = "--no-rebuild" in argv or os.environ.get("ZIRO_NO_REBUILD") == "1"
     no_activate = "--no-activate" in argv
 
     cfg = _config_dir()
@@ -615,6 +628,36 @@ def cmd_install(argv: list[str]) -> int:
                 print("🧹 Cleaned up old Zsh configuration.")
                 print()
 
+    # 2. Detect existing Ziro installation and offer full scratch rebuild
+    do_rebuild = False
+    if is_ziro_installed(cfg):
+        if rebuild_flag:
+            do_rebuild = True
+        elif no_rebuild_flag:
+            do_rebuild = False
+        else:
+            print("⚠️  Existing Ziro installation detected.")
+            print("Would you like to rebuild everything from scratch?")
+            print("(This will re-create all Zsh and Ziro configurations, caches, and artifacts)")
+            ans = _prompt_user("Rebuild from scratch? [y/N]: ", default="n")
+            do_rebuild = ans.lower() in ("y", "yes")
+    elif rebuild_flag:
+        do_rebuild = True
+
+    if do_rebuild:
+        print("🔄 Rebuilding all Ziro configurations, caches, and artifacts from scratch...")
+        if not dry_run:
+            import shutil
+            cache = _cache_dir()
+            if cache.exists():
+                shutil.rmtree(cache, ignore_errors=True)
+            cache.mkdir(parents=True, exist_ok=True)
+
+            derived = cfg / "derived"
+            if derived.exists():
+                shutil.rmtree(derived, ignore_errors=True)
+            derived.mkdir(parents=True, exist_ok=True)
+
     custom_opts: dict[str, Any] | None = None
     if default_mode:
         choice = "default"
@@ -645,7 +688,10 @@ def cmd_install(argv: list[str]) -> int:
         return 0
 
     _configure_ghost_nerd_font(
-        cfg, argv, nerd_font=custom_opts.get("nerd_font") if custom_opts else None
+        cfg,
+        argv,
+        nerd_font=custom_opts.get("nerd_font") if custom_opts else None,
+        force=do_rebuild,
     )
 
     data = _data_dir()
@@ -660,22 +706,28 @@ def cmd_install(argv: list[str]) -> int:
                 transient=True,
             ) as progress:
                 progress.add_task(description="Writing configuration files...", total=None)
-                _write_defaults(cfg, custom_opts)
-                _write_tools(cfg)
-                _write_tags(cfg)
-                _write_prompt_conf(cfg, custom_opts.get("prompt", "starship") if custom_opts else "starship")
+                _write_defaults(cfg, custom_opts, force=do_rebuild)
+                _write_tools(cfg, force=do_rebuild)
+                _write_tags(cfg, force=do_rebuild)
+                _write_prompt_conf(cfg, custom_opts.get("prompt", "starship") if custom_opts else "starship", force=do_rebuild)
                 if custom_opts:
                     _write_custom_load_toml(cfg, custom_opts)
+                elif do_rebuild and (cfg / "load.toml").exists():
+                    from core.build import default_manifest_content
+                    (cfg / "load.toml").write_text(default_manifest_content(), encoding="utf-8")
                 comp_file = _write_completion(data)
                 _ensure_venv()
                 gen_file = generate_plugins_gen(cfg, ziro_home=_ziro_home())
         except Exception:
-            _write_defaults(cfg, custom_opts)
-            _write_tools(cfg)
-            _write_tags(cfg)
-            _write_prompt_conf(cfg, custom_opts.get("prompt", "starship") if custom_opts else "starship")
+            _write_defaults(cfg, custom_opts, force=do_rebuild)
+            _write_tools(cfg, force=do_rebuild)
+            _write_tags(cfg, force=do_rebuild)
+            _write_prompt_conf(cfg, custom_opts.get("prompt", "starship") if custom_opts else "starship", force=do_rebuild)
             if custom_opts:
                 _write_custom_load_toml(cfg, custom_opts)
+            elif do_rebuild and (cfg / "load.toml").exists():
+                from core.build import default_manifest_content
+                (cfg / "load.toml").write_text(default_manifest_content(), encoding="utf-8")
             comp_file = _write_completion(data)
             _ensure_venv()
             gen_file = generate_plugins_gen(cfg, ziro_home=_ziro_home())
@@ -697,12 +749,15 @@ def cmd_install(argv: list[str]) -> int:
             print(f"✅ wrote: {comp_file}")
             print(f"✅ wrote: {gen_file}")
     else:
-        _write_defaults(cfg, custom_opts)
-        _write_tools(cfg)
-        _write_tags(cfg)
-        _write_prompt_conf(cfg, custom_opts.get("prompt", "starship") if custom_opts else "starship")
+        _write_defaults(cfg, custom_opts, force=do_rebuild)
+        _write_tools(cfg, force=do_rebuild)
+        _write_tags(cfg, force=do_rebuild)
+        _write_prompt_conf(cfg, custom_opts.get("prompt", "starship") if custom_opts else "starship", force=do_rebuild)
         if custom_opts:
             _write_custom_load_toml(cfg, custom_opts)
+        elif do_rebuild and (cfg / "load.toml").exists():
+            from core.build import default_manifest_content
+            (cfg / "load.toml").write_text(default_manifest_content(), encoding="utf-8")
         comp_file = _write_completion(data)
         _ensure_venv()
         gen_file = generate_plugins_gen(cfg, ziro_home=_ziro_home())
@@ -738,7 +793,7 @@ def cmd_install(argv: list[str]) -> int:
     # Step: Execute Build Pipeline (ziro sync)
     print("\nRunning build pipeline...")
     from core.build import build
-    ok_build, msg_build, _ = build(rebuild_eval_caches=True)
+    ok_build, msg_build, _ = build(force=do_rebuild, rebuild_eval_caches=True)
     if not ok_build:
         print(f"❌ build pipeline failed: {msg_build}", file=sys.stderr)
         return 1

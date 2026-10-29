@@ -32,12 +32,13 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
     "install": HelpEntry(
         name="install",
         summary="Install ziro with defaults or custom profile",
-        usage="ziro install [--default | --custom] [--clean | --no-clean] [--dry-run] [--no-activate]",
+        usage="ziro install [--default | --custom] [--clean | --no-clean] [--rebuild] [--dry-run] [--no-activate]",
         flags=[
             ("--default", "Install with pre-configured defaults (Starship, recommended plugins)"),
             ("--custom", "Interactive prompt to choose components manually"),
             ("--clean", "Back up existing Zsh config files/directories and install fresh"),
             ("--no-clean", "Do not wipe existing Zsh config (append Ziro to ~/.zshrc)"),
+            ("--rebuild", "Rebuild all Zsh and Ziro configurations, caches, and artifacts from scratch"),
             ("--dry-run", "Preview files that would be written without writing"),
             ("--no-activate", "Skip modifying ~/.zshrc during install"),
         ],
@@ -45,6 +46,7 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
             "ziro install",
             "ziro install --default",
             "ziro install --clean",
+            "ziro install --rebuild",
             "ziro install --dry-run",
         ],
         related=["doctor", "config"],

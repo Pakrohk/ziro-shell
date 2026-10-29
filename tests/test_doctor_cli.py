@@ -35,6 +35,34 @@ class TestDoctorCli(unittest.TestCase):
             doctor_cli.main(["--verbose"])
         self.assertIn("Python", buf.getvalue())
 
+    def test_check_runtime_commands_missing_boot(self):
+        # boot.zsh does not exist in empty tmp
+        status, msg, fix = doctor_cli._check_runtime_commands()
+        self.assertEqual(status, "warn")
+        self.assertIn("boot.zsh not found", msg)
+
+    def test_check_runtime_commands_failure(self):
+        from unittest.mock import patch, MagicMock
+        cfg = Path(self.tmp.name)
+        (cfg / "boot.zsh").write_text("# dummy\n")
+
+        mock_res = MagicMock(returncode=1, stdout="missing: ll, mkcd", stderr="")
+        with patch("subprocess.run", return_value=mock_res):
+            status, msg, fix = doctor_cli._check_runtime_commands()
+            self.assertEqual(status, "error")
+            self.assertIn("missing: ll, mkcd", msg)
+
+    def test_check_runtime_commands_success(self):
+        from unittest.mock import patch, MagicMock
+        cfg = Path(self.tmp.name)
+        (cfg / "boot.zsh").write_text("# dummy\n")
+
+        mock_res = MagicMock(returncode=0, stdout="ok", stderr="")
+        with patch("subprocess.run", return_value=mock_res):
+            status, msg, fix = doctor_cli._check_runtime_commands()
+            self.assertEqual(status, "ok")
+            self.assertIn("runtime commands and functions loaded", msg)
+
 
 if __name__ == "__main__":
     unittest.main()

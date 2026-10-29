@@ -9,7 +9,7 @@
   <a href="https://www.zsh.org/"><img src="https://img.shields.io/badge/zsh-5.8%2B-orange.svg" alt="Zsh 5.8+"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
   <a href="https://github.com/Pakrohk/ziro-shell/releases"><img src="https://img.shields.io/badge/version-v1.2.0-blueviolet.svg" alt="Version: v1.2.0"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-468%20passing-success.svg" alt="Tests: 468 passing"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-474%20passing-success.svg" alt="Tests: 474 passing"></a>
 </p>
 
 <h3 align="center">The intent-oriented Zsh</h3>

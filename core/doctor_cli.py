@@ -151,6 +151,46 @@ def _check_compiled_artifacts() -> tuple[str, str, str | None]:
     return "ok", f"{len(ok)} eager artifact(s) compiled and fresh", None
 
 
+def _check_runtime_commands() -> tuple[str, str, str | None]:
+    """Verify runtime command and function loading in an actual Zsh subshell."""
+    paths = get_paths()
+    boot_shim = paths["config"] / "boot.zsh"
+    if not boot_shim.is_file():
+        return "warn", "boot.zsh not found (runtime verification skipped)", "run `ziro sync`"
+
+    script = """
+source "$1" || exit 2
+missing=()
+alias ll >/dev/null 2>&1 || missing+=(ll)
+alias la >/dev/null 2>&1 || missing+=(la)
+alias lt >/dev/null 2>&1 || missing+=(lt)
+alias .. >/dev/null 2>&1 || missing+=(..)
+(( $+functions[mkcd] )) || missing+=(mkcd)
+(( $+functions[extract] )) || missing+=(extract)
+(( $+functions[ziro] )) || (( $+commands[ziro] )) || missing+=(ziro)
+if (( ${#missing} > 0 )); then
+  print "missing: ${(j:, :)missing}"
+  exit 1
+fi
+print "ok"
+"""
+    try:
+        r = subprocess.run(
+            ["zsh", "-f", "-c", script, "--", str(boot_shim)],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if r.returncode != 0:
+            out = r.stdout.strip() or r.stderr.strip() or f"exit code {r.returncode}"
+            return "error", f"runtime load check failed: {out}", "run `ziro sync`"
+        return "ok", "runtime commands and functions loaded (ll, la, lt, .., mkcd, extract, ziro)", None
+    except subprocess.TimeoutExpired:
+        return "error", "runtime load check timed out (zsh boot hung)", "run `ziro sync`"
+    except Exception as e:
+        return "warn", f"runtime command verification skipped: {e}", None
+
+
 def _check_tool_paths() -> tuple[str, str, str | None]:
     """Verify all enabled tools with paths point to existing files on disk."""
     load_toml = get_paths()["config"] / "load.toml"
@@ -329,6 +369,7 @@ def run_checks() -> dict[str, tuple[str, str, str | None]]:
         "Zsh 5.8+": _check_zsh_version(),
         "boot chain": _check_boot_chain(),
         "compiled (.zwc)": _check_compiled_artifacts(),
+        "runtime commands": _check_runtime_commands(),
         "tool paths": _check_tool_paths(),
         "tool reasons": _check_tool_reasons(),
         "load.toml schema": _check_loadtoml_schema(),

@@ -13,14 +13,26 @@ from core import install_cli
 class TestInstallCli(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self._old = os.environ.get("ZIRO_CONFIG")
-        os.environ["ZIRO_CONFIG"] = self.tmp.name
+        self._old_cfg = os.environ.get("ZIRO_CONFIG")
+        self._old_cache = os.environ.get("ZIRO_CACHE")
+        self._old_data = os.environ.get("ZIRO_DATA")
+        self.cfg = Path(self.tmp.name) / "config"
+        self.cfg.mkdir(parents=True, exist_ok=True)
+        os.environ["ZIRO_CONFIG"] = str(self.cfg)
+        os.environ["ZIRO_CACHE"] = str(Path(self.tmp.name) / "cache")
+        os.environ["ZIRO_DATA"] = str(Path(self.tmp.name) / "data")
+        os.environ["ZIRO_SKIP_VENDOR_CLONE"] = "1"
 
     def tearDown(self):
-        if self._old is not None:
-            os.environ["ZIRO_CONFIG"] = self._old
-        else:
-            os.environ.pop("ZIRO_CONFIG", None)
+        for k, v in [
+            ("ZIRO_CONFIG", self._old_cfg),
+            ("ZIRO_CACHE", self._old_cache),
+            ("ZIRO_DATA", self._old_data),
+        ]:
+            if v is not None:
+                os.environ[k] = v
+            else:
+                os.environ.pop(k, None)
         self.tmp.cleanup()
 
     def test_dry_run(self):
@@ -35,14 +47,14 @@ class TestInstallCli(unittest.TestCase):
         with redirect_stdout(buf):
             rc = install_cli.main(["--default"])
         self.assertEqual(rc, 0)
-        self.assertTrue((Path(self.tmp.name) / "defaults.toml").is_file())
-        self.assertTrue((Path(self.tmp.name) / "tools.toml").is_file())
+        self.assertTrue((self.cfg / "defaults.toml").is_file())
+        self.assertTrue((self.cfg / "tools.toml").is_file())
 
     def test_no_overwrite(self):
-        cfg = Path(self.tmp.name)
+        cfg = self.cfg
         cfg.mkdir(parents=True, exist_ok=True)
         (cfg / "defaults.toml").write_text("# custom\n")
-        install_cli.main(["--default"])
+        install_cli.main(["--default", "--no-rebuild"])
         self.assertEqual((cfg / "defaults.toml").read_text(), "# custom\n")
 
     def test_verify_starship_missing(self):
@@ -63,14 +75,15 @@ class TestInstallCli(unittest.TestCase):
         import tomllib
 
         # Answers:
-        # prompt: 2 (pure)
-        # ghost: n (disable)
-        # fsh: y (enable)
-        # comp: y (enable)
-        # zoxide: n (disable)
-        # aliases: y (enable)
-        # helpers: y (enable)
-        wizard_answers = ["2", "n", "y", "y", "n", "y", "y"]
+        # 1. Starship preset: 1 (tokyo-night)
+        # 2. Nerd font: y (yes)
+        # 3. Ghost text: n (disable)
+        # 4. Syntax highlighting: y (enable)
+        # 5. Completions: y (enable)
+        # 6. Zoxide: n (disable)
+        # 7. Aliases: y (enable)
+        # 8. Helpers: y (enable)
+        wizard_answers = ["1", "y", "n", "y", "y", "n", "y", "y"]
 
         with patch("core.install_cli._prompt_user", side_effect=wizard_answers):
             buf = io.StringIO()
@@ -78,11 +91,11 @@ class TestInstallCli(unittest.TestCase):
                 rc = install_cli.main(["--custom", "--no-clean", "--no-activate"])
             self.assertEqual(rc, 0)
 
-        cfg = Path(self.tmp.name)
-        # prompt.conf must be pure
+        cfg = self.cfg
+        # prompt.conf must be starship
         pconf = cfg / "prompt.conf"
         self.assertTrue(pconf.is_file())
-        self.assertEqual(pconf.read_text().strip(), "pure")
+        self.assertEqual(pconf.read_text().strip(), "starship")
 
         # load.toml must have ziro-ghost and zoxide disabled
         load_toml = cfg / "load.toml"
@@ -99,6 +112,53 @@ class TestInstallCli(unittest.TestCase):
         self.assertTrue(tools["fast-syntax-highlighting"].get("enabled", True))
         self.assertIn("ziro-aliases-core", tools)
         self.assertTrue(tools["ziro-aliases-core"].get("enabled", True))
+
+    def test_rebuild_prompt_yes_rebuilds_all(self):
+        from unittest.mock import patch
+
+        cfg = self.cfg
+        (cfg / "defaults.toml").write_text("old_content=true\n")
+        (cfg / "tools.toml").write_text("old_tools=true\n")
+
+        # When Ziro is already installed and user confirms rebuild ('y')
+        with patch("core.install_cli._prompt_user", return_value="y"):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                rc = install_cli.main(["--default", "--no-clean", "--no-activate"])
+            self.assertEqual(rc, 0)
+            self.assertIn("Rebuilding all Ziro configurations", buf.getvalue())
+
+        defaults_content = (cfg / "defaults.toml").read_text()
+        self.assertIn("[version]", defaults_content)
+        self.assertNotIn("old_content=true", defaults_content)
+
+    def test_rebuild_prompt_no_preserves_existing(self):
+        from unittest.mock import patch
+
+        cfg = self.cfg
+        (cfg / "defaults.toml").write_text("old_content=true\n")
+
+        # When user declines rebuild ('n')
+        with patch("core.install_cli._prompt_user", return_value="n"):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                rc = install_cli.main(["--default", "--no-clean", "--no-activate"])
+            self.assertEqual(rc, 0)
+            self.assertNotIn("Rebuilding all Ziro configurations", buf.getvalue())
+
+        defaults_content = (cfg / "defaults.toml").read_text()
+        self.assertEqual(defaults_content, "old_content=true\n")
+
+    def test_rebuild_flag_bypasses_prompt(self):
+        cfg = self.cfg
+        (cfg / "defaults.toml").write_text("old_content=true\n")
+
+        buf = io.StringIO()
+        with redirect_stdout(buf):
+            rc = install_cli.main(["--default", "--rebuild", "--no-clean", "--no-activate"])
+        self.assertEqual(rc, 0)
+        self.assertIn("Rebuilding all Ziro configurations", buf.getvalue())
+        self.assertNotIn("old_content=true", (cfg / "defaults.toml").read_text())
 
 
 if __name__ == "__main__":
