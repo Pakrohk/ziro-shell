@@ -9,7 +9,7 @@
   <a href="https://www.zsh.org/"><img src="https://img.shields.io/badge/zsh-5.8%2B-orange.svg" alt="Zsh 5.8+"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
   <a href="https://github.com/Pakrohk/ziro-shell/releases"><img src="https://img.shields.io/badge/version-v1.2.0-blueviolet.svg" alt="Version: v1.2.0"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-449%20passing-success.svg" alt="Tests: 449 passing"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-466%20passing-success.svg" alt="Tests: 466 passing"></a>
 </p>
 
 <h3 align="center">The intent-oriented Zsh</h3>
@@ -113,6 +113,13 @@ less install.zsh
 zsh install.zsh
 ```
 
+#### What the installer does automatically:
+- **Prerequisite Auto-Installation**: Detects and installs missing system dependencies (`git`, `python3.11+`, `starship`, `ca-certificates`) using your system package manager (`apt`, `pacman`, `dnf`, `apk`, `brew`, `zypper`).
+- **Existing Config Detection & Clean Install**: If existing Zsh configurations (`.zshrc`, `.oh-my-zsh`, `.zim`, `.zprezto`, `~/.config/zsh`, etc.) are detected, Ziro prompts whether to perform a **Clean Install**. Upon confirmation, it safely moves all legacy configs into `~/.zsh-backup-<timestamp>/` and generates a clean, dedicated `~/.zshrc`. (Pass `--clean` to automate, or `--no-clean` to keep legacy configs and append Ziro).
+- **Vendor Tool Bootstrapping**: Concurrently shallow-clones all 8 default ecosystem plugins (`zsh-completions`, `ohmyzsh/git`, `fzf-tab`, `fast-syntax-highlighting`, `ziro-ghost`, `zcolors`, `you-should-use`, `wd`) into `~/.local/share/ziro/vendor/`.
+- **Bulletproof Sourcing & Prompt**: Wraps plugin sourcing with safe guards (`_ziro_source_safe`) so missing plugins never crash your shell, and provides instant fallback prompt formatting if Starship is offline.
+- **CLI Launcher**: Installs the standalone `~/.local/bin/ziro` executable and adds it to your `$PATH`.
+
 ### 2. Manual Git Clone
 
 Clone Ziro into your target directory and execute the bootstrap script:
@@ -121,6 +128,14 @@ Clone Ziro into your target directory and execute the bootstrap script:
 git clone https://github.com/Pakrohk/ziro-shell.git ~/.ziro
 ~/.ziro/install.zsh --default
 ```
+
+Available installer flags:
+- `--clean`: Back up existing Zsh configs and start fresh.
+- `--no-clean`: Keep existing Zsh configs and append Ziro initialization.
+- `--default`: Install with pre-configured defaults (non-interactive).
+- `--custom`: Interactive prompt to choose components manually.
+- `--no-activate`: Skip modifying `~/.zshrc`.
+- `--dry-run`: Preview changes without writing to disk.
 
 The installer verifies environment integrity, compiles initial `.zwc` wordcode, bakes runtime paths directly into `~/.config/ziro/boot.zsh`, and automatically activates Ziro in `~/.zshrc` (use `--no-activate` to skip shell activation).
 
@@ -169,7 +184,8 @@ Ziro combines defensive shell defaults, classified file listings, and unified na
 
 ### 4. Ziro Management CLI
 - **`ziro doctor`**: Diagnose system dependencies, compiled bytecode health, and scheduler states.
-- **`ziro sync`**: Recompile eager artifacts to `.zwc` wordcode and bake absolute boot shims.
+- **`ziro theme [list|set|edit|preview]`**: Manage Starship prompt themes (official presets, live preview, and direct editing).
+- **`ziro sync`**: Recompile eager artifacts to `.zwc` wordcode, rebuild eval caches, and bootstrap vendor tools.
 - **`ziro update`**: Background, non-blocking core and plugin updates.
 - **`ziro plugin [list|add|remove]`**: Audit security trust scores (0–4) and manage ecosystem plugins.
 - **`ziro bench`**: Measure microsecond cold and warm shell startup latency.
@@ -185,7 +201,7 @@ Ziro combines defensive shell defaults, classified file listings, and unified na
 - **Analyzed (Cold Path)**: The offline analyzer inspects ZLE widgets, options, hooks, and completions to generate deterministic loading plans without runtime heuristics.
 - **Compiled (Hot Path)**: Managed scripts and completion files are pre-compiled to `.zwc` wordcode, eliminating parsing overhead and disk I/O on startup.
 - **Lazy (On-Demand)**: Tools remain dormant until invoked via autoload wrappers that intercept command execution.
-- **Batteries Included (28 Tools)**: Pre-configured integrations for Starship prompt (including upcoming `ziro theme` manager), `zoxide`, `fzf`, `fzf-tab`, `zsh-completions`, `fast-syntax-highlighting`, `ziro-ghost`, `eza`, `bat`, `ripgrep`, `fd`, `git`, and core navigation.
+- **Batteries Included (28 Tools)**: Pre-configured integrations for Starship prompt (including the built-in `ziro theme` manager), `zoxide`, `fzf`, `fzf-tab`, `zsh-completions`, `fast-syntax-highlighting`, `ziro-ghost`, `eza`, `bat`, `ripgrep`, `fd`, `git`, and core navigation.
 - **Observable**: `ziro doctor` audits health and symlinks; `ziro analyze` inspects classifications; `ziro bench` tracks startup metrics.
 
 ### Benchmark Data
