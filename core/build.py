@@ -140,6 +140,20 @@ eval_command = "./zcolors ${(q)LS_COLORS}"
 cache_path = "${ZIRO_CACHE}/eval-cache/zcolors.zsh"
 
 [[tool]]
+name = "ziro-aliases-core"
+timing = "eager"
+order = 6
+method = "source"
+path = "${ZIRO_HOME}/lib/aliases-core.zsh"
+
+[[tool]]
+name = "ziro-keybindings"
+timing = "eager"
+order = 7
+method = "source"
+path = "${ZIRO_HOME}/lib/keybindings.zsh"
+
+[[tool]]
 name = "fzf"
 timing = "on-demand"
 order = 10
@@ -500,7 +514,7 @@ def render_eager_section(tools: list[dict[str, Any]]) -> str:
                 lines.append('  for _cd in "$_ziro_compdef_queue[@]"; do eval "compdef $_cd"; done')
                 lines.append('  unset _ziro_compdef_queue _cd')
                 lines.append('fi')
-        elif method == "source" and path:
+        elif method in ("source", "local-source") and path:
             lines.append(f'_ziro_source_safe "{path}"')
         elif method == "eval-cache" and cache_path:
             if name == "starship":
@@ -750,7 +764,7 @@ def compile_eager_artifacts(
         raw_path = ""
         if method == "eval-cache":
             raw_path = tool.get("cache_path", "")
-        elif method == "source":
+        elif method in ("source", "local-source"):
             raw_path = tool.get("path", "")
 
         if not raw_path:
@@ -771,7 +785,7 @@ def compile_eager_artifacts(
             files_to_compile.append(expanded)
 
         # Also compile in ziro_home/vendor if present
-        if method == "source" and str(paths["data"] / "vendor") in expanded:
+        if method in ("source", "local-source") and str(paths["data"] / "vendor") in expanded:
             alt = expanded.replace(str(paths["data"] / "vendor"), str(paths["home"] / "vendor"))
             if Path(alt).is_file() and alt not in files_to_compile:
                 files_to_compile.append(alt)
@@ -805,7 +819,7 @@ def _validate_zwc_freshness(manifest: dict[str, Any], strict: bool = True) -> di
         method = tool.get("method", "")
         if method == "eval-cache":
             target = tool.get("cache_path", "")
-        elif method == "source":
+        elif method in ("source", "local-source"):
             target = tool.get("path", "")
         else:
             continue
@@ -827,7 +841,7 @@ def _validate_zwc_freshness(manifest: dict[str, Any], strict: bool = True) -> di
         if not tpath.is_file():
             # Check vendor fallback if source method
             alt_found = False
-            if paths and method == "source" and str(paths.get("data", "") / "vendor") in str(tpath):
+            if paths and method in ("source", "local-source") and str(paths.get("data", "") / "vendor") in str(tpath):
                 alt = _P(str(tpath).replace(str(paths["data"] / "vendor"), str(paths["home"] / "vendor")))
                 if alt.is_file():
                     tpath = alt

@@ -44,12 +44,19 @@ def _ziro_home() -> Path:
     return get_paths()["home"]
 
 
-def _write_defaults(cfg: Path) -> None:
-    """Write minimal defaults.toml (hand-rolled)."""
+def _write_defaults(cfg: Path, custom_opts: dict[str, Any] | None = None) -> None:
+    """Write defaults.toml reflecting user choices."""
     cfg.mkdir(parents=True, exist_ok=True)
     defaults = cfg / "defaults.toml"
-    if defaults.is_file():
+    if defaults.is_file() and custom_opts is None:
         return
+
+    prompt_val = custom_opts.get("prompt", "starship") if custom_opts else "starship"
+    ghost_val = "ziro-ghost" if (not custom_opts or custom_opts.get("enable_ghost", True)) else "none"
+    fsh_val = "fast-syntax-highlighting" if (not custom_opts or custom_opts.get("enable_fsh", True)) else "none"
+    comp_val = "zsh-completions" if (not custom_opts or custom_opts.get("enable_fzf_tab", True)) else "none"
+    nav_val = "zoxide" if (not custom_opts or custom_opts.get("enable_zoxide", True)) else "none"
+
     content = "# ziro-shell — user defaults\n"
     content += "# Editable by hand. Regenerated only on `ziro config reset`.\n"
     content += "# Layer: 0 (config) · Spec: 006 · AUTO-GENERATED: no\n"
@@ -58,22 +65,22 @@ def _write_defaults(cfg: Path) -> None:
     content += 'schema = "0.1.5"\n'
     content += "\n"
     content += "[prompt]\n"
-    content += 'default = "starship"\n'
+    content += f'default = "{prompt_val}"\n'
     content += "\n"
     content += "[colors]\n"
     content += 'default = "zcolors"\n'
     content += "\n"
     content += "[syntax_highlighting]\n"
-    content += 'default = "fast-syntax-highlighting"\n'
+    content += f'default = "{fsh_val}"\n'
     content += "\n"
     content += "[auto_suggest]\n"
-    content += 'default = "ziro-ghost"\n'
+    content += f'default = "{ghost_val}"\n'
     content += "\n"
     content += "[completions]\n"
-    content += 'default = "zsh-completions"\n'
+    content += f'default = "{comp_val}"\n'
     content += "\n"
     content += "[navigation]\n"
-    content += 'default = "zoxide"\n'
+    content += f'default = "{nav_val}"\n'
     content += "\n"
     content += "[fuzzy_finder]\n"
     content += 'default = "fzf"\n'
@@ -83,15 +90,130 @@ def _write_defaults(cfg: Path) -> None:
     content += "\n"
     content += "[ui]\n"
     content += "rich = true\n"
-    defaults.write_text(content)
+    defaults.write_text(content, encoding="utf-8")
 
 
-def _write_prompt_conf(cfg: Path) -> None:
-    """Ensure prompt.conf exists (defaults to starship)."""
+def _write_prompt_conf(cfg: Path, prompt_name: str = "starship") -> None:
+    """Ensure prompt.conf exists with chosen prompt."""
     cfg.mkdir(parents=True, exist_ok=True)
     pconf = cfg / "prompt.conf"
-    if not pconf.is_file():
-        pconf.write_text("starship\n", encoding="utf-8")
+    pconf.write_text(f"{prompt_name}\n", encoding="utf-8")
+
+
+def _write_custom_load_toml(cfg: Path, custom_opts: dict[str, Any]) -> None:
+    """Write load.toml reflecting user custom component choices."""
+    from core.build import default_manifest_content
+    import tomllib
+    manifest = tomllib.loads(default_manifest_content())
+
+    disable_map = {
+        "starship": custom_opts.get("prompt") != "starship",
+        "ziro-ghost": not custom_opts.get("enable_ghost", True),
+        "fast-syntax-highlighting": not custom_opts.get("enable_fsh", True),
+        "fzf-tab": not custom_opts.get("enable_fzf_tab", True),
+        "zoxide": not custom_opts.get("enable_zoxide", True),
+        "ziro-aliases-core": not custom_opts.get("enable_aliases", True),
+        "ziro-helpers": not custom_opts.get("enable_helpers", True),
+    }
+
+    for tool in manifest.get("tool", []):
+        name = tool.get("name")
+        if name in disable_map and disable_map[name]:
+            tool["enabled"] = False
+
+    from core.loadtoml_writer import write_load_toml
+    load_path = cfg / "load.toml"
+    write_load_toml(manifest, str(load_path))
+
+
+def _run_custom_wizard() -> dict[str, Any]:
+    """Interactively prompt user for custom component configuration."""
+    print()
+    print("┌──────────────────────────────────────────────┐")
+    print("│         Ziro Custom Component Setup          │")
+    print("└──────────────────────────────────────────────┘")
+    print()
+
+    # 1. Prompt engine
+    print("1. Prompt Engine:")
+    print("   [1] Starship (Recommended — fast, highly customizable)")
+    print("   [2] Pure (Minimal, clean)")
+    print("   [3] Powerlevel10k (p10k)")
+    print("   [4] None (Keep standard Zsh prompt)")
+    p_ans = _prompt_user("   Select prompt engine [1]: ", default="1")
+    prompt_map = {"1": "starship", "2": "pure", "3": "p10k", "4": "none"}
+    selected_prompt = prompt_map.get(p_ans, "starship")
+
+    selected_theme = "tokyo-night"
+    if selected_prompt == "starship":
+        print()
+        print("2. Starship Theme Preset:")
+        print("   [1] tokyo-night (Recommended)")
+        print("   [2] catppuccin-powerline")
+        print("   [3] pure-preset")
+        print("   [4] pastel-powerline")
+        print("   [5] nerd-font-symbols")
+        print("   [6] plain-text-symbols")
+        print("   [7] default (official Starship default)")
+        t_ans = _prompt_user("   Select preset [1]: ", default="1")
+        theme_map = {
+            "1": "tokyo-night",
+            "2": "catppuccin-powerline",
+            "3": "pure-preset",
+            "4": "pastel-powerline",
+            "5": "nerd-font-symbols",
+            "6": "plain-text-symbols",
+            "7": "default",
+        }
+        selected_theme = theme_map.get(t_ans, "tokyo-night")
+
+    # 3. AI Ghost Text / Autosuggestions
+    print()
+    ghost_ans = _prompt_user("3. Enable ghost text / autosuggestions (ziro-ghost)? [Y/n]: ", default="y")
+    enable_ghost = ghost_ans.lower() not in ("n", "no")
+
+    nerd_font = True
+    if enable_ghost:
+        nf_ans = _prompt_user("   Do you use a Nerd Font in your terminal (for icons)? [Y/n]: ", default="y")
+        nerd_font = nf_ans.lower() not in ("n", "no")
+
+    # 4. Syntax Highlighting
+    print()
+    fsh_ans = _prompt_user("4. Enable fast syntax highlighting (fast-syntax-highlighting)? [Y/n]: ", default="y")
+    enable_fsh = fsh_ans.lower() not in ("n", "no")
+
+    # 5. Enhanced Completions Menu
+    print()
+    comp_ans = _prompt_user("5. Enable fzf-tab interactive completion menu? [Y/n]: ", default="y")
+    enable_fzf_tab = comp_ans.lower() not in ("n", "no")
+
+    # 6. Smart Directory Navigation (zoxide)
+    print()
+    zox_ans = _prompt_user("6. Enable smart directory jump (zoxide / z)? [Y/n]: ", default="y")
+    enable_zoxide = zox_ans.lower() not in ("n", "no")
+
+    # 7. Core Aliases & Navigation (ll, la, lt, ..)
+    print()
+    alias_ans = _prompt_user("7. Enable core navigation aliases (ll, la, lt, .., ...)? [Y/n]: ", default="y")
+    enable_aliases = alias_ans.lower() not in ("n", "no")
+
+    # 8. Utility Helpers (extract, take, clipcopy, ff)
+    print()
+    help_ans = _prompt_user("8. Enable utility helpers (extract, mkcd/take, clipcopy, ff, fy)? [Y/n]: ", default="y")
+    enable_helpers = help_ans.lower() not in ("n", "no")
+
+    print()
+    return {
+        "prompt": selected_prompt,
+        "theme": selected_theme,
+        "enable_ghost": enable_ghost,
+        "nerd_font": nerd_font,
+        "enable_fsh": enable_fsh,
+        "enable_fzf_tab": enable_fzf_tab,
+        "enable_zoxide": enable_zoxide,
+        "enable_aliases": enable_aliases,
+        "enable_helpers": enable_helpers,
+    }
 
 
 def _write_tools(cfg: Path) -> None:
@@ -115,22 +237,27 @@ def _write_tags(cfg: Path) -> None:
     ensure_builtin_tags_file(cfg)
 
 
-def _configure_ghost_nerd_font(cfg: Path, argv: list[str] | None = None) -> None:
+def _configure_ghost_nerd_font(
+    cfg: Path, argv: list[str] | None = None, nerd_font: bool | None = None
+) -> None:
     """Ensure ~/.config/ziro/ghost.conf exists with nerd_font setting (Spec 009 R19)."""
     ghost_conf = cfg / "ghost.conf"
-    if ghost_conf.exists():
+    if ghost_conf.exists() and nerd_font is None:
         return  # don't overwrite
 
-    args = argv if argv is not None else sys.argv
-    if "--default" in args or not sys.stdin.isatty():
-        nerd = True  # safe default in non-interactive / default mode
+    if nerd_font is not None:
+        nerd = nerd_font
     else:
-        print("\nziro-ghost setup:")
-        try:
-            ans = input("  Do you use a Nerd Font in your terminal? [Y/n] ").strip().lower()
-            nerd = ans not in ("n", "no")
-        except EOFError:
-            nerd = True
+        args = argv if argv is not None else sys.argv
+        if "--default" in args or not sys.stdin.isatty():
+            nerd = True  # safe default in non-interactive / default mode
+        else:
+            print("\nziro-ghost setup:")
+            try:
+                ans = input("  Do you use a Nerd Font in your terminal? [Y/n] ").strip().lower()
+                nerd = ans not in ("n", "no")
+            except EOFError:
+                nerd = True
 
     ghost_conf.parent.mkdir(parents=True, exist_ok=True)
     ghost_conf.write_text(f"[ui]\nnerd_font = {str(nerd).lower()}\n", encoding="utf-8")
@@ -488,10 +615,12 @@ def cmd_install(argv: list[str]) -> int:
                 print("🧹 Cleaned up old Zsh configuration.")
                 print()
 
+    custom_opts: dict[str, Any] | None = None
     if default_mode:
         choice = "default"
     elif custom_mode:
         choice = "custom"
+        custom_opts = _run_custom_wizard()
     else:
         # Interactive question (only if TTY)
         ans = _prompt_user(
@@ -501,15 +630,23 @@ def cmd_install(argv: list[str]) -> int:
             "Choice [1]: ",
             default="1",
         )
-        choice = "custom" if ans == "2" else "default"
+        if ans == "2":
+            choice = "custom"
+            custom_opts = _run_custom_wizard()
+        else:
+            choice = "default"
 
     print(f"mode: {choice}")
 
     if dry_run:
         print("[dry-run] would write defaults.toml, tools.toml, tags/builtin.toml, completions/_ziro, derived/plugins.gen.zsh")
+        if custom_opts:
+            print(f"[dry-run] custom components: {custom_opts}")
         return 0
 
-    _configure_ghost_nerd_font(cfg, argv)
+    _configure_ghost_nerd_font(
+        cfg, argv, nerd_font=custom_opts.get("nerd_font") if custom_opts else None
+    )
 
     data = _data_dir()
     from core.tty import is_tty
@@ -523,18 +660,22 @@ def cmd_install(argv: list[str]) -> int:
                 transient=True,
             ) as progress:
                 progress.add_task(description="Writing configuration files...", total=None)
-                _write_defaults(cfg)
+                _write_defaults(cfg, custom_opts)
                 _write_tools(cfg)
                 _write_tags(cfg)
-                _write_prompt_conf(cfg)
+                _write_prompt_conf(cfg, custom_opts.get("prompt", "starship") if custom_opts else "starship")
+                if custom_opts:
+                    _write_custom_load_toml(cfg, custom_opts)
                 comp_file = _write_completion(data)
                 _ensure_venv()
                 gen_file = generate_plugins_gen(cfg, ziro_home=_ziro_home())
         except Exception:
-            _write_defaults(cfg)
+            _write_defaults(cfg, custom_opts)
             _write_tools(cfg)
             _write_tags(cfg)
-            _write_prompt_conf(cfg)
+            _write_prompt_conf(cfg, custom_opts.get("prompt", "starship") if custom_opts else "starship")
+            if custom_opts:
+                _write_custom_load_toml(cfg, custom_opts)
             comp_file = _write_completion(data)
             _ensure_venv()
             gen_file = generate_plugins_gen(cfg, ziro_home=_ziro_home())
@@ -556,10 +697,12 @@ def cmd_install(argv: list[str]) -> int:
             print(f"✅ wrote: {comp_file}")
             print(f"✅ wrote: {gen_file}")
     else:
-        _write_defaults(cfg)
+        _write_defaults(cfg, custom_opts)
         _write_tools(cfg)
         _write_tags(cfg)
-        _write_prompt_conf(cfg)
+        _write_prompt_conf(cfg, custom_opts.get("prompt", "starship") if custom_opts else "starship")
+        if custom_opts:
+            _write_custom_load_toml(cfg, custom_opts)
         comp_file = _write_completion(data)
         _ensure_venv()
         gen_file = generate_plugins_gen(cfg, ziro_home=_ziro_home())
@@ -569,6 +712,16 @@ def cmd_install(argv: list[str]) -> int:
         print(f"✅ wrote: {cfg}/tags/builtin.toml")
         print(f"✅ wrote: {comp_file}")
         print(f"✅ wrote: {gen_file}")
+
+    if choice == "custom" and custom_opts:
+        theme_name = custom_opts.get("theme")
+        if theme_name and custom_opts.get("prompt") == "starship":
+            try:
+                from core.theme_cli import _apply_starship_preset_or_file, _themes_dir
+                _apply_starship_preset_or_file(theme_name, _themes_dir())
+                print(f"🎨 applied theme preset: {theme_name}")
+            except Exception as e:
+                print(f"⚠️  warning: failed to apply theme {theme_name}: {e}")
 
     ok, msg = _verify_starship()
     if not ok:

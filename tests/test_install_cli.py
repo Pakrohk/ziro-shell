@@ -58,6 +58,48 @@ class TestInstallCli(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertIn("Starship not available", err_buf.getvalue())
 
+    def test_custom_install_wizard(self):
+        from unittest.mock import patch
+        import tomllib
+
+        # Answers:
+        # prompt: 2 (pure)
+        # ghost: n (disable)
+        # fsh: y (enable)
+        # comp: y (enable)
+        # zoxide: n (disable)
+        # aliases: y (enable)
+        # helpers: y (enable)
+        wizard_answers = ["2", "n", "y", "y", "n", "y", "y"]
+
+        with patch("core.install_cli._prompt_user", side_effect=wizard_answers):
+            buf = io.StringIO()
+            with redirect_stdout(buf):
+                rc = install_cli.main(["--custom", "--no-clean", "--no-activate"])
+            self.assertEqual(rc, 0)
+
+        cfg = Path(self.tmp.name)
+        # prompt.conf must be pure
+        pconf = cfg / "prompt.conf"
+        self.assertTrue(pconf.is_file())
+        self.assertEqual(pconf.read_text().strip(), "pure")
+
+        # load.toml must have ziro-ghost and zoxide disabled
+        load_toml = cfg / "load.toml"
+        self.assertTrue(load_toml.is_file())
+        with load_toml.open("rb") as f:
+            data = tomllib.load(f)
+
+        tools = {t["name"]: t for t in data.get("tool", [])}
+        self.assertIn("ziro-ghost", tools)
+        self.assertFalse(tools["ziro-ghost"].get("enabled", True))
+        self.assertIn("zoxide", tools)
+        self.assertFalse(tools["zoxide"].get("enabled", True))
+        self.assertIn("fast-syntax-highlighting", tools)
+        self.assertTrue(tools["fast-syntax-highlighting"].get("enabled", True))
+        self.assertIn("ziro-aliases-core", tools)
+        self.assertTrue(tools["ziro-aliases-core"].get("enabled", True))
+
 
 if __name__ == "__main__":
     unittest.main()

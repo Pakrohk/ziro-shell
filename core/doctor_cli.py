@@ -124,7 +124,7 @@ def _check_compiled_artifacts() -> tuple[str, str, str | None]:
         method = tool.get("method", "")
         if method == "eval-cache":
             target = tool.get("cache_path", "")
-        elif method == "source":
+        elif method in ("source", "local-source"):
             target = tool.get("path", "")
         else:
             continue
