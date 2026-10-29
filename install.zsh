@@ -74,7 +74,7 @@ _ziro_bootstrap() {
   if [[ -z "$py" ]]; then
     print "[*] Python 3.11+ not found. Attempting automatic installation..."
     if (( $+commands[apt-get] )); then
-      _ziro_pkg_install python3 python3-venv ca-certificates || true
+      _ziro_pkg_install python3.11 python3.11-venv python3 python3-venv ca-certificates || true
     elif (( $+commands[pacman] )); then
       _ziro_pkg_install python || true
     elif (( $+commands[dnf] )); then
