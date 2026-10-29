@@ -929,6 +929,19 @@ def build(
             except Exception:
                 pass
 
+    zcolors_cache = eval_cache_dir / "zcolors.zsh"
+    if rebuild_eval_caches or not zcolors_cache.is_file():
+        zcolors_bin = paths["data"] / "vendor" / "marlonrichert" / "zcolors" / "zcolors"
+        if not zcolors_bin.is_file():
+            zcolors_bin = paths["home"] / "vendor" / "marlonrichert" / "zcolors" / "zcolors"
+        if zcolors_bin.is_file() and os.access(zcolors_bin, os.X_OK):
+            try:
+                r = subprocess.run([str(zcolors_bin), ""], capture_output=True, text=True, timeout=5)
+                if r.returncode == 0:
+                    zcolors_cache.write_text(r.stdout, encoding="utf-8")
+            except Exception:
+                pass
+
     # Step 4: Render ziro-boot.zsh
     boot_content = render_boot_script(manifest, merged_tools, defer_root)
 
