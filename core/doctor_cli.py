@@ -7,6 +7,8 @@ Spec: 006 SC-1 / Section 4 closeout / 4-E Comprehensive Rebuild
 from __future__ import annotations
 
 import os
+import platform
+import shutil
 import subprocess
 import sys
 import tomllib
@@ -381,59 +383,271 @@ def run_checks() -> dict[str, tuple[str, str, str | None]]:
     }
 
 
+class HealthReport:
+    """Neovim checkhealth style modular health reporter."""
+
+    def __init__(self, name: str):
+        self.name = name
+        self.sections: list[tuple[str, list[dict[str, Any]]]] = []
+        self._current_items: list[dict[str, Any]] = []
+        self._current_section = ""
+
+    def start_section(self, title: str):
+        if self._current_section or self._current_items:
+            self.sections.append((self._current_section, self._current_items))
+        self._current_section = title
+        self._current_items = []
+
+    def ok(self, msg: str):
+        self._current_items.append({"status": "ok", "msg": msg})
+
+    def warn(self, msg: str, advice: str | list[str] | None = None):
+        adv_list = [advice] if isinstance(advice, str) else (advice or [])
+        self._current_items.append({"status": "warn", "msg": msg, "advice": adv_list})
+
+    def error(self, msg: str, advice: str | list[str] | None = None):
+        adv_list = [advice] if isinstance(advice, str) else (advice or [])
+        self._current_items.append({"status": "error", "msg": msg, "advice": adv_list})
+
+    def info(self, msg: str):
+        self._current_items.append({"status": "info", "msg": msg})
+
+    def line(self, msg: str):
+        self._current_items.append({"status": "line", "msg": msg})
+
+    def from_tuple(self, res: tuple[str, str, str | None], prefix: str = ""):
+        sev, msg, advice = res
+        text = f"{prefix}{msg}" if prefix else msg
+        if sev == "ok":
+            self.ok(text)
+        elif sev == "warn":
+            self.warn(text, advice)
+        elif sev == "error":
+            self.error(text, advice)
+        else:
+            self.info(text)
+
+    def finish(self):
+        if self._current_section or self._current_items:
+            self.sections.append((self._current_section, self._current_items))
+            self._current_section = ""
+            self._current_items = []
+
+    def counts(self) -> tuple[int, int, int]:
+        errors = sum(1 for _, items in self.sections for i in items if i.get("status") == "error")
+        warns = sum(1 for _, items in self.sections for i in items if i.get("status") == "warn")
+        oks = sum(1 for _, items in self.sections for i in items if i.get("status") == "ok")
+        return errors, warns, oks
+
+    def render(self) -> str:
+        self.finish()
+        errors, warns, _ = self.counts()
+        if errors > 0 and warns > 0:
+            badge = f"{errors} ❌, {warns} ⚠️"
+        elif errors > 0:
+            badge = f"{errors} ❌"
+        elif warns > 0:
+            badge = f"{warns} ⚠️"
+        else:
+            badge = "✅"
+
+        sep = "=" * 78
+        header_text = f"{self.name}:"
+        spaces = max(2, 78 - len(header_text) - len(badge))
+        header_line = f"{header_text}{' ' * spaces}{badge}"
+
+        out = [sep, header_line, ""]
+        for sec_title, items in self.sections:
+            if sec_title:
+                out.append(f"{sec_title} ~")
+            for item in items:
+                st = item.get("status")
+                msg = item.get("msg", "")
+                advice = item.get("advice", [])
+                if st == "ok":
+                    out.append(f"- ✅ OK {msg}")
+                elif st == "warn":
+                    out.append(f"- ⚠️ WARNING {msg}")
+                    if advice:
+                        out.append("  - ADVICE:")
+                        for adv in advice:
+                            out.append(f"    - {adv}")
+                elif st == "error":
+                    out.append(f"- ❌ ERROR {msg}")
+                    if advice:
+                        out.append("  - ADVICE:")
+                        for adv in advice:
+                            out.append(f"    - {adv}")
+                elif st == "info":
+                    out.append(f"- ℹ️ INFO {msg}")
+                elif st == "line":
+                    out.append(f"- {msg}")
+            out.append("")
+        return "\n".join(out)
+
+
 def cmd_doctor(argv: list[str]) -> int:
     from core.help_cli import handle_help_if_requested
     ret = handle_help_if_requested(argv, "doctor")
     if ret is not None:
         return ret
 
-    verbose = "--verbose" in argv or "-v" in argv
-    print("ziro doctor")
-    print("=" * 50)
+    paths = get_paths()
+    reports: list[HealthReport] = []
 
-    results = run_checks()
+    # 1. ziro.system
+    rep_sys = HealthReport("ziro.system")
+    rep_sys.start_section("System Info")
+    py_res = _check_python_version()
+    rep_sys.from_tuple(py_res, prefix=f"Python: {sys.executable} · ")
+    zsh_res = _check_zsh_version()
+    rep_sys.from_tuple(zsh_res)
+    rep_sys.line(f"Operating system: {platform.system()} {platform.release()} ({platform.machine()})")
+    rep_sys.line(f"Shell: {os.environ.get('SHELL', 'unknown')}")
+    rep_sys.line(f"$TERM={os.environ.get('TERM', 'unset')!r}")
+    if "COLORTERM" in os.environ:
+        rep_sys.line(f"$COLORTERM={os.environ.get('COLORTERM')!r}")
 
-    emoji_map = {
-        "ok": "✅",
-        "warn": "⚠️",
-        "error": "❌",
-        "info": "ℹ️",
-    }
+    rep_sys.start_section("Paths")
+    rep_sys.line(f"$ZIRO_HOME: {paths['home']}")
+    rep_sys.line(f"$ZIRO_CONFIG: {paths['config']}")
+    rep_sys.line(f"$ZIRO_CACHE: {paths['cache']}")
+    rep_sys.line(f"$ZIRO_DATA: {paths['data']}")
+    reports.append(rep_sys)
 
-    errors = 0
-    warnings = 0
-    passed = 0
+    # 2. ziro.runtime
+    rep_run = HealthReport("ziro.runtime")
+    rep_run.start_section("Boot Chain")
+    rep_run.from_tuple(_check_boot_chain())
 
-    for name, result in results.items():
-        severity = result[0]
-        msg = result[1]
-        action = result[2] if len(result) > 2 else None
+    rep_run.start_section("Runtime Commands & Aliases")
+    rep_run.from_tuple(_check_runtime_commands())
 
-        icon = emoji_map.get(severity, "•")
-        if severity == "error":
-            errors += 1
-        elif severity == "warn":
-            warnings += 1
-        elif severity == "ok":
-            passed += 1
+    rep_run.start_section("Defer Engine (ziro-defer)")
+    rep_run.from_tuple(_check_defer_loaded())
+    rep_run.from_tuple(_check_defer_modules())
+    reports.append(rep_run)
 
-        if verbose or severity in ("warn", "error"):
-            print(f" {icon} {name:25s} {msg}")
+    # 3. ziro.bytecode
+    rep_byte = HealthReport("ziro.bytecode")
+    rep_byte.start_section("Compiled Artifacts (.zwc)")
+    rep_byte.from_tuple(_check_compiled_artifacts())
+
+    rep_byte.start_section("Eval Caches")
+    eval_cache_dir = paths["cache"] / "eval-cache"
+    for cache_name in ("starship.zsh", "zcolors.zsh", "zoxide.zsh", "fzf.zsh"):
+        cp = eval_cache_dir / cache_name
+        zwc = Path(str(cp) + ".zwc")
+        if cp.is_file():
+            zwc_note = " (compiled .zwc)" if zwc.is_file() else ""
+            rep_byte.ok(f"{cache_name}{zwc_note}")
         else:
-            print(f" {icon} {name:25s}")
+            rep_byte.info(f"{cache_name} (not present / optional cache)")
+    reports.append(rep_byte)
 
-        if action and (severity in ("warn", "error") or verbose):
-            print(f"    → {action}")
+    # 4. ziro.config
+    rep_cfg = HealthReport("ziro.config")
+    rep_cfg.start_section("Manifest & Schema (load.toml)")
+    rep_cfg.from_tuple(_check_loadtoml_schema())
+    rep_cfg.from_tuple(_check_tool_reasons())
 
-    print()
-    if errors > 0:
-        print(f"❌ unhealthy: {errors} error(s), {warnings} warning(s)")
+    rep_cfg.start_section("Tool Paths")
+    rep_cfg.from_tuple(_check_tool_paths())
+
+    rep_cfg.start_section("Overrides & Legacy")
+    rep_cfg.from_tuple(_check_external_overrides())
+    rep_cfg.from_tuple(_check_legacy_config())
+    reports.append(rep_cfg)
+
+    # 5. ziro.tools
+    rep_tools = HealthReport("ziro.tools")
+    rep_tools.start_section("Prompt & Manual")
+    # Starship
+    starship_path = shutil.which("starship")
+    if not starship_path:
+        local_star = Path.home() / ".local" / "bin" / "starship"
+        if local_star.is_file() and os.access(local_star, os.X_OK):
+            starship_path = str(local_star)
+    if starship_path:
+        try:
+            r = subprocess.run([starship_path, "--version"], capture_output=True, text=True, timeout=5)
+            ver = r.stdout.splitlines()[0] if r.stdout else "available"
+            rep_tools.ok(f"{ver} ({starship_path})")
+        except Exception:
+            rep_tools.ok(f"starship installed at {starship_path}")
+    else:
+        rep_tools.warn(
+            "starship binary not found in PATH",
+            ["Install Starship: curl -fsSL https://starship.rs/install.sh | sh", "Or install with system package manager"],
+        )
+
+    # Manual page
+    man_path = Path.home() / ".local" / "share" / "man" / "man1" / "ziro.1"
+    xdg_data = os.environ.get("XDG_DATA_HOME")
+    if xdg_data:
+        man_path = Path(xdg_data) / "man" / "man1" / "ziro.1"
+    if man_path.is_file():
+        rep_tools.ok(f"ziro(1) manual installed ({man_path})")
+    else:
+        rep_tools.warn(
+            f"ziro(1) manual not installed at {man_path}",
+            ["Run: ziro install --rebuild"],
+        )
+
+    rep_tools.start_section("Modern CLI Companions (optional)")
+    companions = [
+        ("zoxide", "smart directory jump (`z`)"),
+        ("fzf", "fuzzy finder for history & files"),
+        ("eza", "modern ls replacement with icons"),
+        ("bat", "modern cat replacement with syntax highlighting"),
+        ("rg", "ripgrep fast grep replacement"),
+        ("fd", "fast user-friendly find replacement"),
+        ("git", "version control"),
+    ]
+    for bin_name, desc in companions:
+        p = shutil.which(bin_name)
+        if not p:
+            local_bin = Path.home() / ".local" / "bin" / bin_name
+            if local_bin.is_file() and os.access(local_bin, os.X_OK):
+                p = str(local_bin)
+        if p:
+            try:
+                r = subprocess.run([p, "--version"], capture_output=True, text=True, timeout=5)
+                v = r.stdout.splitlines()[0] if r.stdout else p
+                rep_tools.ok(f"{v} ({p})")
+            except Exception:
+                rep_tools.ok(f"{bin_name} ({p})")
+        else:
+            rep_tools.info(f"{bin_name} not found (optional: {desc})")
+
+    clip_tools = ["wl-copy", "xclip", "xsel", "pbcopy", "clip.exe"]
+    found_clip = [c for c in clip_tools if shutil.which(c)]
+    if found_clip:
+        rep_tools.ok(f"clipboard tool found: {found_clip[0]}")
+    else:
+        rep_tools.info(f"no clipboard tool found ({', '.join(clip_tools)})")
+    reports.append(rep_tools)
+
+    # Header banner matching Neovim checkhealth
+    print("==============================================================================")
+    print("ziro doctor: checkhealth")
+    for rep in reports:
+        print(rep.render())
+
+    total_errors = sum(r.counts()[0] for r in reports)
+    total_warns = sum(r.counts()[1] for r in reports)
+    total_oks = sum(r.counts()[2] for r in reports)
+
+    print("==============================================================================")
+    print(f"Summary: {total_oks} passed, {total_warns} warning(s), {total_errors} error(s)")
+    if total_errors > 0:
+        print("Result:  ❌ UNHEALTHY")
         return 1
-    elif warnings > 0:
-        print(f"⚠️  healthy with {warnings} warning(s) ({passed} checks passed)")
+    elif total_warns > 0:
+        print("Result:  ⚠️  HEALTHY WITH WARNINGS")
         return 0
     else:
-        print(f"✅ healthy ({passed} checks passed)")
+        print("Result:  ✅ HEALTHY")
         return 0
 
 
