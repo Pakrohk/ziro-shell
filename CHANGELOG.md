@@ -13,6 +13,23 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.1] — Spec-Driven Development (SDD) Workflow (2026-10-30)
+
+### Added
+- **Spec-Driven Development (SDD) Workflow (`.specify/SDD-WORKFLOW.md`)**:
+  - Established formal 9-step lifecycle (Idea ➔ Spec ➔ Review Gate ➔ Implement ➔ Verify ➔ Reality Check ➔ Version Bump ➔ ADL Entry ➔ Tag).
+  - Enforced 7 hard invariant rules for all future code modifications (Spec 014, ADR-013).
+- **Engineering Conventions (`.specify/CONVENTIONS.md`)**:
+  - Documented Python layer 3 standards (typing, dataclasses, Cyclopts CLI, centralized `get_paths()`).
+  - Documented Zsh runtime standards (`emulate -L zsh`, zero hot-path subprocesses, compiled-only `.zwc` rule).
+  - Documented Conventional Commit standards with mandatory Spec requirement references.
+- **Standardized Templates (`.specify/templates/`)**:
+  - `SPEC-TEMPLATE.md`: Structured 6-section specification template.
+  - `ADR-TEMPLATE.md`: Architectural Decision Record template.
+  - `PR-CHECKLIST.md`: Pre-merge review and verification gate checklist.
+- **Security & Release Roadmap (`.specify/specs/README.md`)**:
+  - Established execution plan for specs 014 through 021 leading to public release readiness.
+
 ## [v1.2.0] — Native Zsh Bootstrap & Declarative Engine (2026-10-25)
 
 ### Added
