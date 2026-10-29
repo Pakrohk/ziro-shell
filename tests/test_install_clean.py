@@ -166,6 +166,18 @@ class TestInstallClean(unittest.TestCase):
         self.assertTrue(zshrc.is_file())
         self.assertIn("old_stuff", zshrc.read_text())
 
+    def test_cmd_install_env_clean(self):
+        zshrc = self.zsh_dir / ".zshrc"
+        zshrc.write_text("alias old_stuff=true\n")
+
+        with patch.dict("os.environ", {"ZIRO_CLEAN": "1"}):
+            rc = cmd_install(["--default", "--no-activate"])
+            self.assertEqual(rc, 0)
+
+        backups = list(self.zsh_dir.glob(".zsh-backup-*"))
+        self.assertEqual(len(backups), 1)
+        self.assertTrue((backups[0] / ".zshrc").is_file())
+
 
 if __name__ == "__main__":
     unittest.main()

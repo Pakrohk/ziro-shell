@@ -444,8 +444,8 @@ def cmd_install(argv: list[str]) -> int:
     dry_run = "--dry-run" in argv
     default_mode = "--default" in argv
     custom_mode = "--custom" in argv
-    clean_mode = "--clean" in argv
-    no_clean_mode = "--no-clean" in argv
+    clean_mode = "--clean" in argv or os.environ.get("ZIRO_CLEAN") == "1"
+    no_clean_mode = "--no-clean" in argv or os.environ.get("ZIRO_NO_CLEAN") == "1"
     no_activate = "--no-activate" in argv
 
     cfg = _config_dir()

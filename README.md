@@ -105,6 +105,15 @@ Run the automated native Zsh installer directly:
 curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.zsh | zsh
 ```
 
+> 💡 **Tip — Passing installer flags with `curl | zsh`**:  
+> To pass flags through a pipe, pass them to `zsh -s -- <flags>` or use environment variables:
+> ```bash
+> # Force automated clean install (back up old zsh configs and start fresh):
+> curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.zsh | zsh -s -- --clean
+> # Or:
+> ZIRO_CLEAN=1 curl -fsSL https://raw.githubusercontent.com/Pakrohk/ziro-shell/refs/heads/main/install.zsh | zsh
+> ```
+
 Or inspect before running:
 
 ```bash

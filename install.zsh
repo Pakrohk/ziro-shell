@@ -231,6 +231,12 @@ _ziro_bootstrap() {
   if [[ $# -eq 0 || ("${1:-}" == -* && "${1:-}" != "--help" && "${1:-}" != "-h" && "${1:-}" != "--version" && "${1:-}" != "-v") ]]; then
     args=(install "$@")
   fi
+  if [[ "${ZIRO_CLEAN:-0}" == "1" ]]; then
+    args+=(--clean)
+  fi
+  if [[ "${ZIRO_NO_CLEAN:-0}" == "1" ]]; then
+    args+=(--no-clean)
+  fi
 
   # TTY handling: if piped, attach /dev/tty if actually openable
   local ret=0
