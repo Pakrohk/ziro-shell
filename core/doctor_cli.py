@@ -9,6 +9,7 @@ from __future__ import annotations
 import os
 import platform
 import shutil
+import stat
 import subprocess
 import sys
 import tomllib
@@ -214,10 +215,25 @@ def _check_boot_chain() -> tuple[str, str, str | None]:
     try:
         if boot_zwc.stat().st_mtime < boot_script.stat().st_mtime:
             return "error", "ziro-boot.zsh.zwc is older than ziro-boot.zsh", "run `ziro sync`"
-    except Exception as e:
-        return "error", f"error inspecting boot chain timestamps: {e}", "run `ziro sync`"
 
-    return "ok", "boot chain complete and fresh (boot.zsh → ziro-boot.zwc)", None
+        # Spec 018 R8, R11: verify boot zwc is 0600
+        zwc_mode = stat.S_IMODE(boot_zwc.stat().st_mode)
+        if zwc_mode != 0o600:
+            return "error", f"ziro-boot.zsh.zwc is not 0600: {oct(zwc_mode)}", "run `ziro sync`"
+
+        # Spec 018 R11: verify core directories are 0700
+        bad_dirs = []
+        for name, p in paths.items():
+            if p.is_dir():
+                mode = stat.S_IMODE(p.stat().st_mode)
+                if mode != 0o700:
+                    bad_dirs.append(f"{name} ({oct(mode)})")
+        if bad_dirs:
+            return "error", f"core directory not 0700: {', '.join(bad_dirs)}", "run `ziro sync`"
+    except Exception as e:
+        return "error", f"error inspecting boot chain: {e}", "run `ziro sync`"
+
+    return "ok", "boot chain complete, fresh, and secure (boot.zsh → ziro-boot.zwc)", None
 
 
 def _check_compiled_artifacts() -> tuple[str, str, str | None]:
@@ -496,6 +512,25 @@ def _check_ghost_cache_perms() -> tuple[str, str, str | None]:
     return "ok", "ghost cache file 600, directory 700", None
 
 
+def _check_legacy_ghost_cache() -> tuple[str, str, str | None]:
+    """Warn if ghost history cache predates v1.2.3 installation (spec 018 R10)."""
+    cache_file = Path.home() / ".cache" / "ziro" / "ghost" / "history-cache"
+    if not cache_file.exists():
+        return "ok", "no legacy ghost cache (clean)", None
+
+    cache_mtime = cache_file.stat().st_mtime
+    # Cutoff: 2026-10-30 00:00:00 UTC (1730246400). v1.2.3 was 2026-10-31.
+    v123_install_cutoff = 1730246400
+    if cache_mtime < v123_install_cutoff:
+        import time
+        return (
+            "warn",
+            f"ghost history cache may contain unfiltered secrets from before v1.2.3 (mtime: {time.ctime(cache_mtime)})",
+            "run `rm ~/.cache/ziro/ghost/history-cache` to purge legacy cache",
+        )
+    return "ok", "ghost history cache post-dates v1.2.3 filter", None
+
+
 def _check_theme_sharing_prereqs() -> tuple[str, str, str | None]:
     """Check prerequisites for ziro theme submit (gh CLI, auth status, starship config)."""
     gh_bin = shutil.which("gh")
@@ -580,6 +615,7 @@ def run_checks() -> dict[str, tuple[str, str, str | None]]:
         "external overrides": _check_external_overrides(),
         "legacy config": _check_legacy_config(),
         "theme sharing prerequisites": _check_theme_sharing_prereqs(),
+        "legacy ghost cache": _check_legacy_ghost_cache(),
     }
 
 
@@ -743,6 +779,7 @@ def cmd_doctor(argv: list[str]) -> int:
     rep_byte.start_section("Eval Caches & Permissions")
     rep_byte.from_tuple(_check_eval_cache_perms())
     rep_byte.from_tuple(_check_ghost_cache_perms())
+    rep_byte.from_tuple(_check_legacy_ghost_cache())
     eval_cache_dir = paths["cache"] / "eval-cache"
     for cache_name in ("starship.zsh", "zcolors.zsh", "zoxide.zsh", "fzf.zsh"):
         cp = eval_cache_dir / cache_name

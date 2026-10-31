@@ -14,7 +14,7 @@ import sys
 from pathlib import Path
 
 
-from core.paths import get_paths
+from core.paths import get_paths, _ensure_secure_perms
 
 
 def _verify_starship() -> tuple[bool, str]:
@@ -61,6 +61,7 @@ def _write_defaults(
 ) -> None:
     """Write defaults.toml reflecting user choices."""
     cfg.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(cfg)
     defaults = cfg / "defaults.toml"
     if defaults.is_file() and custom_opts is None and not force:
         return
@@ -110,9 +111,11 @@ def _write_defaults(
 def _write_prompt_conf(cfg: Path, prompt_name: str = "starship", force: bool = False) -> None:
     """Ensure prompt.conf exists with chosen prompt."""
     cfg.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(cfg)
     pconf = cfg / "prompt.conf"
     if not pconf.is_file() or force:
         pconf.write_text(f"{prompt_name}\n", encoding="utf-8")
+        _ensure_secure_perms(pconf)
 
 
 def _write_custom_load_toml(cfg: Path, custom_opts: dict[str, Any]) -> None:
@@ -138,7 +141,9 @@ def _write_custom_load_toml(cfg: Path, custom_opts: dict[str, Any]) -> None:
 
     from core.loadtoml_writer import write_load_toml
     load_path = cfg / "load.toml"
+    _ensure_secure_perms(cfg)
     write_load_toml(manifest, str(load_path))
+    _ensure_secure_perms(load_path)
 
 
 def _run_custom_wizard() -> dict[str, Any]:
@@ -223,6 +228,7 @@ def _run_custom_wizard() -> dict[str, Any]:
 def _write_tools(cfg: Path, force: bool = False) -> None:
     """Write minimal tools.toml (empty registry)."""
     cfg.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(cfg)
     tools = cfg / "tools.toml"
     if tools.is_file() and not force:
         return
@@ -233,6 +239,7 @@ def _write_tools(cfg: Path, force: bool = False) -> None:
     content += 'schema = "0.1.5"\n'
     content += 'count = 0\n'
     tools.write_text(content)
+    _ensure_secure_perms(tools)
 
 
 def _write_tags(cfg: Path, force: bool = False) -> None:
@@ -267,7 +274,9 @@ def _configure_ghost_nerd_font(
                 nerd = True
 
     ghost_conf.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(ghost_conf.parent)
     ghost_conf.write_text(f"[ui]\nnerd_font = {str(nerd).lower()}\n", encoding="utf-8")
+    _ensure_secure_perms(ghost_conf)
     print(f"✅ wrote: {ghost_conf}")
 
 
@@ -279,10 +288,12 @@ def _write_completion(data_dir: Path) -> Path:
     """Install zsh completion script to ~/.local/share/ziro/completions/_ziro."""
     comp_dir = data_dir / "completions"
     comp_dir.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(comp_dir)
     comp_file = comp_dir / "_ziro"
     from core.completion_cli import generate_zsh_completion
     content = generate_zsh_completion()
     comp_file.write_text(content, encoding="utf-8")
+    _ensure_secure_perms(comp_file)
     return comp_file
 
 
@@ -304,6 +315,7 @@ def _ensure_venv() -> Path | None:
 
     try:
         venv_path.parent.mkdir(parents=True, exist_ok=True)
+        _ensure_secure_perms(venv_path.parent)
         r = subprocess.run(
             [sys.executable, "-m", "venv", str(venv_path)],
             capture_output=True,
@@ -313,6 +325,8 @@ def _ensure_venv() -> Path | None:
         if r.returncode != 0:
             print(f"⚠️  warning: failed to create venv at {venv_path}: {r.stderr.strip()}", file=sys.stderr)
             return None
+
+        _ensure_secure_perms(venv_path)
 
         if pip_bin.is_file():
             r_pip = subprocess.run(
@@ -509,6 +523,7 @@ def backup_and_clean_zsh_configs(
         return backup_dir
 
     backup_dir.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(backup_dir)
     for item in items:
         try:
             if not item.exists() and not item.is_symlink():
@@ -678,11 +693,13 @@ def cmd_install(argv: list[str]) -> int:
             if cache.exists():
                 shutil.rmtree(cache, ignore_errors=True)
             cache.mkdir(parents=True, exist_ok=True)
+            _ensure_secure_perms(cache)
 
             derived = cfg / "derived"
             if derived.exists():
                 shutil.rmtree(derived, ignore_errors=True)
             derived.mkdir(parents=True, exist_ok=True)
+            _ensure_secure_perms(derived)
 
     custom_opts: dict[str, Any] | None = None
     if default_mode:
@@ -841,6 +858,10 @@ def cmd_install(argv: list[str]) -> int:
         print(f"⚠️  warning: activation failed: {msg_act}", file=sys.stderr)
     else:
         print(f"✅ shell activation: {msg_act}")
+
+    for p in get_paths().values():
+        if p.exists():
+            _ensure_secure_perms(p)
 
     print("")
     print("────────────────────────────────────────")

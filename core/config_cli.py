@@ -11,6 +11,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from core.paths import _ensure_secure_perms
+
 
 def _config_dir() -> Path:
     base = os.environ.get("ZIRO_CONFIG")
@@ -110,6 +112,7 @@ def cmd_set(argv: list[str]) -> int:
 
     cfg = _config_dir()
     cfg.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(cfg)
     defaults_path = cfg / "defaults.toml"
 
     import tomllib
@@ -152,6 +155,7 @@ def cmd_set(argv: list[str]) -> int:
             lines.append("")
 
     defaults_path.write_text("\n".join(lines))
+    _ensure_secure_perms(defaults_path)
     print(f"✅ config updated: {category}.{subkey}: {old_val} -> {value_arg}")
 
     # Regenerate if affecting shell loading

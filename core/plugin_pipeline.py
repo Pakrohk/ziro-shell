@@ -15,6 +15,7 @@ from core.analyzer import analyze_with_cache
 from core.generator import EmitOptions, default_output_path, generate
 from core.resolver import ConflictError, resolve
 from core.tags import save_plugin_tags
+from core.paths import _ensure_secure_perms
 
 
 @dataclass(frozen=True)
@@ -38,6 +39,7 @@ def _clone_repo(source: str, dest: Path, dry_run: bool) -> bool:
     if dry_run:
         return False
     dest.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(dest.parent)
 
     src_p = Path(source).expanduser()
     if src_p.is_dir():
@@ -46,13 +48,17 @@ def _clone_repo(source: str, dest: Path, dry_run: bool) -> bool:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
             if result.returncode != 0:
                 raise RuntimeError(f"git clone failed: {result.stderr.strip()}")
+            _ensure_secure_perms(dest)
             return True
         else:
             shutil.copytree(src_p, dest)
+            _ensure_secure_perms(dest)
             return True
     elif src_p.is_file():
         dest.mkdir(parents=True, exist_ok=True)
+        _ensure_secure_perms(dest)
         shutil.copy2(src_p, dest / src_p.name)
+        _ensure_secure_perms(dest / src_p.name)
         return True
 
     result = subprocess.run(
@@ -63,6 +69,7 @@ def _clone_repo(source: str, dest: Path, dry_run: bool) -> bool:
     )
     if result.returncode != 0:
         raise RuntimeError(f"git clone failed: {result.stderr.strip()}")
+    _ensure_secure_perms(dest)
     return True
 
 
@@ -100,16 +107,21 @@ def add_plugin(
         src_p = Path(source).expanduser()
         if not dry_run:
             dest.mkdir(parents=True, exist_ok=True)
+            _ensure_secure_perms(dest)
             if src_p.is_file():
                 shutil.copy2(src_p, dest / src_p.name)
+                _ensure_secure_perms(dest / src_p.name)
             elif src_p.is_dir():
                 if (src_p / ".git").is_dir():
                     subprocess.run(["git", "clone", "--depth=1", str(src_p.resolve()), str(dest)], check=True, capture_output=True)
                 else:
                     shutil.copytree(src_p, dest, dirs_exist_ok=True)
+                _ensure_secure_perms(dest)
         skipped = False
     else:
         skipped = not _clone_repo(source, dest_base, dry_run)
+        if not dry_run and dest_base.exists():
+            _ensure_secure_perms(dest_base)
 
     # 2. Save tags (if any)
     if tags and not dry_run:

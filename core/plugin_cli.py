@@ -650,6 +650,10 @@ def cmd_add(argv: list[str]) -> int:
                     print("✔ Synced boot artifacts")
             except Exception as e:
                 print(f"[sync] warning: {e}", file=sys.stderr)
+        if result.plugin_dir.exists():
+            from core.paths import _ensure_secure_perms
+            _ensure_secure_perms(result.plugin_dir)
+            _ensure_secure_perms(result.plugin_dir.parent)
         print(f"✅ regenerated: {result.generated}")
     return 0
 

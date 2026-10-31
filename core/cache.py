@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Optional
 
 from core.models import AnalysisResult
+from core.paths import _ensure_secure_perms
 
 
 ANALYZER_VERSION = "0.1.0"
@@ -57,6 +58,8 @@ def cache_dir() -> Path:
     base = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
     out = base / "ziro" / "analysis"
     out.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(out.parent)
+    _ensure_secure_perms(out)
     return out
 
 
@@ -124,6 +127,7 @@ def store_cached(plugin_name: str, source_hash: str, result: AnalysisResult) -> 
     payload = {"source_hash": source_hash, **result.to_dict()}
     try:
         path.write_text(json.dumps(payload, indent=2))
+        _ensure_secure_perms(path)
     except OSError:
         pass  # cache failure is non-fatal
 

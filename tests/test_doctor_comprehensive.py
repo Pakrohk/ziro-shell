@@ -37,12 +37,18 @@ def test_check_boot_chain_handles_present(tmp_path, monkeypatch):
     fake = tmp_path
     monkeypatch.setattr(Path, 'home', lambda: fake)
     # Create chain
-    (fake / '.config/ziro').mkdir(parents=True)
-    (fake / '.config/ziro/boot.zsh').write_text('')
-    (fake / '.config/ziro/load.toml').write_text('[meta]\nschema_version = "1.0.0"\n')
-    (fake / '.cache/ziro').mkdir(parents=True)
-    (fake / '.cache/ziro/ziro-boot.zsh').write_text('')
-    (fake / '.cache/ziro/ziro-boot.zsh.zwc').write_bytes(b'zwc')
+    cfg_dir = fake / '.config/ziro'
+    cfg_dir.mkdir(parents=True)
+    cfg_dir.chmod(0o700)
+    (cfg_dir / 'boot.zsh').write_text('')
+    (cfg_dir / 'load.toml').write_text('[meta]\nschema_version = "1.0.0"\n')
+    cache_dir = fake / '.cache/ziro'
+    cache_dir.mkdir(parents=True)
+    cache_dir.chmod(0o700)
+    (cache_dir / 'ziro-boot.zsh').write_text('')
+    boot_zwc = cache_dir / 'ziro-boot.zsh.zwc'
+    boot_zwc.write_bytes(b'zwc')
+    boot_zwc.chmod(0o600)
     fn = _import_check('_check_boot_chain')
     result = fn()
     assert result[0] in ('ok', 'info')

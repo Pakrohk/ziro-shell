@@ -320,6 +320,29 @@ A fresh, filtered cache file will automatically be created on your next interact
 
 ---
 
+## File permissions
+
+Starting in `v1.2.5` (Spec 018), `ziro-shell` enforces a universal secure permissions model across all core subsystems:
+- **Directories (`0700` / `drwx------`)**: All Ziro directories (`~/.ziro`, `~/.config/ziro`, `~/.cache/ziro`, `~/.local/share/ziro`, and all internal subdirectories including `eval-cache/`, `vendor/`, `analysis/`, and `completions/`) are created and maintained with mode `0700`. Only the owning user has read, write, and execute permissions.
+- **Files (`0600` / `-rw-------`)**: All generated configuration files, cache files, runtime scripts, and compiled bytecode artifacts (such as `~/.cache/ziro/ziro-boot.zsh.zwc`, `eval-cache/*.zwc`, `load.toml`, `defaults.toml`, and `ghost/history-cache`) are restricted to mode `0600`. Only the owning user can read and write them.
+
+### Multi-User Security
+On shared multi-user systems, default umask settings (`0022` or `0002`) can expose shell configurations, custom token variables, cloned plugin repositories, and compiled shell logic to other local users. The universal `0700`/`0600` policy eliminates this attack surface across installation, synchronization, plugin management, and updates.
+
+### Remediation & Auditing
+If directory or file permissions are ever modified or downgraded by external tools:
+1. Re-apply secure permissions automatically:
+   ```bash
+   ziro sync
+   ```
+2. Audit directory and bytecode permissions via health diagnostics:
+   ```bash
+   ziro doctor
+   ```
+   `ziro doctor` verifies that all core directories are `0700`, `ziro-boot.zsh.zwc` is `0600`, and warns if any legacy ghost cache files predate secret filtering.
+
+---
+
 ## Sharing themes
 
 Starting in `v1.2.4` (Spec 017), `ziro-shell` includes automated theme sharing with the community repository [Pakrohk/ziro-themes](https://github.com/Pakrohk/ziro-themes).

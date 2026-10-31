@@ -14,6 +14,8 @@ import time
 import tomllib
 from pathlib import Path
 
+from core.paths import _ensure_secure_perms
+
 
 def _repo_dir() -> Path:
     env = os.environ.get("ZIRO_HOME")
@@ -101,10 +103,13 @@ def read_cache(cache_file: Path) -> dict | None:
 def write_cache(cache_file: Path, data: dict) -> None:
     """Persist update status to cache file atomically."""
     cache_file.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(cache_file.parent)
     tmp = cache_file.with_suffix(".tmp")
     try:
         tmp.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        _ensure_secure_perms(tmp)
         tmp.replace(cache_file)
+        _ensure_secure_perms(cache_file)
     except OSError:
         pass
 

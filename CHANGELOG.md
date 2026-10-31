@@ -13,6 +13,23 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.5] — 2026-11-01
+
+### Security
+- **Universal chmod**: All ziro directories (~/.ziro, ~/.config/ziro, ~/.cache/ziro, ~/.local/share/ziro) now created with 700. All files created with 600. Fixes C3 from initial audit where 7+ files created dirs with 755 (spec 018 R1-R7)
+- **Boot zwc**: `~/.cache/ziro/ziro-boot.zsh.zwc` now 600 (was 644 — leak since v1.2.0, spec 018 R8)
+- **Legacy ghost cache warning**: `ziro doctor` warns if ghost cache predates v1.2.3 (may contain unfiltered secrets). Suggestion to `rm` (spec 018 R10)
+
+### Added
+- `_ensure_secure_perms` helper in core/paths.py
+- New doctor check: legacy ghost cache (spec 018 R10)
+- Extended boot chain check: verifies all dir perms 700, boot zwc 600 (spec 018 R11)
+- tests/test_universal_chmod.py (16 tests)
+
+**Spec**: 018-universal-chmod
+**Tests**: 533 → 549+
+**Rollback**: git revert v1.2.5 (permissions already applied stay applied)
+
 ## [v1.2.4] — 2026-11-01
 
 ### Added

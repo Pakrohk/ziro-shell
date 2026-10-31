@@ -40,4 +40,26 @@ def get_paths() -> dict[str, Path]:
     }
 
 
-__all__ = ["get_paths"]
+def _ensure_secure_perms(path: Path) -> None:
+    """Apply secure permissions (spec 018 R1).
+
+    Directories get 700 (owner read/write/execute only).
+    Files get 600 (owner read/write only).
+
+    Idempotent — safe to call on already-secure paths.
+    Silently no-ops on paths that don't exist (caller's responsibility).
+    """
+    if not path.exists():
+        return
+    try:
+        if path.is_dir():
+            path.chmod(0o700)
+        elif path.is_file():
+            path.chmod(0o600)
+    except (PermissionError, OSError):
+        # Non-fatal — e.g. on systems/mounts where chmod is restricted
+        # The parent directory being 700 already blocks most access
+        pass
+
+
+__all__ = ["get_paths", "_ensure_secure_perms"]

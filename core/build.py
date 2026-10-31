@@ -18,7 +18,7 @@ import tempfile
 import tomllib
 from typing import Any
 
-from core.paths import get_paths
+from core.paths import get_paths, _ensure_secure_perms
 
 
 DEFAULT_EAGER_MODULES = [
@@ -263,7 +263,9 @@ def load_manifest(load_toml_path: Path) -> dict[str, Any]:
     """Load and parse load.toml."""
     if not load_toml_path.is_file():
         load_toml_path.parent.mkdir(parents=True, exist_ok=True)
+        _ensure_secure_perms(load_toml_path.parent)
         load_toml_path.write_text(default_manifest_content(), encoding="utf-8")
+        _ensure_secure_perms(load_toml_path)
 
     with load_toml_path.open("rb") as f:
         return tomllib.load(f)
@@ -987,8 +989,10 @@ def write_boot_shim(boot_zsh_path: Path, paths: dict[str, Path] | None = None) -
     resolved = paths or get_paths()
     _validate_ziro_home(resolved["home"])
     boot_zsh_path.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(boot_zsh_path.parent)
     content = render_boot_shim(paths)
     boot_zsh_path.write_text(content, encoding="utf-8")
+    _ensure_secure_perms(boot_zsh_path)
     return boot_zsh_path
 
 
@@ -1049,6 +1053,7 @@ def build(
     # Rebuild eval caches if starship is installed or cache missing
     eval_cache_dir = paths["cache"] / "eval-cache"
     eval_cache_dir.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(eval_cache_dir)
     starship_cache = eval_cache_dir / "starship.zsh"
     if rebuild_eval_caches or not starship_cache.is_file():
         starship_cmd = shutil.which("starship")
@@ -1113,6 +1118,7 @@ def build(
     # Step 5: Write ziro-boot.zsh atomically
     boot_artifact = paths["cache"] / "ziro-boot.zsh"
     boot_artifact.parent.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(boot_artifact.parent)
 
     with tempfile.NamedTemporaryFile("w", dir=str(paths["cache"]), delete=False, encoding="utf-8") as tf:
         tf.write(boot_content)
@@ -1136,21 +1142,31 @@ def build(
     except Exception as e:
         print(f"[precompile] WARN: compilation step failed: {e}")
 
-    # Enforce secure permissions on eval-cache and compiled artifacts (Spec 016 R7, N2)
+    # Enforce secure permissions on all Ziro directories, eval-cache, and compiled artifacts (Spec 016 R7, Spec 018 R1-R8)
     try:
+        for p in paths.values():
+            if p.exists():
+                _ensure_secure_perms(p)
+
         if eval_cache_dir.is_dir():
-            eval_cache_dir.chmod(0o700)
+            _ensure_secure_perms(eval_cache_dir)
             for f in eval_cache_dir.iterdir():
                 if f.is_file():
-                    f.chmod(0o600)
-        # Also ensure boot_artifact .zwc is 0600
-        boot_zwc = boot_artifact.with_suffix(".zwc")
-        if boot_zwc.is_file():
-            boot_zwc.chmod(0o600)
+                    _ensure_secure_perms(f)
+
+        # Ensure both ziro-boot.zsh.zwc and any ziro-boot.zwc are 0600
+        for cand_zwc in (
+            Path(str(boot_artifact) + ".zwc"),
+            boot_artifact.with_suffix(".zwc"),
+        ):
+            if cand_zwc.is_file():
+                _ensure_secure_perms(cand_zwc)
         if boot_artifact.is_file():
-            boot_artifact.chmod(0o600)
+            _ensure_secure_perms(boot_artifact)
+        if boot_artifact.parent.exists():
+            _ensure_secure_perms(boot_artifact.parent)
     except Exception as e:
-        print(f"[permissions] WARN: setting eval-cache permissions failed: {e}")
+        print(f"[permissions] WARN: setting secure permissions failed: {e}")
 
     # Section-4 rule: everything compiled. Fail build on missing/stale .zwc.
     try:
@@ -1166,7 +1182,10 @@ def build(
         from core.completion_cli import generate_zsh_completion
         comp_dir = paths["data"] / "completions"
         comp_dir.mkdir(parents=True, exist_ok=True)
-        (comp_dir / "_ziro").write_text(generate_zsh_completion(), encoding="utf-8")
+        _ensure_secure_perms(comp_dir)
+        comp_file = comp_dir / "_ziro"
+        comp_file.write_text(generate_zsh_completion(), encoding="utf-8")
+        _ensure_secure_perms(comp_file)
     except Exception:
         pass
 
