@@ -256,6 +256,49 @@ Add a plugin from git source, local path, or catalog with tags.
 \fBArguments:\fP
 .sp
 \fBTOKENS\fP
+.sp
+\fBEcosystem Plugins:\fP
+.INDENT 0.0
+.TP
+.B \fBziro\-ghost\fP
+Predictive autocomplete and ghost text suggestions based on history and context.
+.TP
+.B \fBfast\-syntax\-highlighting\fP
+Real-time, high-speed syntax highlighting for commands, paths, and quotes.
+.TP
+.B \fBzsh\-completions\fP
+Additional completion definitions for hundreds of CLI utilities.
+.TP
+.B \fBzsh\-autosuggestions\fP
+Fish-like history-based suggestion engine.
+.TP
+.B \fBzsh\-history\-substring\-search\fP
+Search command history by typing any substring and pressing Up/Down.
+.TP
+.B \fBfzf\-tab\fP
+Interactive fuzzy selection menu replacing standard tab completions.
+.TP
+.B \fBzsh\-autopair\fP
+Automatically balances parentheses, brackets, and quotes during typing.
+.TP
+.B \fBzsh\-you\-should\-use\fP
+Reminds you of active aliases when you type the full command.
+.TP
+.B \fBzoxide\fP
+Frecency-based directory jumper (\fBz\fP).
+.TP
+.B \fBohmyzsh\-git\fP
+Git aliases, branch indicators, and completion functions.
+.TP
+.B \fBohmyzsh\-colored\-man\-pages\fP
+Colorized man pages using terminal termcaps.
+.TP
+.B \fBohmyzsh\-ssh\-agent\fP
+Automatic SSH agent start, key forwarding, and socket reuse.
+.TP
+.B \fBziro\-defer\fP
+Idle-cycle execution engine powering sub-millisecond startup.
+.UNINDENT
 .SS tag
 .sp
 Manage tags assigned to plugins and tools
@@ -697,6 +740,20 @@ Default: \fBFalse\fP
 .B \fBNO\-ACTIVATE, \-\-no\-activate, \-\-no\-no\-activate\fP
 Default: \fBFalse\fP
 .UNINDENT
+.SH PLUGINS
+.sp
+Ziro Shell organizes plugins into three distinct execution stages for optimal shell performance:
+.TP
+.B \fBEager Tools (Stage 2/4)\fP
+Loaded synchronously during bootstrap before the prompt renders. Includes completion engines (\fBzsh\-completions\fP, \fBcompinit\fP), prompt infrastructure (\fBstarship\fP), and terminal keybindings.
+.TP
+.B \fBDeferred Plugins (Stage 5)\fP
+Loaded non-blockingly during shell idle cycles via \fBziro\-defer\fP. Includes syntax highlighting (\fBfast\-syntax\-highlighting\fP), autocomplete (\fBziro\-ghost\fP, \fBzsh\-autosuggestions\fP), and menu enhancement (\fBfzf\-tab\fP).
+.TP
+.B \fBOn-Demand Proxies (Stage 7)\fP
+Loaded strictly on first invocation through transparent function stubs. Includes \fBzoxide\fP (triggered by \fBz\fP, \fBzi\fP), fuzzy finder (\fBfzf\fP via \fB^R\fP), and directory tagging (\fBwd\fP).
+.sp
+Run \fBziro plugin list\fP to view the active status, load stage, and description of all registered plugins.
 .SH Author
 Pakrohk
 .SH Copyright

@@ -515,22 +515,38 @@ def render_eager_section(tools: list[dict[str, Any]]) -> str:
                 lines.append('  unset _ziro_compdef_queue _cd')
                 lines.append('fi')
         elif method in ("source", "local-source") and path:
-            lines.append(f'_ziro_source_safe "{path}"')
+            if name == "ziro-keybindings":
+                lines.append("if [[ -o interactive ]]; then")
+                lines.append(f'  _ziro_source_safe "{path}"')
+                lines.append("fi")
+            else:
+                lines.append(f'_ziro_source_safe "{path}"')
         elif method == "eval-cache" and cache_path:
             if name == "starship":
-                lines.append(f'if [[ -f "{cache_path}" ]]; then')
-                lines.append(f'  source "{cache_path}"')
-                lines.append('elif (( $+commands[starship] )); then')
-                lines.append('  eval "$(starship init zsh)"')
-                lines.append('else')
-                lines.append('  autoload -Uz colors 2>/dev/null && colors 2>/dev/null')
-                lines.append('  PROMPT="%F{cyan}%~%f %F{green}❯%f "')
-                lines.append('fi')
+                lines.append("if [[ -o interactive ]]; then")
+                lines.append(f'  if [[ -f "{cache_path}" ]]; then')
+                lines.append(f'    source "{cache_path}"')
+                lines.append('  elif (( $+commands[starship] )); then')
+                lines.append('    eval "$(starship init zsh)"')
+                lines.append('  else')
+                lines.append('    autoload -Uz colors 2>/dev/null && colors 2>/dev/null')
+                lines.append('    PROMPT="%F{cyan}%~%f %F{green}❯%f "')
+                lines.append('  fi')
+                lines.append("fi")
+            elif name == "zcolors":
+                lines.append("if [[ -o interactive ]]; then")
+                lines.append(f'  [[ -f "{cache_path}" ]] && source "{cache_path}"')
+                lines.append("fi")
             else:
                 lines.append(f'[[ -f "{cache_path}" ]] && source "{cache_path}"')
 
         if post_source:
-            lines.append(post_source)
+            if "promptsubst" in post_source:
+                lines.append("if [[ -o interactive ]]; then")
+                lines.append(f"  {post_source}")
+                lines.append("fi")
+            else:
+                lines.append(post_source)
 
     return "\n".join(lines)
 
@@ -595,13 +611,15 @@ def render_ondemand_section(tools: list[dict[str, Any]]) -> str:
             lines.append("  (( $+functions[_zsh_highlight_bind_widgets] )) && _zsh_highlight_bind_widgets 2>/dev/null || true")
             lines.append("}")
 
+            lines.append("if [[ -o interactive ]]; then")
             for kdef in trigger_keys:
                 if isinstance(kdef, dict):
                     k = kdef.get("key", "")
                     w = kdef.get("widget", "")
-                    lines.append(f"ziro-defer-bind-widget '{k}' '{loader_fn}; zle {w}'")
+                    lines.append(f"  ziro-defer-bind-widget '{k}' '{loader_fn}; zle {w}'")
                 elif isinstance(kdef, str):
-                    lines.append(f"ziro-defer-bind-widget '{kdef}' '{loader_fn}'")
+                    lines.append(f"  ziro-defer-bind-widget '{kdef}' '{loader_fn}'")
+            lines.append("fi")
 
         elif trigger == "command":
             cmds = t.get("trigger_commands", [])
@@ -613,8 +631,14 @@ def render_ondemand_section(tools: list[dict[str, Any]]) -> str:
             lines.append(f"  unfunction {proxy_fn} {cmd_list} 2>/dev/null")
             lines.append(f'  _ziro_source_safe "{target_path}"')
             if slug == "zoxide":
-                lines.append('  if (( ! $+functions[__zoxide_z] )) && (( $+commands[zoxide] )); then')
-                lines.append('    eval "$(zoxide init zsh)"')
+                lines.append('  if (( $+commands[zoxide] )); then')
+                lines.append('    if (( ! $+functions[__zoxide_z] )); then')
+                lines.append('      eval "$(zoxide init zsh)"')
+                lines.append('    fi')
+                lines.append('  else')
+                lines.append('    print -u2 "ziro: \'zoxide\' binary is not installed."')
+                lines.append('    print -u2 "Install zoxide for smart directory jumps (\'z\'): https://github.com/ajeetdsouza/zoxide"')
+                lines.append('    return 127')
                 lines.append('  fi')
             lines.append('  "$_target_cmd" "$@"')
             lines.append("}")
@@ -648,9 +672,11 @@ _ziro_local_source() { [[ -f "$1" ]] && source "$1" || [[ -f "${1}.zsh" ]] && so
 def render_finalize_section() -> str:
     """Render Section 6: Hooks and finalize."""
     return """# --- Section 6: Defer hooks + finalize ---
-_ziro_defer_core_hooks_install
-_ziro_idle_update_check() { ( zsh "${ZIRO_HOME}/scripts/background-update.zsh" >/dev/null 2>&1 & ) }
-ziro-defer --stage=6 _ziro_idle_update_check
+if [[ -o interactive ]]; then
+  _ziro_defer_core_hooks_install
+  _ziro_idle_update_check() { ( zsh "${ZIRO_HOME}/scripts/background-update.zsh" >/dev/null 2>&1 & ) }
+  ziro-defer --stage=6 _ziro_idle_update_check
+fi
 typeset -g ZIRO_LOADED=1"""
 
 
@@ -879,8 +905,79 @@ def _validate_zwc_freshness(manifest: dict[str, Any], strict: bool = True) -> di
     return failures
 
 
+def _validate_ziro_home(home_path: Path) -> None:
+    """Validate ZIRO_HOME before baking into boot.zsh.
+
+    Raises ValueError with clear message if invalid.
+    """
+    if os.environ.get("ZIRO_ALLOW_TEST_HOME") == "1":
+        return
+
+    import tempfile
+
+    if not home_path.is_absolute():
+        raise ValueError(
+            f"ZIRO_HOME must be absolute, got: {home_path}\n"
+            f"Set ZIRO_HOME=/path/to/ziro or unset it to use ~/.ziro"
+        )
+
+    if not home_path.is_dir():
+        raise ValueError(
+            f"ZIRO_HOME does not exist or is not a directory: {home_path}\n"
+            f"Run 'git clone https://github.com/Pakrohk/ziro-shell.git {home_path}' first"
+        )
+
+    # Check not inside temp directories (covers TMPDIR, /tmp, /var/tmp, /run/user/*/tmp)
+    resolved = home_path.resolve()
+    temp_candidates = [
+        Path("/tmp"),
+        Path("/var/tmp"),
+        Path(tempfile.gettempdir()),
+    ]
+    tmpdir = os.environ.get("TMPDIR")
+    if tmpdir:
+        temp_candidates.append(Path(tmpdir))
+
+    for temp in temp_candidates:
+        try:
+            temp_resolved = temp.resolve()
+            resolved.relative_to(temp_resolved)
+            raise ValueError(
+                f"ZIRO_HOME must not be in a temporary directory, got: {resolved}\n"
+                f"Detected temp root: {temp_resolved}\n"
+                f"This would bake a temp path into ~/.config/ziro/boot.zsh and break all future shells"
+            )
+        except ValueError as e:
+            if "must not be in a temporary" in str(e):
+                raise
+            continue  # not in this temp dir, ok
+
+    # Must be a real ziro tree
+    if not (home_path / "core" / "__main__.py").is_file():
+        raise ValueError(
+            f"ZIRO_HOME does not look like a ziro checkout: {home_path}\n"
+            f"Missing: core/__main__.py\n"
+            f"Run 'git clone https://github.com/Pakrohk/ziro-shell.git {home_path}' first"
+        )
+
+    # Also check for .git or .ziro-root marker
+    has_git = (home_path / ".git").exists()
+    has_marker = (home_path / ".ziro-root").exists()
+    if not has_git and not has_marker:
+        raise ValueError(
+            f"ZIRO_HOME is missing both .git/ and .ziro-root marker: {home_path}\n"
+            f"This does not look like a valid ziro installation"
+        )
+
+
 def write_boot_shim(boot_zsh_path: Path, paths: dict[str, Path] | None = None) -> Path:
-    """Write the boot shim with baked runtime paths."""
+    """Write the boot shim with baked runtime paths.
+
+    Validates ZIRO_HOME before writing to prevent baking temp paths
+    into the persistent boot.zsh (which would break all future shells).
+    """
+    resolved = paths or get_paths()
+    _validate_ziro_home(resolved["home"])
     boot_zsh_path.parent.mkdir(parents=True, exist_ok=True)
     content = render_boot_shim(paths)
     boot_zsh_path.write_text(content, encoding="utf-8")
@@ -895,6 +992,11 @@ def build(
 ) -> tuple[bool, str, dict[str, int]]:
     """Execute the complete build pipeline."""
     paths = get_paths()
+    try:
+        _validate_ziro_home(paths["home"])
+    except ValueError as e:
+        return False, f"Invalid ZIRO_HOME: {e}", {}
+
     if load_toml_path is None:
         load_toml_path = paths["config"] / "load.toml"
 

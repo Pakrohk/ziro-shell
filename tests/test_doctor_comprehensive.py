@@ -99,6 +99,22 @@ def test_check_loadtoml_schema_handles_invalid(tmp_path, monkeypatch):
     assert result[0] == 'error'
 
 
+def test_check_git_version_returns_tuple():
+    fn = _import_check('_check_git_version')
+    result = fn()
+    assert isinstance(result, tuple)
+    assert len(result) >= 2
+    assert result[0] in ('ok', 'warn', 'error', 'info')
+
+
+def test_check_starship_version_returns_tuple():
+    fn = _import_check('_check_starship_version')
+    result = fn()
+    assert isinstance(result, tuple)
+    assert len(result) >= 2
+    assert result[0] in ('ok', 'warn', 'error', 'info')
+
+
 def test_doctor_returns_all_sections():
     """Full run must return dict with all check names."""
     import core.doctor_cli as d

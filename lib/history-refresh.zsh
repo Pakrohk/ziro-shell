@@ -3,6 +3,8 @@
 # Backup for ziro-ghost history cache bug — same-terminal instant + cross-terminal 2s
 # Safe no-op if ziro-ghost is not loaded or functions are missing.
 
+[[ -o interactive ]] || return 0
+
 autoload -Uz add-zsh-hook 2>/dev/null
 
 # Same-terminal: append last command to ghost cache

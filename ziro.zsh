@@ -13,7 +13,7 @@ _ziro_dispatch() {
     --version|-v)
       local c="${ZIRO_HOME:-$HOME/.ziro}/core/constants.py" v=""
       [[ -r "$c" ]] && while IFS= read -r l; do [[ "$l" == VERSION\ =\ * ]] && { v="${${l#*\"}%\"*}"; break; }; done < "$c"
-      print "ziro-shell v${v:-1.2.1}"; return 0 ;;
+      print "ziro-shell v${v:-1.2.2}"; return 0 ;;
   esac
   : ${ZIRO_HOME:="$HOME/.ziro"}
   local module="$ZIRO_HOME/commands/${cmd}.zsh"

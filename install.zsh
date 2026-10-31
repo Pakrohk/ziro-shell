@@ -63,7 +63,11 @@ _ziro_bootstrap() {
     return 10
   fi
 
-  # 3. Locate Python 3.11+
+  # 3. Prerequisites & Modern CLI Companions Check
+  local -a missing_desc=()
+  local -a missing_pkgs=()
+
+  # Check Python 3.11+
   local py=""
   for cand in python3 python python3.13 python3.12 python3.11; do
     if (( $+commands[$cand] )) && "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
@@ -72,66 +76,132 @@ _ziro_bootstrap() {
     fi
   done
   if [[ -z "$py" ]]; then
-    print "[*] Python 3.11+ not found. Attempting automatic installation..."
+    missing_desc+=("python3     (Python >= 3.11 runtime — required)")
     if (( $+commands[apt-get] )); then
-      _ziro_pkg_install python3.11 python3.11-venv python3 python3-venv ca-certificates || true
-    elif (( $+commands[pacman] )); then
-      _ziro_pkg_install python || true
-    elif (( $+commands[dnf] )); then
-      _ziro_pkg_install python3 || true
-    elif (( $+commands[apk] )); then
-      _ziro_pkg_install python3 || true
+      missing_pkgs+=(python3.11 python3.11-venv python3 python3-venv ca-certificates)
     elif (( $+commands[brew] )); then
-      _ziro_pkg_install python@3.11 || true
+      missing_pkgs+=(python@3.11)
+    else
+      missing_pkgs+=(python3)
     fi
-    rehash 2>/dev/null || true
-    for cand in python3 python python3.13 python3.12 python3.11; do
-      if (command -v "$cand" >/dev/null 2>&1 || (( $+commands[$cand] ))) && "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
-        py="$cand"
-        break
-      fi
-    done
   fi
+
+  # Check Git
+  if ! command -v git >/dev/null 2>&1 && ! (( $+commands[git] )); then
+    missing_desc+=("git         (Version control & repo management — required)")
+    missing_pkgs+=(git)
+  fi
+
+  # Check Starship
+  if ! (( $+commands[starship] )) && ! [[ -x "$HOME/.local/bin/starship" || -x "/usr/local/bin/starship" ]]; then
+    missing_desc+=("starship    (Prompt engine with icons & status — required)")
+    missing_pkgs+=(starship)
+  fi
+
+  # Check zoxide (for 'z')
+  if ! (( $+commands[zoxide] )) && ! [[ -x "$HOME/.local/bin/zoxide" || -x "/usr/local/bin/zoxide" ]]; then
+    missing_desc+=("zoxide      (Smart directory jump 'z' — recommended)")
+    missing_pkgs+=(zoxide)
+  fi
+
+  # Check eza (for 'lt' and 'll')
+  if ! (( $+commands[eza] )) && ! [[ -x "$HOME/.local/bin/eza" || -x "/usr/local/bin/eza" ]]; then
+    missing_desc+=("eza         (Modern tree and directory listing with icons — recommended)")
+    missing_pkgs+=(eza tree)
+  fi
+
+  # Check fzf
+  if ! (( $+commands[fzf] )) && ! [[ -x "$HOME/.local/bin/fzf" || -x "/usr/local/bin/fzf" ]]; then
+    missing_desc+=("fzf         (Fuzzy interactive search for history & files — recommended)")
+    missing_pkgs+=(fzf)
+  fi
+
+  if (( ${#missing_desc} > 0 )); then
+    print ""
+    print "┌────────────────────────────────────────────────────────────┐"
+    print "│         Ziro Shell Dependency & Prerequisite Check         │"
+    print "└────────────────────────────────────────────────────────────┘"
+    print "The following prerequisite(s) and recommended tool(s) were not found:"
+    for m in "${missing_desc[@]}"; do
+      print "  • $m"
+    done
+    print ""
+    print "You can install them manually yourself, or let Ziro install them for you."
+
+    local auto_install="y"
+    if [[ -r /dev/tty && -w /dev/tty ]] && [[ "${ZIRO_NONINTERACTIVE:-0}" != "1" ]]; then
+      print -n "Would you like Ziro to install them for you automatically? [Y/n]: " > /dev/tty
+      local user_ans=""
+      read -r user_ans < /dev/tty
+      if [[ -n "$user_ans" ]]; then
+        auto_install="$user_ans"
+      fi
+    fi
+
+    if [[ "$auto_install" =~ ^[Yy]$ || "$auto_install" == "" ]]; then
+      print "[*] Installing missing dependencies via system package manager..."
+      _ziro_pkg_install "${missing_pkgs[@]}" || true
+
+      # Fallback binary installer for Starship if still missing
+      if ! (( $+commands[starship] )) && ! [[ -x "$HOME/.local/bin/starship" ]]; then
+        mkdir -p "$HOME/.local/bin"
+        if (( $+commands[curl] )); then
+          curl -fsSL https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin" >/dev/null 2>&1 || true
+        elif (( $+commands[wget] )); then
+          wget -qO- https://starship.rs/install.sh | sh -s -- -y -b "$HOME/.local/bin" >/dev/null 2>&1 || true
+        fi
+      fi
+
+      # Fallback binary installer for zoxide if still missing
+      if ! (( $+commands[zoxide] )) && ! [[ -x "$HOME/.local/bin/zoxide" ]]; then
+        mkdir -p "$HOME/.local/bin"
+        if (( $+commands[curl] )); then
+          curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh -s -- --bin-dir "$HOME/.local/bin" >/dev/null 2>&1 || true
+        fi
+      fi
+      rehash 2>/dev/null || true
+    else
+      print ""
+      print "[!] Automatic installation skipped by user."
+      print "Please install the missing tools manually using your package manager:"
+      if (( $+commands[pacman] )); then
+        print "  sudo pacman -S --needed python git starship zoxide eza fzf"
+      elif (( $+commands[apt-get] )); then
+        print "  sudo apt install -y python3 python3-venv git zoxide fzf eza"
+      elif (( $+commands[dnf] )); then
+        print "  sudo dnf install -y python3 git starship zoxide eza fzf"
+      elif (( $+commands[brew] )); then
+        print "  brew install python@3.11 git starship zoxide eza fzf"
+      else
+        print "  (Install: python >= 3.11, git, starship, zoxide, eza, fzf)"
+      fi
+      print ""
+    fi
+  fi
+
+  # Post-check Python 3.11+
+  for cand in python3 python python3.13 python3.12 python3.11; do
+    if (command -v "$cand" >/dev/null 2>&1 || (( $+commands[$cand] ))) && "$cand" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 11) else 1)' 2>/dev/null; then
+      py="$cand"
+      break
+    fi
+  done
   if [[ -z "$py" ]]; then
-    print -u2 "ziro: Python 3.11 or newer is required (engine uses tomllib and modern dataclasses)"
+    print -u2 "ziro: Python 3.11 or newer is required to continue. Please install it and re-run."
     return 11
   fi
 
-  # 3b. Ensure git is installed
+  # Post-check Git
   if ! command -v git >/dev/null 2>&1 && ! (( $+commands[git] )); then
-    print "[*] git not found. Attempting automatic installation..."
-    if (( $+commands[apt-get] )); then
-      _ziro_pkg_install git ca-certificates || true
-    else
-      _ziro_pkg_install git || true
-    fi
-  fi
-  if ! command -v git >/dev/null 2>&1 && ! (( $+commands[git] )); then
-    print -u2 "ziro: git is required to clone repository"
+    print -u2 "ziro: git is required to clone and update repository. Please install it and re-run."
     return 12
   fi
 
-  # 3c. Starship Check & Auto-Install
-  if ! (( $+commands[starship] )) && ! [[ -x "$HOME/.local/bin/starship" || -x "/usr/local/bin/starship" ]]; then
-    print "[*] starship prompt engine not found. Attempting automatic installation..."
-    if (( $+commands[pacman] )); then
-      _ziro_pkg_install starship || true
-    elif (( $+commands[brew] )); then
-      _ziro_pkg_install starship || true
-    elif (( $+commands[apk] )); then
-      _ziro_pkg_install starship || true
-    fi
-    if ! (( $+commands[starship] )) && ! [[ -x "$HOME/.local/bin/starship" || -x "/usr/local/bin/starship" ]]; then
-      local starship_bin_dir="$HOME/.local/bin"
-      mkdir -p "$starship_bin_dir"
-      if (( $+commands[curl] )); then
-        curl -fsSL https://starship.rs/install.sh | sh -s -- -y -b "$starship_bin_dir" >/dev/null 2>&1 || true
-      elif (( $+commands[wget] )); then
-        wget -qO- https://starship.rs/install.sh | sh -s -- -y -b "$starship_bin_dir" >/dev/null 2>&1 || true
-      fi
-    fi
-  fi
+  # Ensure ~/.local/bin is exported in PATH if starship or zoxide installed locally
   if [[ -x "$HOME/.local/bin/starship" && ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
+    export PATH="$HOME/.local/bin:$PATH"
+  fi
+  if [[ -x "$HOME/.local/bin/zoxide" && ":$PATH:" != *":$HOME/.local/bin:"* ]]; then
     export PATH="$HOME/.local/bin:$PATH"
   fi
 

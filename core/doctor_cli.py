@@ -45,6 +45,14 @@ def _expand_path(p: str) -> Path:
     return Path(expanded)
 
 
+def _detect_pkg_manager() -> str | None:
+    """Detect available system package manager."""
+    for pm in ("pacman", "apt-get", "dnf", "brew", "apk"):
+        if shutil.which(pm):
+            return pm
+    return None
+
+
 def _check_python_version() -> tuple[str, str, str | None]:
     """Verify Python runtime meets minimum requirement (3.11+)."""
     ok = sys.version_info >= (3, 11)
@@ -73,6 +81,113 @@ def _check_zsh_version() -> tuple[str, str, str | None]:
     except Exception as e:
         return "error", f"zsh check failed: {e}", "install Zsh 5.8+"
     return "error", "zsh binary not found in PATH", "install Zsh 5.8+"
+
+
+def _check_git_version() -> tuple[str, str, str | None]:
+    """Verify Git is installed and available in PATH."""
+    p = shutil.which("git")
+    if not p:
+        local_git = Path.home() / ".local" / "bin" / "git"
+        if local_git.is_file() and os.access(local_git, os.X_OK):
+            p = str(local_git)
+    if not p:
+        pm = _detect_pkg_manager()
+        advice = "install Git (required for ziro updates and plugin cloning)"
+        if pm == "pacman":
+            advice = "sudo pacman -S --needed git"
+        elif pm == "apt-get":
+            advice = "sudo apt install -y git"
+        elif pm == "dnf":
+            advice = "sudo dnf install -y git"
+        elif pm == "brew":
+            advice = "brew install git"
+        return "error", "git binary not found in PATH", advice
+    try:
+        proc = subprocess.run([p, "--version"], capture_output=True, text=True, timeout=5)
+        out = proc.stdout.strip() if proc.stdout else f"git ({p})"
+        return "ok", f"{out} ({p})", None
+    except Exception as e:
+        return "error", f"git check failed: {e}", "reinstall Git via package manager"
+
+
+def _check_starship_version() -> tuple[str, str, str | None]:
+    """Verify Starship prompt engine is installed."""
+    p = shutil.which("starship")
+    if not p:
+        local_star = Path.home() / ".local" / "bin" / "starship"
+        if local_star.is_file() and os.access(local_star, os.X_OK):
+            p = str(local_star)
+    if not p:
+        pm = _detect_pkg_manager()
+        if pm == "pacman":
+            advice = "sudo pacman -S --needed starship"
+        elif pm == "brew":
+            advice = "brew install starship"
+        elif pm == "dnf":
+            advice = "sudo dnf install -y starship"
+        else:
+            advice = "curl -fsSL https://starship.rs/install.sh | sh"
+        return "error", "starship prompt engine not found in PATH", advice
+    try:
+        proc = subprocess.run([p, "--version"], capture_output=True, text=True, timeout=5)
+        ver = proc.stdout.splitlines()[0] if proc.stdout else f"starship ({p})"
+        return "ok", f"{ver} ({p})", None
+    except Exception as e:
+        return "error", f"starship check failed: {e}", "reinstall Starship"
+
+
+def _check_boot_shim_ziro_home() -> tuple[str, str, str | None]:
+    """Verify boot.zsh exists and contains a valid, non-ephemeral ZIRO_HOME path."""
+    import re
+    import tempfile
+    paths = get_paths()
+    boot_shim = paths["config"] / "boot.zsh"
+    if not boot_shim.is_file():
+        return "error", f"boot.zsh missing at {boot_shim}", "run `ziro sync`"
+
+    try:
+        content = boot_shim.read_text(encoding="utf-8")
+    except Exception as e:
+        return "error", f"could not read boot.zsh: {e}", "run `ziro sync`"
+
+    match = re.search(r'export ZIRO_HOME="?([^"\n]+)"?', content)
+    if not match:
+        return "error", "no ZIRO_HOME found in boot.zsh", "run `ziro sync`"
+
+    ziro_home_str = match.group(1).strip()
+    home_path = Path(ziro_home_str)
+
+    if not home_path.is_absolute():
+        return "error", f"boot.zsh ZIRO_HOME is not absolute: {ziro_home_str}", "run `ziro sync`"
+
+    if not home_path.is_dir():
+        return "error", f"boot.zsh ZIRO_HOME does not exist: {ziro_home_str}", "reinstall ziro or run `ziro sync`"
+
+    try:
+        resolved = home_path.resolve()
+        temp_roots = [Path("/tmp"), Path("/var/tmp"), Path(tempfile.gettempdir())]
+        tmpdir = os.environ.get("TMPDIR")
+        if tmpdir:
+            temp_roots.append(Path(tmpdir))
+        for temp in temp_roots:
+            try:
+                resolved.relative_to(temp.resolve())
+                return "error", f"boot.zsh ZIRO_HOME is in temporary directory: {ziro_home_str}", "run `ziro sync` from a clean shell"
+            except ValueError:
+                continue
+    except Exception as e:
+        return "error", f"boot.zsh ZIRO_HOME path resolution error: {e}", "run `ziro sync`"
+
+    if not (home_path / "core" / "__main__.py").is_file():
+        return "error", f"boot.zsh ZIRO_HOME missing core/__main__.py: {ziro_home_str}", "reinstall ziro"
+
+    has_git = (home_path / ".git").exists()
+    has_marker = (home_path / ".ziro-root").exists()
+    has_pyproject = (home_path / "pyproject.toml").is_file()
+    if not has_git and not has_marker and not has_pyproject:
+        return "error", f"boot.zsh ZIRO_HOME missing .git/ or markers: {ziro_home_str}", "reinstall ziro"
+
+    return "ok", f"boot.zsh ZIRO_HOME verified: {ziro_home_str}", None
 
 
 def _check_boot_chain() -> tuple[str, str, str | None]:
@@ -370,6 +485,9 @@ def run_checks() -> dict[str, tuple[str, str, str | None]]:
     return {
         "Python 3.11+": _check_python_version(),
         "Zsh 5.8+": _check_zsh_version(),
+        "Git": _check_git_version(),
+        "Starship": _check_starship_version(),
+        "boot shim ZIRO_HOME": _check_boot_shim_ziro_home(),
         "boot chain": _check_boot_chain(),
         "compiled (.zwc)": _check_compiled_artifacts(),
         "runtime commands": _check_runtime_commands(),
@@ -497,11 +615,17 @@ def cmd_doctor(argv: list[str]) -> int:
 
     # 1. ziro.system
     rep_sys = HealthReport("ziro.system")
-    rep_sys.start_section("System Info")
+    rep_sys.start_section("Core Prerequisites")
     py_res = _check_python_version()
     rep_sys.from_tuple(py_res, prefix=f"Python: {sys.executable} · ")
     zsh_res = _check_zsh_version()
     rep_sys.from_tuple(zsh_res)
+    git_res = _check_git_version()
+    rep_sys.from_tuple(git_res)
+    star_res = _check_starship_version()
+    rep_sys.from_tuple(star_res)
+
+    rep_sys.start_section("System Info")
     rep_sys.line(f"Operating system: {platform.system()} {platform.release()} ({platform.machine()})")
     rep_sys.line(f"Shell: {os.environ.get('SHELL', 'unknown')}")
     rep_sys.line(f"$TERM={os.environ.get('TERM', 'unset')!r}")
@@ -518,6 +642,7 @@ def cmd_doctor(argv: list[str]) -> int:
     # 2. ziro.runtime
     rep_run = HealthReport("ziro.runtime")
     rep_run.start_section("Boot Chain")
+    rep_run.from_tuple(_check_boot_shim_ziro_home())
     rep_run.from_tuple(_check_boot_chain())
 
     rep_run.start_section("Runtime Commands & Aliases")
@@ -561,27 +686,7 @@ def cmd_doctor(argv: list[str]) -> int:
 
     # 5. ziro.tools
     rep_tools = HealthReport("ziro.tools")
-    rep_tools.start_section("Prompt & Manual")
-    # Starship
-    starship_path = shutil.which("starship")
-    if not starship_path:
-        local_star = Path.home() / ".local" / "bin" / "starship"
-        if local_star.is_file() and os.access(local_star, os.X_OK):
-            starship_path = str(local_star)
-    if starship_path:
-        try:
-            r = subprocess.run([starship_path, "--version"], capture_output=True, text=True, timeout=5)
-            ver = r.stdout.splitlines()[0] if r.stdout else "available"
-            rep_tools.ok(f"{ver} ({starship_path})")
-        except Exception:
-            rep_tools.ok(f"starship installed at {starship_path}")
-    else:
-        rep_tools.warn(
-            "starship binary not found in PATH",
-            ["Install Starship: curl -fsSL https://starship.rs/install.sh | sh", "Or install with system package manager"],
-        )
-
-    # Manual page
+    rep_tools.start_section("Manual Page")
     man_path = Path.home() / ".local" / "share" / "man" / "man1" / "ziro.1"
     xdg_data = os.environ.get("XDG_DATA_HOME")
     if xdg_data:
@@ -594,17 +699,49 @@ def cmd_doctor(argv: list[str]) -> int:
             ["Run: ziro install --rebuild"],
         )
 
-    rep_tools.start_section("Modern CLI Companions (optional)")
-    companions = [
-        ("zoxide", "smart directory jump (`z`)"),
-        ("fzf", "fuzzy finder for history & files"),
-        ("eza", "modern ls replacement with icons"),
+    pm = _detect_pkg_manager()
+    rep_tools.start_section("Recommended Companions")
+    recommended = [
+        ("zoxide", "smart directory jump (`z`)", "curl -sSfL https://raw.githubusercontent.com/ajeetdsouza/zoxide/main/install.sh | sh"),
+        ("fzf", "fuzzy finder for history & files", "install via package manager"),
+        ("eza", "modern ls/lt replacement with icons", "install via package manager"),
+    ]
+    for bin_name, desc, default_install in recommended:
+        p = shutil.which(bin_name)
+        if not p:
+            local_bin = Path.home() / ".local" / "bin" / bin_name
+            if local_bin.is_file() and os.access(local_bin, os.X_OK):
+                p = str(local_bin)
+        if p:
+            try:
+                r = subprocess.run([p, "--version"], capture_output=True, text=True, timeout=5)
+                v = r.stdout.splitlines()[0] if r.stdout else p
+                rep_tools.ok(f"{v} ({p})")
+            except Exception:
+                rep_tools.ok(f"{bin_name} ({p})")
+        else:
+            if pm == "pacman":
+                adv = f"sudo pacman -S --needed {bin_name}"
+            elif pm == "apt-get":
+                adv = f"sudo apt install -y {bin_name}"
+            elif pm == "brew":
+                adv = f"brew install {bin_name}"
+            elif pm == "dnf":
+                adv = f"sudo dnf install -y {bin_name}"
+            else:
+                adv = default_install
+            rep_tools.warn(
+                f"{bin_name} not found ({desc})",
+                [adv],
+            )
+
+    rep_tools.start_section("Optional CLI Helpers")
+    optional_helpers = [
         ("bat", "modern cat replacement with syntax highlighting"),
         ("rg", "ripgrep fast grep replacement"),
         ("fd", "fast user-friendly find replacement"),
-        ("git", "version control"),
     ]
-    for bin_name, desc in companions:
+    for bin_name, desc in optional_helpers:
         p = shutil.which(bin_name)
         if not p:
             local_bin = Path.home() / ".local" / "bin" / bin_name

@@ -25,6 +25,7 @@ class TestBootShimPaths(unittest.TestCase):
 
     def test_write_boot_shim_writes_expected_file(self):
         import tempfile
+        from unittest.mock import patch
         with tempfile.TemporaryDirectory() as td:
             tmp_path = Path(td)
             dest = tmp_path / "boot.zsh"
@@ -34,7 +35,8 @@ class TestBootShimPaths(unittest.TestCase):
                 "data": tmp_path / "d",
                 "cache": tmp_path / "cache",
             }
-            result = write_boot_shim(dest, paths=custom_paths)
+            with patch("core.build._validate_ziro_home"):
+                result = write_boot_shim(dest, paths=custom_paths)
             self.assertEqual(result, dest)
             self.assertTrue(dest.is_file())
             content = dest.read_text(encoding="utf-8")

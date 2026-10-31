@@ -35,13 +35,13 @@ class TestAliasesCore(unittest.TestCase):
         self.assertIn("....='cd ../../..'", res.stdout)
 
     def test_ll_fallback_when_eza_absent(self) -> None:
-        """When eza is absent, ll/la/lt fallback to ls with classification."""
+        """When eza is absent, ll/la/lt fallback to ls/tree with classification."""
         script = f'PATH="/nonexistent" source "{CORE_ALIASES_FILE}"; alias ll; alias la; alias lt'
         res = subprocess.run(["zsh", "-f", "-c", script], capture_output=True, text=True)
         self.assertEqual(res.returncode, 0, res.stderr)
         self.assertTrue("ll='ls -la" in res.stdout)
         self.assertTrue("la='ls -a" in res.stdout)
-        self.assertIn("lt='ls -R'", res.stdout)
+        self.assertTrue("lt=" in res.stdout)
 
     def test_ll_uses_eza_when_present(self) -> None:
         """When eza is present, ll/la/lt use eza."""

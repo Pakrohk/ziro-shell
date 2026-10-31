@@ -13,6 +13,25 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.2] — 2026-10-31
+
+### Added
+- `_validate_ziro_home()` in core/build.py — rejects temp, nonexistent, and non-ziro paths before baking into boot.zsh (spec 015 R5-R6)
+- New doctor check `boot.zsh ZIRO_HOME` verifies consistency (spec 015 R7)
+- tests/test_non_interactive_guard.py (~7 tests)
+- tests/test_ziro_home_validation.py (~8 tests)
+
+### Fixed
+- Interactive-only features (starship, zcolors, precmd/preexec hooks, ZLE keybindings, idle update check) no longer initialize in non-interactive shells like `ssh host 'command'`, cron, and scripts (spec 015 R3, C1)
+- Prevents baking temp ZIRO_HOME paths into boot.zsh which would break all future shells (spec 015 R5, N1)
+
+### Preserved
+- Interactive shell behavior unchanged — all hooks, starship, zcolors, keybindings work as before
+- `ziro` function remains callable in both interactive and non-interactive shells (spec 015 R2)
+
+**Spec**: 015-non-interactive-guard
+**Tests**: 481 → 497+ (16 new)
+
 ## [v1.2.1] — Spec-Driven Development (SDD) Workflow (2026-10-30)
 
 ### Added
