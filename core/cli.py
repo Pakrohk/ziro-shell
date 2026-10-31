@@ -59,6 +59,7 @@ def sync(
     rebuild_caches: bool = False,
     force: bool = False,
     no_strict_zwc: bool = False,
+    update_vendor: bool = False,
     config: Optional[Path] = None,
 ) -> int:
     """Synchronize configuration, compile bytecode artifacts, and validate freshness."""
@@ -70,6 +71,8 @@ def sync(
         args.append("--force")
     if no_strict_zwc:
         args.append("--no-strict-zwc")
+    if update_vendor:
+        args.append("--update-vendor")
     if config:
         args.extend(["--config", str(config)])
     return build.main(args)
@@ -301,6 +304,27 @@ def theme_reset() -> int:
     """Reset theme configuration to defaults."""
     from core import theme_cli
     return theme_cli.cmd_reset([])
+
+
+@theme_app.command(name="submit")
+def theme_submit(
+    name: Optional[str] = None,
+    dry_run: bool = False,
+    no_pr: bool = False,
+    keep: bool = False,
+) -> int:
+    """Share active Starship prompt theme with the Ziro community via pull request."""
+    from core import theme_submit_cli
+    args: list[str] = []
+    if name:
+        args.extend(["--name", name])
+    if dry_run:
+        args.append("--dry-run")
+    if no_pr:
+        args.append("--no-pr")
+    if keep:
+        args.append("--keep")
+    return theme_submit_cli.main(args)
 
 
 

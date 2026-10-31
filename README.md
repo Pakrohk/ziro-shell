@@ -197,7 +197,7 @@ Ziro combines defensive shell defaults, classified file listings, and unified na
 
 ### 4. Ziro Management CLI
 - **`ziro doctor`**: Diagnose system dependencies, compiled bytecode health, and scheduler states.
-- **`ziro theme [list|set|edit|preview]`**: Manage Starship prompt themes (official presets, live preview, and direct editing).
+- **`ziro theme [list|apply|current|edit|reset|submit]`**: Manage and share Starship prompt themes (community gallery at [Pakrohk/ziro-themes](https://github.com/Pakrohk/ziro-themes)).
 - **`ziro sync`**: Recompile eager artifacts to `.zwc` wordcode, rebuild eval caches, and bootstrap vendor tools.
 - **`ziro update`**: Background, non-blocking core and plugin updates.
 - **`ziro plugin [list|add|remove]`**: Audit security trust scores (0–4) and manage ecosystem plugins.

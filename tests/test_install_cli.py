@@ -16,11 +16,14 @@ class TestInstallCli(unittest.TestCase):
         self._old_cfg = os.environ.get("ZIRO_CONFIG")
         self._old_cache = os.environ.get("ZIRO_CACHE")
         self._old_data = os.environ.get("ZIRO_DATA")
+        self._old_starship = os.environ.get("STARSHIP_CONFIG")
+        self._old_skip_vendor = os.environ.get("ZIRO_SKIP_VENDOR_CLONE")
         self.cfg = Path(self.tmp.name) / "config"
         self.cfg.mkdir(parents=True, exist_ok=True)
         os.environ["ZIRO_CONFIG"] = str(self.cfg)
         os.environ["ZIRO_CACHE"] = str(Path(self.tmp.name) / "cache")
         os.environ["ZIRO_DATA"] = str(Path(self.tmp.name) / "data")
+        os.environ["STARSHIP_CONFIG"] = str(Path(self.tmp.name) / "starship.toml")
         os.environ["ZIRO_SKIP_VENDOR_CLONE"] = "1"
 
     def tearDown(self):
@@ -28,6 +31,8 @@ class TestInstallCli(unittest.TestCase):
             ("ZIRO_CONFIG", self._old_cfg),
             ("ZIRO_CACHE", self._old_cache),
             ("ZIRO_DATA", self._old_data),
+            ("STARSHIP_CONFIG", self._old_starship),
+            ("ZIRO_SKIP_VENDOR_CLONE", self._old_skip_vendor),
         ]:
             if v is not None:
                 os.environ[k] = v

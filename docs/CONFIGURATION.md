@@ -317,3 +317,45 @@ To discard legacy plaintext history cached prior to `v1.2.3`:
 rm -f ~/.cache/ziro/ghost/history-cache
 ```
 A fresh, filtered cache file will automatically be created on your next interactive shell session. Opting out of secret filtering is not supported by design.
+
+---
+
+## Sharing themes
+
+Starting in `v1.2.4` (Spec 017), `ziro-shell` includes automated theme sharing with the community repository [Pakrohk/ziro-themes](https://github.com/Pakrohk/ziro-themes).
+
+### Prerequisites
+- GitHub CLI (`gh`) installed and in `$PATH` (`https://cli.github.com/`).
+- GitHub account authenticated via `gh auth login`.
+- Active Starship prompt configuration at `~/.config/starship.toml`.
+
+### Submitting Your Theme
+To submit your active prompt configuration:
+```bash
+ziro theme submit
+```
+
+This interactive workflow:
+1. Validates prerequisites (`gh`, auth status, valid TOML).
+2. Computes a diff summary of your custom configuration vs baseline defaults.
+3. Prompts for a kebab-case theme name (e.g. `cyber-neon`, `pastel-waves`).
+4. Clones `Pakrohk/ziro-themes` to an isolated workspace, creates a feature branch `submit/<username>/<theme-name>`, writes `themes/<username>/<theme-name>.toml`, and opens a pull request.
+
+### Options
+- `--name <name>`: Provide theme name directly without prompting.
+- `--dry-run`: Preview diff analysis, target path, and planned PR title without creating files or network calls.
+- `--no-pr`: Push branch to origin but skip opening pull request.
+- `--keep`: Retain temporary workspace clone for inspection and debugging.
+
+### Examples
+```bash
+# Preview submission
+ziro theme submit --dry-run
+
+# Submit with custom name
+ziro theme submit --name my-minimalist-prompt
+
+# Verify prerequisites via doctor
+ziro doctor
+```
+

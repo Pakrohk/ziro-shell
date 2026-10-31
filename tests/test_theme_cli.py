@@ -18,8 +18,10 @@ class TestThemeCli(unittest.TestCase):
         self.tmp_home = tempfile.TemporaryDirectory()
         self._old_cfg = os.environ.get("ZIRO_CONFIG")
         self._old_home = os.environ.get("ZIRO_HOME")
+        self._old_starship = os.environ.get("STARSHIP_CONFIG")
         os.environ["ZIRO_CONFIG"] = self.tmp_cfg.name
         os.environ["ZIRO_HOME"] = self.tmp_home.name
+        os.environ["STARSHIP_CONFIG"] = str(Path(self.tmp_cfg.name) / "starship.toml")
 
     def tearDown(self):
         if self._old_cfg is not None:
@@ -30,6 +32,10 @@ class TestThemeCli(unittest.TestCase):
             os.environ["ZIRO_HOME"] = self._old_home
         else:
             os.environ.pop("ZIRO_HOME", None)
+        if self._old_starship is not None:
+            os.environ["STARSHIP_CONFIG"] = self._old_starship
+        else:
+            os.environ.pop("STARSHIP_CONFIG", None)
         self.tmp_cfg.cleanup()
         self.tmp_home.cleanup()
 

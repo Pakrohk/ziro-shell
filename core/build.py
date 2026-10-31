@@ -997,6 +997,7 @@ def build(
     force: bool = False,
     rebuild_eval_caches: bool = False,
     strict_zwc: bool = False,
+    update_vendor: bool = False,
 ) -> tuple[bool, str, dict[str, int]]:
     """Execute the complete build pipeline."""
     paths = get_paths()
@@ -1035,7 +1036,13 @@ def build(
     # Step 3b: Ensure vendor tools from manifest exist on disk
     try:
         from core.vendor import ensure_vendor_tools
-        ensure_vendor_tools(manifest, paths=paths, quiet=False)
+        ensure_vendor_tools(
+            manifest,
+            paths=paths,
+            quiet=False,
+            update_existing=update_vendor or force,
+            force=force,
+        )
     except Exception as e:
         print(f"[vendor] warning: failed to ensure vendor tools: {e}")
 
@@ -1193,6 +1200,7 @@ def main(argv: list[str] | None = None) -> int:
     args = list(argv or sys.argv[1:])
     rebuild = "--rebuild-caches" in args
     force = "--force" in args
+    update_vendor = "--update-vendor" in args
     strict_zwc = "--no-strict-zwc" not in args
     if not strict_zwc:
         print("ziro sync: strict=off: compiled-only rule relaxed", file=sys.stderr)
@@ -1207,6 +1215,7 @@ def main(argv: list[str] | None = None) -> int:
         rebuild_eval_caches=rebuild,
         force=force,
         strict_zwc=strict_zwc,
+        update_vendor=update_vendor,
     )
     if not ok:
         print(f"ziro sync: error: {msg}", file=sys.stderr)

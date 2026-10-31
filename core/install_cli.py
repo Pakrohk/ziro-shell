@@ -819,7 +819,7 @@ def cmd_install(argv: list[str]) -> int:
     # Step: Execute Build Pipeline (ziro sync)
     print("\nRunning build pipeline...")
     from core.build import build
-    ok_build, msg_build, _ = build(force=do_rebuild, rebuild_eval_caches=True)
+    ok_build, msg_build, _ = build(force=do_rebuild, rebuild_eval_caches=True, update_vendor=True)
     if not ok_build:
         print(f"❌ build pipeline failed: {msg_build}", file=sys.stderr)
         return 1

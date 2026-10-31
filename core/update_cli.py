@@ -431,47 +431,113 @@ def find_vendor_plugins(target_plugin: str | None = None) -> list[tuple[str, Pat
     return plugins
 
 
-def update_single_plugin(name: str, path: Path, dry_run: bool = False) -> bool:
+def update_single_plugin(name: str, path: Path, dry_run: bool = False, force: bool = False) -> bool:
     """Check / fetch plugin updates. Return True if changes detected / applied."""
     if dry_run:
         return False
 
     try:
-        status_res = subprocess.run(
-            ["git", "-C", str(path), "status", "--porcelain", "-uno"],
-            capture_output=True,
-            text=True,
-            timeout=5,
-        )
-        if status_res.stdout.strip():
-            # Dirty plugin working tree — skip modifying to avoid data loss
+        if not (path / ".git").is_dir():
             return False
 
-        # Fetch
-        subprocess.run(
-            ["git", "-C", str(path), "fetch", "-q", "origin"],
+        if not force:
+            status_res = subprocess.run(
+                ["git", "-C", str(path), "status", "--porcelain", "-uno"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if status_res.stdout.strip():
+                # Dirty plugin working tree — skip modifying to avoid data loss
+                return False
+
+        # Fetch with refspec to support shallow/tag/detached clones
+        fetch_res = subprocess.run(
+            ["git", "-C", str(path), "fetch", "--depth", "1", "-q", "origin", "+refs/heads/*:refs/remotes/origin/*"],
             capture_output=True,
             text=True,
-            timeout=10,
+            timeout=15,
         )
+        if fetch_res.returncode != 0:
+            subprocess.run(
+                ["git", "-C", str(path), "fetch", "-q", "origin"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
 
-        # Check if behind origin/HEAD or origin/main or origin/master
-        rev_res = subprocess.run(
-            ["git", "-C", str(path), "rev-list", "--count", "HEAD..origin/HEAD"],
+        # Detect target ref: origin/HEAD, origin/main, origin/master
+        target_ref = None
+        for cand in ("origin/HEAD", "origin/main", "origin/master"):
+            chk = subprocess.run(
+                ["git", "-C", str(path), "rev-parse", "--verify", cand],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if chk.returncode == 0:
+                target_ref = cand
+                break
+
+        if not target_ref:
+            return False
+
+        # Check if local commit differs from target
+        head_res = subprocess.run(
+            ["git", "-C", str(path), "rev-parse", "HEAD"],
             capture_output=True,
             text=True,
             timeout=5,
         )
-        if rev_res.returncode == 0:
-            behind = int(rev_res.stdout.strip() or "0")
-            if behind > 0:
-                pull_res = subprocess.run(
-                    ["git", "-C", str(path), "pull", "--ff-only"],
+        target_commit = subprocess.run(
+            ["git", "-C", str(path), "rev-parse", target_ref],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if head_res.returncode == 0 and target_commit.returncode == 0:
+            if head_res.stdout.strip() == target_commit.stdout.strip() and not force:
+                return False
+
+        # Perform update
+        if force:
+            reset_res = subprocess.run(
+                ["git", "-C", str(path), "reset", "--hard", target_ref],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            subprocess.run(
+                ["git", "-C", str(path), "clean", "-fd"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            return reset_res.returncode == 0
+        else:
+            pull_res = subprocess.run(
+                ["git", "-C", str(path), "pull", "--ff-only"],
+                capture_output=True,
+                text=True,
+                timeout=15,
+            )
+            if pull_res.returncode == 0:
+                return True
+            # If pull --ff-only fails (e.g. detached HEAD from shallow clone), reset --hard if clean
+            status_clean = subprocess.run(
+                ["git", "-C", str(path), "status", "--porcelain", "-uno"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if not status_clean.stdout.strip():
+                reset_res = subprocess.run(
+                    ["git", "-C", str(path), "reset", "--hard", target_ref],
                     capture_output=True,
                     text=True,
                     timeout=15,
                 )
-                return pull_res.returncode == 0
+                return reset_res.returncode == 0
     except Exception:
         return False
     return False
@@ -625,7 +691,7 @@ def cmd_update(argv: list[str]) -> int:
     if plugins and not quiet:
         print(f"Checking {len(plugins)} plugin(s)...")
     for name, p in plugins:
-        upd = update_single_plugin(name, p, dry_run=False)
+        upd = update_single_plugin(name, p, dry_run=False, force=force)
         if upd:
             updated_plugins.append(name)
             if not quiet:
@@ -648,7 +714,7 @@ def cmd_update(argv: list[str]) -> int:
     if not plugins_only:
         from core.build import build
         force_build = repo_updated or bool(updated_plugins)
-        ok, msg, counts = build(force=force_build, rebuild_eval_caches=repo_updated)
+        ok, msg, counts = build(force=force_build, rebuild_eval_caches=repo_updated, update_vendor=True)
         if not quiet:
             print(f"✔ {msg}")
         if not ok:

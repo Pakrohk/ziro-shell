@@ -28,6 +28,7 @@ class TestInstallClean(unittest.TestCase):
         self._old_zdot = os.environ.get("ZDOTDIR")
         self._old_cfg = os.environ.get("ZIRO_CONFIG")
         self._old_wipe = os.environ.get("ZIRO_ALLOW_TEST_WIPE")
+        self._old_skip_vendor = os.environ.get("ZIRO_SKIP_VENDOR_CLONE")
 
         os.environ["HOME"] = str(self.zsh_dir)
         os.environ["ZDOTDIR"] = str(self.zsh_dir)
@@ -55,6 +56,11 @@ class TestInstallClean(unittest.TestCase):
             os.environ["ZIRO_ALLOW_TEST_WIPE"] = self._old_wipe
         else:
             os.environ.pop("ZIRO_ALLOW_TEST_WIPE", None)
+
+        if self._old_skip_vendor is not None:
+            os.environ["ZIRO_SKIP_VENDOR_CLONE"] = self._old_skip_vendor
+        else:
+            os.environ.pop("ZIRO_SKIP_VENDOR_CLONE", None)
 
         self.tmp.cleanup()
 

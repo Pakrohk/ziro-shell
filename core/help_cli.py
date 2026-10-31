@@ -283,13 +283,14 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
     "theme": HelpEntry(
         name="theme",
         summary="Manage shell themes and appearance",
-        usage="ziro theme <list|current|apply|edit|reset> [args...]",
+        usage="ziro theme <list|current|apply|edit|reset|submit> [args...]",
         subcommands={
             "list": "List available theme components and presets",
             "current": "Show currently active theme selection",
             "apply": "Apply a theme or component style",
             "edit": "Edit active prompt theme or custom theme configuration",
             "reset": "Reset theme configuration to defaults",
+            "submit": "Share active Starship prompt theme via pull request",
         },
         flags=[
             ("--component <comp>", "Component to apply theme to (prompt, auto_suggest, colors, syntax_highlighting)"),
@@ -299,6 +300,7 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
             "ziro theme list",
             "ziro theme apply tokyo-night",
             "ziro theme edit",
+            "ziro theme submit --dry-run",
         ],
         related=["prompt", "suggest"],
     ),
@@ -356,6 +358,24 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
             "ziro theme reset",
         ],
         related=["theme current"],
+    ),
+    "theme submit": HelpEntry(
+        name="theme submit",
+        summary="Share active Starship prompt theme with the Ziro community via pull request",
+        usage="ziro theme submit [--name <name>] [--dry-run] [--no-pr] [--keep]",
+        flags=[
+            ("--name <name>", "Override theme name (kebab-case, 3-30 chars, [a-z0-9-])"),
+            ("--dry-run", "Preview planned submission, diff summary, and PR title without side effects"),
+            ("--no-pr", "Create branch and push to origin without opening pull request"),
+            ("--keep", "Preserve temporary workspace directory for debugging"),
+        ],
+        examples=[
+            "ziro theme submit",
+            "ziro theme submit --dry-run",
+            "ziro theme submit --name my-custom-prompt",
+            "ziro theme submit --no-pr",
+        ],
+        related=["theme current", "theme apply", "theme list"],
     ),
     "prompt": HelpEntry(
         name="prompt",

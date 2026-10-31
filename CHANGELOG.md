@@ -13,6 +13,23 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.4] — 2026-11-01
+
+### Added
+- **Theme sharing system**: New `ziro theme submit` command shares starship.toml with the ziro community via github.com/Pakrohk/ziro-themes
+- Prerequisites check (gh installed, gh auth, starship config exists) before any GitHub operation
+- Diff summary vs default config shows what makes your theme unique
+- Automatic PR creation with clear title, body, and branch name
+- `--dry-run` for preview, `--no-pr` for manual control, `--keep` for debugging
+- New doctor check for theme sharing prerequisites (info only, not error)
+- Tests: 517 → 533 (16 new in test_theme_submit.py)
+
+### New ecosystem
+- github.com/Pakrohk/ziro-themes — community theme gallery with 5 seeded starship presets
+
+**Spec**: 017-theme-sharing
+**Rollback**: git revert v1.2.4 (repo ziro-themes remains)
+
 ## [v1.2.3] — 2026-10-31
 
 ### Security

@@ -496,6 +496,38 @@ def _check_ghost_cache_perms() -> tuple[str, str, str | None]:
     return "ok", "ghost cache file 600, directory 700", None
 
 
+def _check_theme_sharing_prereqs() -> tuple[str, str, str | None]:
+    """Check prerequisites for ziro theme submit (gh CLI, auth status, starship config)."""
+    gh_bin = shutil.which("gh")
+    if not gh_bin:
+        return (
+            "info",
+            "gh CLI not found",
+            "install from https://cli.github.com/ to enable 'ziro theme submit'",
+        )
+
+    star_conf = Path(os.environ.get("STARSHIP_CONFIG", Path.home() / ".config" / "starship.toml"))
+    if not star_conf.is_file():
+        return (
+            "info",
+            "starship.toml not found",
+            f"generate with 'starship preset <name> -o {star_conf}'",
+        )
+
+    try:
+        r = subprocess.run([gh_bin, "auth", "status"], capture_output=True, text=True, timeout=5)
+        if r.returncode != 0:
+            return (
+                "info",
+                "gh not authenticated",
+                "run 'gh auth login' to enable theme sharing",
+            )
+    except Exception:
+        return ("info", "gh auth check timed out or failed", None)
+
+    return ("ok", "theme sharing ready (gh authenticated, starship.toml found)", None)
+
+
 def _check_eval_cache_perms() -> tuple[str, str, str | None]:
     """Verify eval-cache .zwc files are 600 and dir is 700 (spec 016 R7)."""
     import stat
@@ -547,6 +579,7 @@ def run_checks() -> dict[str, tuple[str, str, str | None]]:
         "defer modules": _check_defer_modules(),
         "external overrides": _check_external_overrides(),
         "legacy config": _check_legacy_config(),
+        "theme sharing prerequisites": _check_theme_sharing_prereqs(),
     }
 
 
@@ -814,6 +847,10 @@ def cmd_doctor(argv: list[str]) -> int:
         rep_tools.ok(f"clipboard tool found: {found_clip[0]}")
     else:
         rep_tools.info(f"no clipboard tool found ({', '.join(clip_tools)})")
+
+    rep_tools.start_section("Theme Sharing Prerequisites")
+    theme_res = _check_theme_sharing_prereqs()
+    rep_tools.from_tuple(theme_res)
     reports.append(rep_tools)
 
     # Header banner matching Neovim checkhealth
