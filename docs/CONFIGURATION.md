@@ -289,3 +289,31 @@ ziro sync
 # 2. Verify configuration health and cache validity
 ziro doctor
 ```
+
+---
+
+## History Cache Security & Credential Hygiene
+
+Starting in `v1.2.3` (Spec 016), `ziro-shell` and `ziro-ghost` enforce proactive secret redaction and strict filesystem permissions for terminal history:
+
+### Filtered Secret Patterns
+Before any command line is persisted to `~/.cache/ziro/ghost/history-cache`, `ghost_history_is_sensitive()` inspects its content against 10 credential patterns:
+- Cloud access keys: AWS (`AKIA*`), OpenAI (`sk-*`), Slack (`xoxb-*`, `xoxp-*`).
+- Personal access tokens: GitHub (`ghp_*`, `gho_*`, `ghu_*`, `ghs_*`, `ghr_*`).
+- Authentication headers: `Authorization: Bearer <token>`, `Authorization: Basic <token>`.
+- Command-line password flags: `--password=<val>`, `--token=<val>`, `--secret=<val>`, `-p<password>`.
+- Cryptographic private keys: `BEGIN PRIVATE KEY`, `BEGIN OPENSSH PRIVATE KEY`, `id_rsa`, `id_ed25519`.
+- Commands beginning with leading whitespace (honoring `HIST_IGNORE_SPACE`).
+- Excessively long lines (> 500 characters) or continuous 40+ alphanumeric character blobs (likely base64 or hex serialized secrets).
+
+### Filesystem Permissions
+- **History cache file**: `~/.cache/ziro/ghost/history-cache` is created and maintained with `0600` (`-rw-------`).
+- **History cache directory**: `~/.cache/ziro/ghost/` is restricted to `0700` (`drwx------`).
+- **Compiled bytecode**: All `.zwc` files in `~/.cache/ziro/eval-cache/` are enforced with `0600`, and `eval-cache/` itself with `0700`.
+
+### Manual Cache Purge
+To discard legacy plaintext history cached prior to `v1.2.3`:
+```bash
+rm -f ~/.cache/ziro/ghost/history-cache
+```
+A fresh, filtered cache file will automatically be created on your next interactive shell session. Opting out of secret filtering is not supported by design.

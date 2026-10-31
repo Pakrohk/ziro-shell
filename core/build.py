@@ -910,8 +910,16 @@ def _validate_ziro_home(home_path: Path) -> None:
 
     Raises ValueError with clear message if invalid.
     """
+    # RC2 hardening (spec 016 R9): escape hatch only honored under pytest
     if os.environ.get("ZIRO_ALLOW_TEST_HOME") == "1":
-        return
+        if os.environ.get("PYTEST_CURRENT_TEST"):
+            return
+        raise ValueError(
+            "ZIRO_ALLOW_TEST_HOME=1 is a test-only escape hatch. "
+            "It has been ignored because pytest is not running. "
+            "Unset this environment variable, or run under pytest if you are a developer testing ziro. "
+            "For production use, ensure ZIRO_HOME points to a real checkout."
+        )
 
     import tempfile
 
@@ -1120,6 +1128,22 @@ def build(
                 print(f"[precompile] WARN: {path}: {msg}")
     except Exception as e:
         print(f"[precompile] WARN: compilation step failed: {e}")
+
+    # Enforce secure permissions on eval-cache and compiled artifacts (Spec 016 R7, N2)
+    try:
+        if eval_cache_dir.is_dir():
+            eval_cache_dir.chmod(0o700)
+            for f in eval_cache_dir.iterdir():
+                if f.is_file():
+                    f.chmod(0o600)
+        # Also ensure boot_artifact .zwc is 0600
+        boot_zwc = boot_artifact.with_suffix(".zwc")
+        if boot_zwc.is_file():
+            boot_zwc.chmod(0o600)
+        if boot_artifact.is_file():
+            boot_artifact.chmod(0o600)
+    except Exception as e:
+        print(f"[permissions] WARN: setting eval-cache permissions failed: {e}")
 
     # Section-4 rule: everything compiled. Fail build on missing/stale .zwc.
     try:

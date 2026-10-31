@@ -474,6 +474,53 @@ def _check_legacy_config() -> tuple[str, str, str | None]:
     return "info", "no legacy config files (clean)", None
 
 
+def _check_ghost_cache_perms() -> tuple[str, str, str | None]:
+    """Verify ghost cache file is 600 and dir is 700 (spec 016 R5-R6)."""
+    import stat
+    cache_file = Path.home() / ".cache" / "ziro" / "ghost" / "history-cache"
+    cache_dir = cache_file.parent
+    if not cache_dir.exists():
+        return "ok", "ghost cache directory not yet created (clean)", None
+
+    dir_mode = stat.S_IMODE(cache_dir.stat().st_mode)
+    if dir_mode != 0o700:
+        return "error", f"ghost cache dir perms {oct(dir_mode)} (expected 0700)", "run `chmod 700 ~/.cache/ziro/ghost`"
+
+    if not cache_file.exists():
+        return "ok", "ghost cache dir 700 (cache file not yet created)", None
+
+    file_mode = stat.S_IMODE(cache_file.stat().st_mode)
+    if file_mode != 0o600:
+        return "error", f"ghost cache file perms {oct(file_mode)} (expected 0600)", "run `chmod 600 ~/.cache/ziro/ghost/history-cache`"
+
+    return "ok", "ghost cache file 600, directory 700", None
+
+
+def _check_eval_cache_perms() -> tuple[str, str, str | None]:
+    """Verify eval-cache .zwc files are 600 and dir is 700 (spec 016 R7)."""
+    import stat
+    paths = get_paths()
+    eval_cache = paths["cache"] / "eval-cache"
+    if not eval_cache.exists():
+        return "info", "no eval-cache directory yet", None
+
+    dir_mode = stat.S_IMODE(eval_cache.stat().st_mode)
+    if dir_mode != 0o700:
+        return "error", f"eval-cache dir perms {oct(dir_mode)} (expected 0700)", "run `ziro sync`"
+
+    bad_files = []
+    zwc_files = list(eval_cache.glob("*.zwc"))
+    for zwc in zwc_files:
+        mode = stat.S_IMODE(zwc.stat().st_mode)
+        if mode != 0o600:
+            bad_files.append(f"{zwc.name} ({oct(mode)})")
+
+    if bad_files:
+        return "error", f"{len(bad_files)} .zwc file(s) not 0600: {', '.join(bad_files[:2])}", "run `ziro sync`"
+
+    return "ok", f"eval-cache dir 700, {len(zwc_files)} .zwc file(s) 600", None
+
+
 # Compatibility aliases for prior interfaces
 _check_python = _check_python_version
 _check_ziro_defer = _check_defer_loaded
@@ -490,6 +537,8 @@ def run_checks() -> dict[str, tuple[str, str, str | None]]:
         "boot shim ZIRO_HOME": _check_boot_shim_ziro_home(),
         "boot chain": _check_boot_chain(),
         "compiled (.zwc)": _check_compiled_artifacts(),
+        "eval-cache perms": _check_eval_cache_perms(),
+        "ghost cache perms": _check_ghost_cache_perms(),
         "runtime commands": _check_runtime_commands(),
         "tool paths": _check_tool_paths(),
         "tool reasons": _check_tool_reasons(),
@@ -658,7 +707,9 @@ def cmd_doctor(argv: list[str]) -> int:
     rep_byte.start_section("Compiled Artifacts (.zwc)")
     rep_byte.from_tuple(_check_compiled_artifacts())
 
-    rep_byte.start_section("Eval Caches")
+    rep_byte.start_section("Eval Caches & Permissions")
+    rep_byte.from_tuple(_check_eval_cache_perms())
+    rep_byte.from_tuple(_check_ghost_cache_perms())
     eval_cache_dir = paths["cache"] / "eval-cache"
     for cache_name in ("starship.zsh", "zcolors.zsh", "zoxide.zsh", "fzf.zsh"):
         cp = eval_cache_dir / cache_name

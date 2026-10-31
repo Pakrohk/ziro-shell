@@ -13,6 +13,26 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.3] — 2026-10-31
+
+### Security
+- **Ghost history cache filter**: `ghost_history_is_sensitive()` filters 10 secret patterns (AWS keys, GitHub/OpenAI/Slack tokens, Bearer/Basic auth headers, MySQL passwords, passphrases, SSH private key headers) before writing to `~/.cache/ziro/ghost/history-cache`. Space-prefixed, >500-char, and 40+ alphanumeric lines are also skipped (spec 016 R1-R4)
+- **Cache permissions**: ghost cache file is 600, dir is 700 (spec 016 R5-R6). eval-cache .zwc files are 600, dir is 700 (spec 016 R7-R8). Applied at install, sync, and plugin-add
+- **Escape hatch hardening**: `ZIRO_ALLOW_TEST_HOME=1` now only honored when `PYTEST_CURRENT_TEST` is set (spec 016 R9). Prevents accidental production bypass of ZIRO_HOME validation
+
+### Added
+- 2 new doctor checks: ghost cache perms, eval-cache perms (25 → 27)
+- tests/test_ghost_filter.py (11 tests)
+- tests/test_zwc_perms.py (3 tests)
+- tests/test_escape_hatch_hardening.py (3 tests)
+
+### Dependencies
+- Requires ziro-ghost v1.0.5 (filter + permissions in source)
+
+**Spec**: 016-ghost-filter
+**Tests**: 497 → 514+
+**Rollback**: git revert to v1.2.2 + `ziro update --checkout v1.0.4` for ghost
+
 ## [v1.2.2] — 2026-10-31
 
 ### Added
