@@ -36,8 +36,6 @@ jobs:
       - name: Run unit tests
         env:
           PYTHONPATH: .
-          ZIRO_SKIP_VENV_BOOTSTRAP: '1'
-          ZIRO_NONINTERACTIVE: '1'
         run: python -m pytest tests/ -m unit -v --tb=short
 
   integration:
@@ -49,10 +47,11 @@ jobs:
         with:
           python-version: '3.12'
           cache: pip
-      - name: Install zsh and dependencies
+      - name: Install dependencies (zsh, rsync, xclip, zoxide, starship)
         run: |
           sudo apt-get update
-          sudo apt-get install -y zsh rsync
+          sudo apt-get install -y zsh rsync xclip zoxide
+          curl -sS https://starship.rs/install.sh | sh -s -- -y
       - uses: astral-sh/setup-uv@v3
       - run: uv pip install --system pytest cyclopts
       - name: Setup simulated environment and seed sync
@@ -116,9 +115,6 @@ jobs:
           PYTHONPATH: .
           HOME: /tmp/ziro-ci-home
           ZIRO_HOME: ${{ github.workspace }}
-          ZIRO_CACHE: /tmp/ziro-ci-home/.cache/ziro
-          ZIRO_CONFIG: /tmp/ziro-ci-home/.config/ziro
-          ZIRO_DATA: /tmp/ziro-ci-home/.local/share/ziro
           ZIRO_SKIP_VENV_BOOTSTRAP: '1'
           ZIRO_NONINTERACTIVE: '1'
           ZIRO_SKIP_VENDOR_CLONE: '1'
