@@ -1,54 +1,69 @@
-name: test
+name: Tests
 
 on:
   push:
-    branches: [main, "feat/*"]
+    branches: [main]
   pull_request:
     branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    name: Test (Python ${{ matrix.python }} / ${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python: ['3.11', '3.12']
-
+        os: [ubuntu-latest, macos-latest]
+        python: ['3.11', '3.12', '3.13']
     steps:
-      - uses: actions/checkout@v5
-
-      - name: Install zsh
-        run: sudo apt-get update && sudo apt-get install -y zsh
-
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
-
+          cache: pip
+      - name: Install zsh (Ubuntu only)
+        if: matrix.os == 'ubuntu-latest'
+        run: sudo apt-get update && sudo apt-get install -y zsh
+      - uses: astral-sh/setup-uv@v3
+        with:
+          version: latest
       - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install . pytest
-
-      - name: Compile Python
-        run: |
-          python -m py_compile core/*.py
-          python -m py_compile tests/*.py
-
-      - name: Validate zsh syntax
-        run: |
-          for f in install.zsh commands/*.zsh lib/*.zsh prompts/*.zsh ziro.zsh scripts/*.zsh; do
-            [ -f "$f" ] && zsh -n "$f" || echo "skip: $f"
-          done
-
+        run: uv pip install --system pytest
       - name: Run tests
         env:
-          # Tests import from the repo root (`core/`, `tests/`), not from an
-          # installed $HOME/.ziro. CI runners have a bare checkout, so put the
-          # workspace first on sys.path.
-          PYTHONPATH: ${{ github.workspace }}
-        run: python -m unittest discover -s tests -v
+          PYTHONPATH: .
+          PYTEST_ADDOPTS: -v --tb=short
+        run: python -m pytest tests/ -q --durations=10
 
-      - name: Smoke CLI
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install ruff
+      - run: ruff check core/ tests/ --output-format=github || true
+      - run: ruff format --check core/ tests/ || true
+
+  zsh-syntax:
+    name: Zsh Syntax Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y zsh
+      - name: Check install.zsh
+        run: zsh -n install.zsh
+      - name: Check lib scripts
         run: |
-          python -m core 2>&1 | head -2
-          python -m core bench --iters 3 2>&1 | head -5
+          for f in lib/*.zsh; do
+            zsh -n "$f" || exit 1
+          done

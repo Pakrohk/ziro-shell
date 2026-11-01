@@ -982,7 +982,10 @@ def _validate_ziro_home(home_path: Path) -> None:
 
 
 GHOST_SECRET_PATTERNS = [
-    re.compile(r"(--password|--passwd|--token|--secret|--api[-_]key|--auth|--passphrase)="),
+    re.compile(
+        r"(--password|--passwd|--token|--secret\S*|--api[-_]key|--auth\S*|--passphrase)([= ]|\b)",
+        re.IGNORECASE,
+    ),
     re.compile(r"authorization:\s*(bearer|basic)", re.IGNORECASE),
     re.compile(r"-p\S+"),
     re.compile(r"(passphrase|passout|passin|credential)", re.IGNORECASE),
@@ -992,6 +995,7 @@ GHOST_SECRET_PATTERNS = [
     re.compile(r"xox[bp]-[A-Za-z0-9-]{10,}"),
     re.compile(r"BEGIN.*(private key|rsa private key|openssh private key)", re.IGNORECASE),
     re.compile(r"(id_rsa|id_ed25519|id_ecdsa|id_dsa)"),
+    re.compile(r"://\S+:[^/@\s]+@\S+"),
 ]
 
 

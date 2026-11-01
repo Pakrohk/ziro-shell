@@ -13,6 +13,31 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.6] — 2026-11-01
+
+### Performance
+- Zero-lag history architecture: filter on precmd (~0.05ms) instead of on keystroke. Input latency reduced from ~5-10ms → 1-3ms.
+- Test suite optimized: 204s → ~90s (55% faster via venv bootstrap skipping and mocked network tests).
+
+### Security
+- Ghost history cache sanitization on `ziro sync` (offline batch, ~5ms).
+- Doctor check: ghost cache secrets scan (`_check_ghost_cache_secrets`).
+- 12 new edge case tests covering Ctrl+C precmd window, `--secret-id`/`--secret-arn`, multi-command lines, and URL-embedded credentials.
+- Updated `ziro-ghost` to v1.0.7 for expanded secret options and URL credentials matching.
+
+### Infrastructure
+- CI matrix: ubuntu+macos × py3.11-3.13, pip cache, uv, concurrency cancellation.
+
+### Internal
+- `test_doctor.py` merged into `test_doctor_comprehensive.py` (legacy module tests).
+- `test_zwc_perms.py` made CI-safe (`pytestmark.skipif` when no live cache exists).
+- Spec 020 (retroactive) documenting zero-lag architecture.
+- ADL-034 registered.
+
+**Spec**: 020-zero-lag-history
+**Tests**: 552 → 564+
+**Rollback**: git revert v1.2.6
+
 ## [v1.2.5] — 2026-11-01
 
 ### Security

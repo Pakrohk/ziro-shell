@@ -157,7 +157,15 @@ exit 0
         from core import install_cli
 
         with tempfile.TemporaryDirectory() as tmp_cfg, tempfile.TemporaryDirectory() as tmp_data:
-            with mock.patch.dict("os.environ", {"ZIRO_CONFIG": tmp_cfg, "ZIRO_DATA": tmp_data}):
+            with mock.patch.dict(
+                "os.environ",
+                {
+                    "ZIRO_CONFIG": tmp_cfg,
+                    "ZIRO_DATA": tmp_data,
+                    "ZIRO_SKIP_VENV_BOOTSTRAP": "1",
+                    "ZIRO_SKIP_VENDOR_CLONE": "1",
+                },
+            ):
                 buf = io.StringIO()
                 with redirect_stdout(buf):
                     rc = install_cli.main(["--default"])

@@ -29,9 +29,13 @@ class TestInstallGeneratesPlugins(unittest.TestCase):
         self.old_cfg = os.environ.get("ZIRO_CONFIG")
         self.old_data = os.environ.get("ZIRO_DATA")
         self.old_home = os.environ.get("ZIRO_HOME")
+        self.old_skip_venv = os.environ.get("ZIRO_SKIP_VENV_BOOTSTRAP")
+        self.old_skip_vendor = os.environ.get("ZIRO_SKIP_VENDOR_CLONE")
         os.environ["ZIRO_CONFIG"] = str(self.config_dir)
         os.environ["ZIRO_DATA"] = str(self.data_dir)
         os.environ["ZIRO_HOME"] = str(REPO_ROOT)
+        os.environ["ZIRO_SKIP_VENV_BOOTSTRAP"] = "1"
+        os.environ["ZIRO_SKIP_VENDOR_CLONE"] = "1"
 
     def tearDown(self) -> None:
         if self.old_cfg is not None:
@@ -48,6 +52,16 @@ class TestInstallGeneratesPlugins(unittest.TestCase):
             os.environ["ZIRO_HOME"] = self.old_home
         else:
             os.environ.pop("ZIRO_HOME", None)
+
+        if self.old_skip_venv is not None:
+            os.environ["ZIRO_SKIP_VENV_BOOTSTRAP"] = self.old_skip_venv
+        else:
+            os.environ.pop("ZIRO_SKIP_VENV_BOOTSTRAP", None)
+
+        if self.old_skip_vendor is not None:
+            os.environ["ZIRO_SKIP_VENDOR_CLONE"] = self.old_skip_vendor
+        else:
+            os.environ.pop("ZIRO_SKIP_VENDOR_CLONE", None)
 
         self.temp_dir.cleanup()
 

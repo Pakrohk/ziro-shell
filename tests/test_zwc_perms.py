@@ -2,6 +2,11 @@
 
 Validates that compile_eager_artifacts and write_boot_shim enforce 0600 on
 eval-cache files and 0700 on eval-cache directory.
+
+Live integration test — requires real ~/.cache/ziro/eval-cache with compiled .zwc files.
+Complement to tests/test_universal_chmod.py which is hermetic (mock-based).
+This file guards against disk-level permission regressions that hermetic tests miss.
+In CI (fresh checkout, no ~/.cache/ziro), the pytestmark skipif below skips all tests.
 """
 
 from __future__ import annotations
@@ -12,8 +17,20 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
 from core.doctor_cli import _check_eval_cache_perms, _check_ghost_cache_perms
 from core.paths import get_paths
+
+_LIVE_CACHE = Path(os.environ.get("ZIRO_CACHE", Path.home() / ".cache" / "ziro"))
+_EVAL_CACHE = _LIVE_CACHE / "eval-cache"
+
+pytestmark = pytest.mark.skipif(
+    not _EVAL_CACHE.exists() or not list(_EVAL_CACHE.glob("*.zwc")),
+    reason="test_zwc_perms.py requires live ziro cache (run ziro sync first). "
+    "Skipped in CI where no ziro install exists.",
+)
+
 
 
 class TestZwcPerms(unittest.TestCase):

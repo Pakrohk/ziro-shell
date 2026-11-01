@@ -10,6 +10,7 @@
 
 # ─── OpenCode & AI tooling (local-only) ───
 .opencode/
+.serena/
 .claude/
 .cursor/
 .aider*

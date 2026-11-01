@@ -25,10 +25,14 @@ def setup_test_env(monkeypatch):
 
 def test_empty_argv_regression():
     """Verify empty argv does not fall back to sys.argv ('update')."""
+    from unittest.mock import patch, MagicMock
+
     buf_err = io.StringIO()
-    with redirect_stderr(buf_err):
-        # Even if working tree is dirty, return code must be 0 or 1 (guard hit), NOT 2 ('unrecognized option update')
-        rc = update_cli.main([])
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value = MagicMock(returncode=0, stdout="", stderr="")
+        with redirect_stderr(buf_err):
+            # Even if working tree is dirty, return code must be 0 or 1 (guard hit), NOT 2 ('unrecognized option update')
+            rc = update_cli.main([])
     err = buf_err.getvalue()
     assert "unrecognized option" not in err
     assert rc in (0, 1)

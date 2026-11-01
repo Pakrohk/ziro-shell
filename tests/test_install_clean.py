@@ -29,12 +29,14 @@ class TestInstallClean(unittest.TestCase):
         self._old_cfg = os.environ.get("ZIRO_CONFIG")
         self._old_wipe = os.environ.get("ZIRO_ALLOW_TEST_WIPE")
         self._old_skip_vendor = os.environ.get("ZIRO_SKIP_VENDOR_CLONE")
+        self._old_skip_venv = os.environ.get("ZIRO_SKIP_VENV_BOOTSTRAP")
 
         os.environ["HOME"] = str(self.zsh_dir)
         os.environ["ZDOTDIR"] = str(self.zsh_dir)
         os.environ["ZIRO_CONFIG"] = str(self.cfg_dir)
         os.environ["ZIRO_ALLOW_TEST_WIPE"] = "1"
         os.environ["ZIRO_SKIP_VENDOR_CLONE"] = "1"
+        os.environ["ZIRO_SKIP_VENV_BOOTSTRAP"] = "1"
 
     def tearDown(self):
         if self._old_home is not None:
@@ -61,6 +63,11 @@ class TestInstallClean(unittest.TestCase):
             os.environ["ZIRO_SKIP_VENDOR_CLONE"] = self._old_skip_vendor
         else:
             os.environ.pop("ZIRO_SKIP_VENDOR_CLONE", None)
+
+        if self._old_skip_venv is not None:
+            os.environ["ZIRO_SKIP_VENV_BOOTSTRAP"] = self._old_skip_venv
+        else:
+            os.environ.pop("ZIRO_SKIP_VENV_BOOTSTRAP", None)
 
         self.tmp.cleanup()
 
