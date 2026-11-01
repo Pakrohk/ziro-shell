@@ -72,6 +72,10 @@ jobs:
           touch $HOME/.local/share/ziro/vendor/zsh-users/zsh-completions/zsh-completions.plugin.zsh
           touch $HOME/.local/share/ziro/vendor/ohmyzsh/ohmyzsh/plugins/git/git.plugin.zsh
 
+          # Pre-generate eval-cache files for installed binaries
+          zoxide init zsh > $HOME/.cache/ziro/eval-cache/zoxide.zsh 2>/dev/null || true
+          starship init zsh --print-full-init > $HOME/.cache/ziro/eval-cache/starship.zsh 2>/dev/null || true
+
           # Stub eval-cache files for tools not pre-installed
           for f in zcolors.zsh fzf.zsh; do
             echo "# stub" > $HOME/.cache/ziro/eval-cache/$f
