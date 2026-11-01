@@ -21,6 +21,9 @@ from core.help_cli import (
     suggest_similar,
 )
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestHelpCli(unittest.TestCase):
     def test_cmd_help_empty_prints_all(self) -> None:

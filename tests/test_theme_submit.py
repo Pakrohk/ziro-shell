@@ -17,6 +17,9 @@ import pytest
 from core import theme_submit_cli
 from core.theme_submit_cli import diff_dicts, validate_theme_name
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 @pytest.fixture
 def mock_starship_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):

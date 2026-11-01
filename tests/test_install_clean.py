@@ -14,6 +14,8 @@ from core.install_cli import (
     cmd_install,
 )
 
+import pytest
+
 
 class TestInstallClean(unittest.TestCase):
     def setUp(self):
@@ -71,10 +73,12 @@ class TestInstallClean(unittest.TestCase):
 
         self.tmp.cleanup()
 
+    @pytest.mark.unit
     def test_detect_empty_home(self):
         detected = detect_existing_zsh_configs(self.zsh_dir)
         self.assertEqual(detected, [])
 
+    @pytest.mark.unit
     def test_is_ziro_only_zshrc(self):
         zshrc = self.zsh_dir / ".zshrc"
 
@@ -99,6 +103,7 @@ class TestInstallClean(unittest.TestCase):
         )
         self.assertFalse(_is_ziro_only_zshrc(zshrc))
 
+    @pytest.mark.unit
     def test_detect_existing_configs(self):
         (self.zsh_dir / ".zshrc").write_text("alias ll='ls -la'\n")
         (self.zsh_dir / ".zshenv").write_text("export FOO=BAR\n")
@@ -114,6 +119,7 @@ class TestInstallClean(unittest.TestCase):
         self.assertIn(".oh-my-zsh", detected_names)
         self.assertIn(".zcompdump-test", detected_names)
 
+    @pytest.mark.unit
     def test_backup_and_clean_zsh_configs(self):
         zshrc = self.zsh_dir / ".zshrc"
         zshrc.write_text("alias g=git\n")
@@ -134,6 +140,7 @@ class TestInstallClean(unittest.TestCase):
         self.assertFalse(zshrc.exists())
         self.assertFalse(omz.exists())
 
+    @pytest.mark.integration
     def test_cmd_install_clean_flag(self):
         zshrc = self.zsh_dir / ".zshrc"
         zshrc.write_text("alias old_alias=true\n")
@@ -152,6 +159,7 @@ class TestInstallClean(unittest.TestCase):
         self.assertTrue((backups[0] / ".zshrc").is_file())
         self.assertTrue((backups[0] / ".oh-my-zsh").is_dir())
 
+    @pytest.mark.integration
     def test_cmd_install_interactive_clean_yes(self):
         zshrc = self.zsh_dir / ".zshrc"
         zshrc.write_text("alias old_stuff=true\n")
@@ -165,6 +173,7 @@ class TestInstallClean(unittest.TestCase):
         self.assertEqual(len(backups), 1)
         self.assertTrue((backups[0] / ".zshrc").is_file())
 
+    @pytest.mark.integration
     def test_cmd_install_interactive_clean_no(self):
         zshrc = self.zsh_dir / ".zshrc"
         zshrc.write_text("alias old_stuff=true\n")
@@ -179,6 +188,7 @@ class TestInstallClean(unittest.TestCase):
         self.assertTrue(zshrc.is_file())
         self.assertIn("old_stuff", zshrc.read_text())
 
+    @pytest.mark.integration
     def test_cmd_install_env_clean(self):
         zshrc = self.zsh_dir / ".zshrc"
         zshrc.write_text("alias old_stuff=true\n")

@@ -10,6 +10,9 @@ import unittest
 
 from core.help_cli import HELP_REGISTRY, get_entry, render_entry
 
+import pytest
+pytestmark = pytest.mark.unit
+
 TOP_LEVEL_COMMANDS = [
     "install",
     "plugin",

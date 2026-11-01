@@ -29,11 +29,13 @@ def sample_manifest() -> dict:
     return tomllib.loads(content)
 
 
+@pytest.mark.unit
 def test_validate_manifest_valid(sample_manifest):
     errors = validate_manifest(sample_manifest)
     assert errors == []
 
 
+@pytest.mark.unit
 def test_validate_manifest_missing_section():
     data = {"meta": {}, "tool": []}
     errors = validate_manifest(data)
@@ -41,18 +43,21 @@ def test_validate_manifest_missing_section():
     assert any("defer" in e for e in errors)
 
 
+@pytest.mark.unit
 def test_validate_manifest_invalid_timing(sample_manifest):
     sample_manifest["tool"][0]["timing"] = "invalid_timing"
     errors = validate_manifest(sample_manifest)
     assert any("invalid timing" in e for e in errors)
 
 
+@pytest.mark.unit
 def test_validate_manifest_duplicate_name(sample_manifest):
     sample_manifest["tool"].append(dict(sample_manifest["tool"][0]))
     errors = validate_manifest(sample_manifest)
     assert any("Duplicate tool name" in e for e in errors)
 
 
+@pytest.mark.unit
 def test_validate_manifest_conflicts(sample_manifest):
     # Add conflicting tools both enabled
     sample_manifest["tool"].append({
@@ -67,6 +72,7 @@ def test_validate_manifest_conflicts(sample_manifest):
     assert any("conflicts with active tool" in e for e in errors)
 
 
+@pytest.mark.unit
 def test_apply_overrides_user_section(sample_manifest):
     tools = sample_manifest["tool"]
     user_sec = {
@@ -85,6 +91,7 @@ def test_apply_overrides_user_section(sample_manifest):
     assert fzf_tool["order"] == 5
 
 
+@pytest.mark.unit
 def test_apply_overrides_external_override(tmp_path, sample_manifest):
     tools = sample_manifest["tool"]
     user_sec = {
@@ -105,6 +112,7 @@ timing = "eager"
     assert fzf_tool["timing"] == "eager"
 
 
+@pytest.mark.unit
 def test_render_sections(sample_manifest):
     tools = sample_manifest["tool"]
     eager_out = render_eager_section(tools)
@@ -122,6 +130,7 @@ def test_render_sections(sample_manifest):
     assert "_ziro_proxy_zoxide" in ondemand_out
 
 
+@pytest.mark.integration
 def test_build_end_to_end(tmp_path, monkeypatch):
     home_dir = Path("/home/ali/.ziro")
     config_dir = tmp_path / "config" / "ziro"
@@ -149,6 +158,7 @@ def test_build_end_to_end(tmp_path, monkeypatch):
     assert counts["deferred"] > 0
 
 
+@pytest.mark.unit
 def test_compile_eager_artifacts_returns_dict(tmp_path):
     """compile_eager_artifacts should return dict with compiled/skipped/errors."""
     from core.build import compile_eager_artifacts
@@ -160,6 +170,7 @@ def test_compile_eager_artifacts_returns_dict(tmp_path):
     assert "errors" in result
 
 
+@pytest.mark.unit
 def test_compile_eager_artifacts_skips_missing(tmp_path):
     """Missing cache_path should be added to skipped, not error."""
     from core.build import compile_eager_artifacts
@@ -172,6 +183,7 @@ def test_compile_eager_artifacts_skips_missing(tmp_path):
     assert len(result["errors"]) == 0
 
 
+@pytest.mark.unit
 def test_compile_eager_artifacts_ignores_non_eager(tmp_path):
     """Non-eager tools should not be touched."""
     from core.build import compile_eager_artifacts
@@ -185,6 +197,7 @@ def test_compile_eager_artifacts_ignores_non_eager(tmp_path):
     assert len(result["errors"]) == 0
 
 
+@pytest.mark.unit
 def test_compile_eager_artifacts_compiles_real_file(tmp_path):
     """A real .zsh file should compile to .zwc."""
     from core.build import compile_eager_artifacts
@@ -199,6 +212,7 @@ def test_compile_eager_artifacts_compiles_real_file(tmp_path):
     assert (tmp_path / "test.zsh.zwc").is_file()
 
 
+@pytest.mark.unit
 def test_validate_zwc_freshness_passes_when_fresh(tmp_path):
     """All .zwc newer than source -> no error."""
     from core.build import _validate_zwc_freshness
@@ -220,6 +234,7 @@ def test_validate_zwc_freshness_passes_when_fresh(tmp_path):
     assert len(result["stale"]) == 0
 
 
+@pytest.mark.unit
 def test_validate_zwc_freshness_fails_when_missing(tmp_path):
     """Missing .zwc -> ValueError in strict mode."""
     from core.build import _validate_zwc_freshness
@@ -234,6 +249,7 @@ def test_validate_zwc_freshness_fails_when_missing(tmp_path):
         _validate_zwc_freshness(manifest, strict=True)
 
 
+@pytest.mark.unit
 def test_validate_zwc_freshness_fails_when_stale(tmp_path):
     """Stale .zwc (older than source) -> ValueError in strict mode."""
     from core.build import _validate_zwc_freshness
@@ -254,6 +270,7 @@ def test_validate_zwc_freshness_fails_when_stale(tmp_path):
         _validate_zwc_freshness(manifest, strict=True)
 
 
+@pytest.mark.unit
 def test_validate_zwc_freshness_non_strict_returns_dict(tmp_path):
     """Non-strict mode returns dict instead of raising."""
     from core.build import _validate_zwc_freshness
@@ -268,6 +285,7 @@ def test_validate_zwc_freshness_non_strict_returns_dict(tmp_path):
     assert len(result["ok"]) == 0
 
 
+@pytest.mark.unit
 def test_validate_zwc_ignores_non_eager(tmp_path):
     """Deferred/on-demand tools not checked."""
     from core.build import _validate_zwc_freshness
@@ -280,6 +298,7 @@ def test_validate_zwc_ignores_non_eager(tmp_path):
     assert len(result["stale"]) == 0
 
 
+@pytest.mark.unit
 def test_render_deferred_section_syntax_highlighting_loads_last():
     """Syntax highlighting plugins must sort after any other deferred plugins."""
     tools = [
@@ -296,6 +315,7 @@ def test_render_deferred_section_syntax_highlighting_loads_last():
     assert idx_custom < idx_fsh
 
 
+@pytest.mark.unit
 def test_render_ondemand_section_refreshes_highlight_widgets():
     """On-demand key loader functions must invoke _zsh_highlight_bind_widgets to prevent ZLE desync."""
     tools = [

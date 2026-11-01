@@ -22,8 +22,11 @@ from core.completion_cli import (
     get_completion_data,
 )
 
+import pytest
+
 
 class TestCompletion(unittest.TestCase):
+    @pytest.mark.unit
     def test_get_completion_data_structure(self) -> None:
         data = get_completion_data()
         self.assertIn("commands", data)
@@ -38,17 +41,20 @@ class TestCompletion(unittest.TestCase):
         for ec in expected_cmds:
             self.assertIn(ec, cmd_names, f"Expected {ec} in completion commands")
 
+    @pytest.mark.unit
     def test_generate_zsh_completion_has_compdef_and_ziro_func(self) -> None:
         script = generate_zsh_completion()
         self.assertTrue(script.startswith("#compdef ziro"))
         self.assertIn("_ziro() {", script)
         self.assertIn("compdef _ziro ziro", script)
 
+    @pytest.mark.unit
     def test_completion_covers_all_top_level_commands(self) -> None:
         script = generate_zsh_completion()
         for cmd in ("install", "plugin", "tag", "suggest", "theme", "prompt", "config", "doctor", "bench", "completion", "update", "help"):
             self.assertIn(f"'{cmd}:", script, f"Missing '{cmd}:' in generated completion script")
 
+    @pytest.mark.unit
     def test_completion_covers_subcommands(self) -> None:
         script = generate_zsh_completion()
         self.assertIn("_ziro_plugin() {", script)
@@ -66,6 +72,7 @@ class TestCompletion(unittest.TestCase):
         for sub in ("list", "show", "add", "remove", "reset", "define"):
             self.assertIn(f"'{sub}:", script)
 
+    @pytest.mark.unit
     def test_completion_covers_flags(self) -> None:
         script = generate_zsh_completion()
         self.assertIn("--default", script)
@@ -75,6 +82,7 @@ class TestCompletion(unittest.TestCase):
         self.assertIn("--verbose", script)
         self.assertIn("--iters", script)
 
+    @pytest.mark.unit
     def test_cmd_completion_default_zsh(self) -> None:
         buf = io.StringIO()
         with redirect_stdout(buf):
@@ -84,6 +92,7 @@ class TestCompletion(unittest.TestCase):
         self.assertIn("#compdef ziro", out)
         self.assertIn("_ziro()", out)
 
+    @pytest.mark.unit
     def test_cmd_completion_unsupported_shell(self) -> None:
         buf = io.StringIO()
         err_buf = io.StringIO()
@@ -98,6 +107,7 @@ class TestCompletion(unittest.TestCase):
         self.assertEqual(rc, 1)
         self.assertIn("unsupported shell 'bash'", err_buf.getvalue())
 
+    @pytest.mark.unit
     def test_completion_script_zsh_syntax(self) -> None:
         script = generate_zsh_completion()
         run = subprocess.run(
@@ -108,6 +118,7 @@ class TestCompletion(unittest.TestCase):
         )
         self.assertEqual(run.returncode, 0, f"zsh -n syntax error: {run.stderr}")
 
+    @pytest.mark.unit
     def test_completion_script_sourceable(self) -> None:
         script = generate_zsh_completion()
         test_zsh = f"""
@@ -128,6 +139,7 @@ exit 0
         )
         self.assertEqual(run.returncode, 0, f"Failed to source completion script: {run.stderr}")
 
+    @pytest.mark.unit
     def test_completion_covers_positional_arguments(self) -> None:
         script = generate_zsh_completion()
         self.assertIn("1:theme:__ziro_themes", script)
@@ -137,6 +149,7 @@ exit 0
         self.assertIn("1:file:__ziro_config_files", script)
         self.assertIn("1:key:__ziro_config_keys", script)
 
+    @pytest.mark.unit
     def test_cmd_completion_rebuild(self) -> None:
         import tempfile
         from unittest import mock
@@ -151,6 +164,7 @@ exit 0
                 comp_file = Path(tmp_data) / "completions" / "_ziro"
                 self.assertTrue(comp_file.is_file())
 
+    @pytest.mark.integration
     def test_install_writes_completion_file(self) -> None:
         import tempfile
         from unittest import mock

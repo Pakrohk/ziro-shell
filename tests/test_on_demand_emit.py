@@ -4,6 +4,9 @@ from pathlib import Path
 import pytest
 from core.generator import emit_on_demand_key, emit_on_demand_command, emit_on_demand_function
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 def load_tools():
     d = tomllib.loads(Path('core/tools_factory.toml').read_text())

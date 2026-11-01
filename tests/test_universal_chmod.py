@@ -20,6 +20,9 @@ import pytest
 from core.paths import _ensure_secure_perms, get_paths
 from core.doctor_cli import _check_boot_chain, _check_legacy_ghost_cache
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 def test_ensure_secure_perms_dir(tmp_path: Path) -> None:
     """Helper enforces 0700 on directories (R1)."""

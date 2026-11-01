@@ -11,6 +11,9 @@ sys.path.insert(0, str(Path.home() / ".ziro"))
 
 from core import prompt_cli
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestPromptCli(unittest.TestCase):
     def setUp(self):

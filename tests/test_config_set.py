@@ -13,6 +13,9 @@ from unittest import mock
 
 from core import config_cli
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestConfigSet(unittest.TestCase):
     def test_config_set_prompt_default_updates_defaults_toml(self) -> None:

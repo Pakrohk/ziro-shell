@@ -8,6 +8,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
@@ -31,6 +33,7 @@ def _isolated_env(fake_home: Path) -> dict[str, str]:
 
 
 class TestInstallZsh(unittest.TestCase):
+    @pytest.mark.unit
     def test_list_commands_flag(self):
         """Verify python -m core --list-commands outputs expected subcommands."""
         proc = subprocess.run(
@@ -47,6 +50,7 @@ class TestInstallZsh(unittest.TestCase):
         self.assertIn("analyze", cmds)
         self.assertIn("plugin", cmds)
 
+    @pytest.mark.unit
     def test_install_zsh_syntax(self):
         """Validate install.zsh syntax with zsh -n."""
         proc = subprocess.run(
@@ -56,6 +60,7 @@ class TestInstallZsh(unittest.TestCase):
         )
         self.assertEqual(proc.returncode, 0, f"zsh -n failed: {proc.stderr}")
 
+    @pytest.mark.integration
     def test_install_from_checkout_hermetic(self):
         """Test running install.zsh from an existing checkout in an isolated HOME."""
         with tempfile.TemporaryDirectory() as td:
@@ -83,6 +88,7 @@ class TestInstallZsh(unittest.TestCase):
             self.assertIn("export ZIRO_CONFIG=", boot_content)
             self.assertIn("export ZIRO_CACHE=", boot_content)
 
+    @pytest.mark.integration
     def test_activation_idempotency_and_backup(self):
         """Verify that multiple install runs append only once to .zshrc and create backup."""
         with tempfile.TemporaryDirectory() as td:
@@ -122,6 +128,7 @@ class TestInstallZsh(unittest.TestCase):
             count = sum(1 for line in content2.splitlines() if "boot.zsh" in line)
             self.assertEqual(count, 1, f"Expected exactly 1 boot.zsh reference, got {count}")
 
+    @pytest.mark.integration
     def test_unrelated_repo_rejection(self):
         """Test that an unrelated repo in target directory is rejected (Exit 14)."""
         with tempfile.TemporaryDirectory() as td:
@@ -142,6 +149,7 @@ class TestInstallZsh(unittest.TestCase):
             )
             self.assertEqual(proc.returncode, 14, f"Expected exit 14, got {proc.returncode}")
 
+    @pytest.mark.unit
     def test_truncated_stream_safety(self):
         """Verify that a truncated stream terminates with syntax error and runs nothing."""
         script_content = (REPO_ROOT / "install.zsh").read_text(encoding="utf-8")
@@ -155,6 +163,7 @@ class TestInstallZsh(unittest.TestCase):
         )
         self.assertNotEqual(proc.returncode, 0)
 
+    @pytest.mark.integration
     def test_piped_install_from_checkout(self):
         """Test cat install.zsh | zsh with an existing verified checkout."""
         with tempfile.TemporaryDirectory() as td:
@@ -176,6 +185,7 @@ class TestInstallZsh(unittest.TestCase):
             self.assertEqual(proc.returncode, 0, f"Piped install failed: {proc.stderr}")
             self.assertTrue((fake_home / ".config" / "ziro" / "boot.zsh").is_file())
 
+    @pytest.mark.integration
     def test_fresh_shell_unset_ziro_home_loads_ziro(self):
         """REGRESSION: Fresh shell with ZIRO_HOME unset sources boot.zsh and ziro is available."""
         with tempfile.TemporaryDirectory() as td:

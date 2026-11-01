@@ -6,6 +6,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+pytestmark = pytest.mark.unit
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 ALIASES_FILE = REPO_ROOT / "lib" / "aliases.zsh"
 

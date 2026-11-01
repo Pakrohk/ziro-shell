@@ -4,6 +4,9 @@ from pathlib import Path
 import pytest
 from core.analyzer import _resolve_vendor_path
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 def test_resolver_emits_tilde_path(tmp_path, monkeypatch):
     """Resolver must return ~-based paths (not ${VAR}-based, not absolute)."""

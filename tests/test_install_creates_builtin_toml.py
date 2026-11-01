@@ -13,8 +13,11 @@ from unittest import mock
 from core import install_cli
 from core.tags import load_builtin_tags
 
+import pytest
+
 
 class TestInstallCreatesBuiltinToml(unittest.TestCase):
+    @pytest.mark.integration
     def test_install_default_creates_builtin_toml(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cfg = Path(tmp)
@@ -31,6 +34,7 @@ class TestInstallCreatesBuiltinToml(unittest.TestCase):
             self.assertIn("@eager", tags)
             self.assertIn("@compdef", tags)
 
+    @pytest.mark.integration
     def test_install_idempotent_does_not_overwrite_existing(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cfg = Path(tmp)
@@ -46,6 +50,7 @@ class TestInstallCreatesBuiltinToml(unittest.TestCase):
             # File should be unchanged
             self.assertEqual((tags_dir / "builtin.toml").read_text(), custom_content)
 
+    @pytest.mark.unit
     def test_installed_builtin_content_matches_spec_003(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             cfg = Path(tmp)

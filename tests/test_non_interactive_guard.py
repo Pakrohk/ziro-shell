@@ -11,10 +11,13 @@ import os
 import subprocess
 import unittest
 
+import pytest
+
 
 class TestNonInteractiveGuard(unittest.TestCase):
     """Test suite for non-interactive execution gating (AC1-AC7)."""
 
+    @pytest.mark.integration
     def test_ziro_version_works_in_non_interactive(self) -> None:
         """AC1: ziro --version executes cleanly in zsh -c."""
         res = subprocess.run(
@@ -26,6 +29,7 @@ class TestNonInteractiveGuard(unittest.TestCase):
         self.assertEqual(res.returncode, 0, f"stderr: {res.stderr}")
         self.assertIn("ziro-shell", res.stdout)
 
+    @pytest.mark.integration
     def test_ziro_doctor_works_in_non_interactive(self) -> None:
         """AC2: ziro doctor executes cleanly and returns healthy in zsh -c."""
         res = subprocess.run(
@@ -37,6 +41,7 @@ class TestNonInteractiveGuard(unittest.TestCase):
         self.assertEqual(res.returncode, 0, f"stdout: {res.stdout}\nstderr: {res.stderr}")
         self.assertIn("HEALTHY", res.stdout)
 
+    @pytest.mark.integration
     def test_non_interactive_startup_silent(self) -> None:
         """AC3: Sourcing ~/.zshrc in non-interactive produces zero output."""
         res = subprocess.run(
@@ -48,6 +53,7 @@ class TestNonInteractiveGuard(unittest.TestCase):
         self.assertEqual(res.stdout, "")
         self.assertEqual(res.stderr, "")
 
+    @pytest.mark.unit
     def test_starship_unset_in_non_interactive(self) -> None:
         """AC4: STARSHIP_SHELL is unset in non-interactive zsh."""
         env = os.environ.copy()
@@ -62,6 +68,7 @@ class TestNonInteractiveGuard(unittest.TestCase):
         self.assertEqual(res.returncode, 0)
         self.assertIn("STARSHIP_SHELL=unset", res.stdout)
 
+    @pytest.mark.unit
     def test_precmd_functions_empty_in_non_interactive(self) -> None:
         """AC5: precmd_functions is unset or has no prompt/defer hooks in non-interactive."""
         env = os.environ.copy()
@@ -79,6 +86,7 @@ class TestNonInteractiveGuard(unittest.TestCase):
         self.assertNotIn("_ziro_defer_core_dispatch_precmd", output)
         self.assertNotIn("_ziro_ghost_history_append", output)
 
+    @pytest.mark.integration
     def test_starship_set_in_interactive(self) -> None:
         """AC6: STARSHIP_SHELL is set in interactive shell (zsh -ic)."""
         res = subprocess.run(
@@ -90,6 +98,7 @@ class TestNonInteractiveGuard(unittest.TestCase):
         self.assertEqual(res.returncode, 0)
         self.assertIn("STARSHIP_SHELL=zsh", res.stdout)
 
+    @pytest.mark.integration
     def test_precmd_functions_populated_in_interactive(self) -> None:
         """AC7: Interactive shell retains all standard precmd hooks."""
         res = subprocess.run(

@@ -13,6 +13,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 from core.generator import generate_plugins_gen, default_output_path
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestDeclarativeAcceptance(unittest.TestCase):
     """Prove that adding tools requires zero Python code changes."""

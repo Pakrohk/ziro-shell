@@ -5,7 +5,10 @@ from core.analyzer import _resolve_vendor_path, analyze_tool
 from core.build import _filter_resolved, render_deferred_section
 from core.doctor_cli import _check_paths
 
+import pytest
 
+
+@pytest.mark.integration
 def test_resolve_vendor_path_existing():
     # zsh-users/zsh-completions is installed in ~/.local/share/ziro/vendor or ~/.ziro/vendor
     path, ok = _resolve_vendor_path("zsh-users/zsh-completions")
@@ -14,6 +17,7 @@ def test_resolve_vendor_path_existing():
     assert path.endswith(".plugin.zsh")
 
 
+@pytest.mark.integration
 def test_resolve_vendor_path_ziro_ghost():
     # Pakrohk/ziro-ghost has ghost.plugin.zsh
     path, ok = _resolve_vendor_path("Pakrohk/ziro-ghost")
@@ -22,6 +26,7 @@ def test_resolve_vendor_path_ziro_ghost():
     assert path.endswith("ghost.plugin.zsh")
 
 
+@pytest.mark.integration
 def test_resolve_vendor_path_subpath():
     # ohmyzsh/ohmyzsh with subpath plugins/git
     path, ok = _resolve_vendor_path("ohmyzsh/ohmyzsh", subpath="plugins/git")
@@ -29,18 +34,21 @@ def test_resolve_vendor_path_subpath():
     assert "git.plugin.zsh" in path
 
 
+@pytest.mark.integration
 def test_resolve_vendor_path_local_env_var():
     path, ok = _resolve_vendor_path("$ZIRO_HOME/lib/helpers.zsh")
     assert ok is True
     assert path == "~/.ziro/lib/helpers.zsh"
 
 
+@pytest.mark.unit
 def test_resolve_vendor_path_missing():
     path, ok = _resolve_vendor_path("nonexistent-owner/nonexistent-plugin-12345")
     assert ok is False
     assert path == ""
 
 
+@pytest.mark.integration
 def test_analyze_tool_resolves_ghost():
     tool = {
         "name": "ziro-ghost",
@@ -53,6 +61,7 @@ def test_analyze_tool_resolves_ghost():
     assert out.get("path", "").endswith("ghost.plugin.zsh")
 
 
+@pytest.mark.unit
 def test_analyze_tool_marks_missing_unresolved():
     tool = {
         "name": "fake-plugin",
@@ -64,6 +73,7 @@ def test_analyze_tool_marks_missing_unresolved():
     assert out.get("unresolved") is True
 
 
+@pytest.mark.unit
 def test_filter_resolved():
     tools = [
         {"name": "t1", "unresolved": True},
@@ -75,6 +85,7 @@ def test_filter_resolved():
     assert unresolved == ["t1"]
 
 
+@pytest.mark.unit
 def test_render_deferred_section_includes_name_and_skips_unresolved():
     tools = [
         {

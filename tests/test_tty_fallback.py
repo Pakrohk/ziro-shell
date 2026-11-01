@@ -22,6 +22,9 @@ from core import tty
 from core import rich_helpers
 from core import install_cli
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestTtyFallback(unittest.TestCase):
     def test_is_tty_non_tty_stream(self) -> None:

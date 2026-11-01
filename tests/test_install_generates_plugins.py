@@ -14,6 +14,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 from core import install_cli
 from core.generator import default_output_path
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestInstallGeneratesPlugins(unittest.TestCase):
     """Test suite covering BUG-A, BUG-B, BUG-C blocker fixes."""

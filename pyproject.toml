@@ -34,6 +34,10 @@ include = ["core*"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 norecursedirs = ["_deprecated", ".*"]
+markers = [
+    "unit: Pure unit tests, no external env (vendor, ~/.zshrc, /dev/tty)",
+    "integration: Requires real ziro install (vendor cloned, ~/.zshrc, zsh, optional /dev/tty)",
+]
 
 [tool.ruff]
 line-length = 100

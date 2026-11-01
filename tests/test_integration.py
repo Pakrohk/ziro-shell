@@ -2,6 +2,9 @@
 import io, os, sys, tempfile, unittest
 from contextlib import redirect_stdout
 from pathlib import Path
+
+import pytest
+pytestmark = pytest.mark.unit
 sys.path.insert(0, str(Path.home() / ".ziro"))
 
 

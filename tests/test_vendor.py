@@ -11,6 +11,9 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from core.vendor import get_vendor_repos, ensure_vendor_tools, _sync_single_vendor
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestVendor(unittest.TestCase):
     def test_get_vendor_repos(self):

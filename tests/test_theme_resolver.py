@@ -6,6 +6,9 @@ from core.theme_resolver import (
     EnvContext, resolve_prompt_theme, resolve_all,
 )
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestResolvePrompt(unittest.TestCase):
     def test_server_gets_minimal(self):

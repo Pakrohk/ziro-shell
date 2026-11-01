@@ -3,6 +3,9 @@ import tomllib
 from pathlib import Path
 from core.loadtoml_writer import write_load_toml, load_external_overrides
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 def test_write_and_read_tool(tmp_path):
     data = {

@@ -20,6 +20,9 @@ from core.analyzer import (
 )
 from core.models import AnalysisResult, DetectedSignals, Recommendation, Strategy
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 # ─── Decision Matrix Tests (All 8 Authoritative Rows) ───────────────
 

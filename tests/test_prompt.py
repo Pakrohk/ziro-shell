@@ -9,6 +9,9 @@ from core.prompt import (
     list_prompts, SUPPORTED_PROMPTS, DEFAULT_PROMPT,
 )
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestPromptConf(unittest.TestCase):
     def test_missing_conf_returns_default(self):

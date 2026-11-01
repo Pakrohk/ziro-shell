@@ -9,6 +9,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path.home() / ".ziro"))
 from core import plugin_cli
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestPluginCli(unittest.TestCase):
     def setUp(self):

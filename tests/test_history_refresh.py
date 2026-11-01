@@ -2,6 +2,9 @@ import unittest
 from pathlib import Path
 from core.generator import load_tools_registry
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestHistoryRefresh(unittest.TestCase):
     def test_history_refresh_tool_registered(self) -> None:

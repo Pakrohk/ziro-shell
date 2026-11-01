@@ -7,6 +7,9 @@ from core.theme import (
     list_themes, theme_path, COMPONENTS,
 )
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestThemeConf(unittest.TestCase):
     def test_missing_returns_defaults(self):

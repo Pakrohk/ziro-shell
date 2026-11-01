@@ -15,6 +15,9 @@ from core.ziro_load import (
     from_resolved,
 )
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestEmitEager(unittest.TestCase):
     def test_plain_eager(self):

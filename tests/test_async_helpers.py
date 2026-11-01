@@ -15,6 +15,9 @@ from core.async_helpers import (  # noqa: E402
     DEFAULT_TIMEOUT_S,
 )
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestGatherBounded(unittest.TestCase):
     def test_preserves_order(self):

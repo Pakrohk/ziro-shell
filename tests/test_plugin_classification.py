@@ -16,6 +16,9 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 from core import install_cli
 from core.generator import generate_plugins_gen, default_output_path
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestPluginClassification(unittest.TestCase):
     """Verify correct classification of external CLI tools vs Zsh plugins."""

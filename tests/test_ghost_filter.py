@@ -13,6 +13,9 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+pytestmark = pytest.mark.integration
+
 
 class TestGhostFilter(unittest.TestCase):
     """Test suite for ziro-ghost secret filter (spec 016 R1-R4)."""

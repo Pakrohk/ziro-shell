@@ -11,6 +11,9 @@ FACTORY_FILE = REPO_ROOT / "core" / "tools_factory.toml"
 
 from core.generator import generate_plugins_gen, load_tools_registry, emit_pattern
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestV111Tools(unittest.TestCase):
     """Test v1.1.1 tool additions and behavior in generator."""

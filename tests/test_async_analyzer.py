@@ -9,6 +9,9 @@ sys.path.insert(0, str(Path.home() / ".ziro"))
 
 from core.analyzer import analyze_many, analyze_with_cache
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestAnalyzeMany(unittest.TestCase):
     def test_parallel_analysis(self):

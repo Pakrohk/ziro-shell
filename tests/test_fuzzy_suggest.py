@@ -17,6 +17,9 @@ sys.path.insert(0, str(REPO_ROOT))
 
 from core.help_cli import cmd_help, suggest_similar
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestFuzzySuggest(unittest.TestCase):
     def test_suggest_instal(self) -> None:

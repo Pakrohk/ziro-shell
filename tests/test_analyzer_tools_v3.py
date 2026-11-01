@@ -3,6 +3,7 @@ import pytest
 from core.analyzer import analyze_tool
 
 
+@pytest.mark.unit
 def test_prompt_category_eager():
     tool = {
         "name": "starship",
@@ -20,6 +21,7 @@ def test_prompt_category_eager():
     assert "prompt" in out["reason"]
 
 
+@pytest.mark.integration
 def test_completion_category_eager():
     tool = {
         "name": "zsh-completions",
@@ -33,6 +35,7 @@ def test_completion_category_eager():
     assert "completion" in out["reason"]
 
 
+@pytest.mark.unit
 def test_navigation_on_demand_command():
     tool = {
         "name": "zoxide",
@@ -46,6 +49,7 @@ def test_navigation_on_demand_command():
     assert out["trigger"] == "command"
 
 
+@pytest.mark.unit
 def test_fuzzy_finder_on_demand_key():
     tool = {
         "name": "fzf",
@@ -59,6 +63,7 @@ def test_fuzzy_finder_on_demand_key():
     assert out["trigger"] == "key"
 
 
+@pytest.mark.unit
 def test_explicit_trigger_keys_wins():
     tool = {
         "name": "fzf",
@@ -71,6 +76,7 @@ def test_explicit_trigger_keys_wins():
     assert len(out["trigger_keys"]) == 1
 
 
+@pytest.mark.unit
 def test_core_plugin_deferred():
     tool = {
         "name": "colored-man-pages",
@@ -85,6 +91,7 @@ def test_core_plugin_deferred():
     assert out["stage"] == 5
 
 
+@pytest.mark.unit
 def test_safe_default():
     tool = {"name": "unknown-tool", "type": "plugin", "category": "other"}
     out = analyze_tool(tool)
@@ -92,6 +99,7 @@ def test_safe_default():
     assert "safe default" in out["reason"]
 
 
+@pytest.mark.unit
 def test_reason_present_in_all_outputs():
     for tool in [
         {"name": "x", "category": "prompt", "load_method": "eval-cache", "init_command": "x init"},

@@ -12,6 +12,9 @@ from core.hooks import (
     list_known_hooks,
 )
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestKnownHooks(unittest.TestCase):
     def test_wd_needs_reregistration(self):

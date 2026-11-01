@@ -14,6 +14,9 @@ from pathlib import Path
 
 from core.build import _validate_ziro_home, build
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestZiroHomeValidation(unittest.TestCase):
     """Test suite for ZIRO_HOME path validation prior to baking boot.zsh."""
@@ -113,6 +116,10 @@ class TestZiroHomeValidation(unittest.TestCase):
         after_content = boot_shim.read_text() if boot_shim.is_file() else None
         self.assertEqual(before_content, after_content)
 
+    @pytest.mark.skipif(
+        __import__("sys").platform == "darwin",
+        reason="Linux path assumption (/home/)",
+    )
     def test_boot_zsh_contains_real_home(self) -> None:
         """AC10: boot.zsh contains non-temp real ZIRO_HOME path."""
         boot_shim = Path.home() / ".config" / "ziro" / "boot.zsh"

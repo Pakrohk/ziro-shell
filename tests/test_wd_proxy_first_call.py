@@ -8,6 +8,9 @@ from __future__ import annotations
 import subprocess
 from pathlib import Path
 
+import pytest
+pytestmark = pytest.mark.integration
+
 
 def _run_zsh(cmd: str) -> subprocess.CompletedProcess[str]:
     """Execute zsh with ~/.zshrc sourced in an isolated subshell.

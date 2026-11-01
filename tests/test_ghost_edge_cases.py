@@ -26,6 +26,8 @@ from pathlib import Path
 from core.build import _is_ghost_line_sensitive, _sanitize_ghost_history_cache
 from core.doctor_cli import _check_ghost_cache_secrets
 
+import pytest
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 GHOST_SRC = Path.home() / ".local/share/ziro/vendor/Pakrohk/ziro-ghost/sources/history.source.zsh"
 if not GHOST_SRC.is_file():
@@ -63,6 +65,7 @@ fi
         )
         return res.returncode == 0
 
+    @pytest.mark.unit
     def test_ctrl_c_before_precmd_no_cache_leak(self) -> None:
         """1. If shell is killed before precmd runs, secrets never enter cache."""
         hist_file = self.tmp_path / "test_histfile"
@@ -80,6 +83,7 @@ ghost_history_append_last
             content = self.cache_file.read_text(encoding="utf-8")
             self.assertNotIn("AKIAIOSFODNN7EXAMPLE", content)
 
+    @pytest.mark.unit
     def test_histfile_may_have_secret_but_cache_does_not(self) -> None:
         """2. Histfile may receive raw command on death, but cache must stay clean."""
         hist_file = self.tmp_path / "test_histfile"
@@ -87,42 +91,49 @@ ghost_history_append_last
         # Ensure ghost history cache does not have the raw secret
         self.assertFalse(self.cache_file.exists() and "AKIAIOSFODNN7EXAMPLE" in self.cache_file.read_text())
 
+    @pytest.mark.integration
     def test_secret_id_pattern_detected(self) -> None:
         """3. --secret-id argument pattern is flagged sensitive."""
         line = "aws secretsmanager get-secret-value --secret-id prod/db"
         self.assertTrue(self._call_zsh_is_sensitive(line))
         self.assertTrue(_is_ghost_line_sensitive(line))
 
+    @pytest.mark.integration
     def test_secret_arn_pattern_detected(self) -> None:
         """4. --secret-arn argument pattern is flagged sensitive."""
         line = "aws secretsmanager get-secret-value --secret-arn arn:aws:secretsmanager:us-east-1:123456789012:secret:app"
         self.assertTrue(self._call_zsh_is_sensitive(line))
         self.assertTrue(_is_ghost_line_sensitive(line))
 
+    @pytest.mark.integration
     def test_multi_command_with_secret_detected(self) -> None:
         """5. Multi-command lines with a secret anywhere are flagged sensitive."""
         line = "export A=AKIAIOSFODNN7EXAMPLE; echo done"
         self.assertTrue(self._call_zsh_is_sensitive(line))
         self.assertTrue(_is_ghost_line_sensitive(line))
 
+    @pytest.mark.integration
     def test_pipe_with_secret_detected(self) -> None:
         """6. Piped commands containing Bearer authorization headers are flagged sensitive."""
         line = 'echo start | curl -H "Authorization: Bearer secret_token_xyz" http://api.internal'
         self.assertTrue(self._call_zsh_is_sensitive(line))
         self.assertTrue(_is_ghost_line_sensitive(line))
 
+    @pytest.mark.integration
     def test_multiline_command_with_secret(self) -> None:
         """7. Multiline command continuation containing credentials is flagged."""
         line = "curl https://api.com \\\n  -H 'Authorization: Bearer secret_12345'"
         self.assertTrue(self._call_zsh_is_sensitive(line))
         self.assertTrue(_is_ghost_line_sensitive(line))
 
+    @pytest.mark.integration
     def test_git_credential_helper_in_url(self) -> None:
         """8. Embedded credentials in git URLs are flagged sensitive."""
         line = "git clone https://username:ghp_personaltoken1234567890abcdefghijklm@github.com/org/repo"
         self.assertTrue(self._call_zsh_is_sensitive(line))
         self.assertTrue(_is_ghost_line_sensitive(line))
 
+    @pytest.mark.unit
     def test_sync_sanitizes_existing_cache(self) -> None:
         """9. ziro sync offline sanitize purges injected secrets from cache file."""
         self.cache_file.write_text(
@@ -142,6 +153,7 @@ ghost_history_append_last
         self.assertIn("git status", content)
         self.assertIn("ls -la", content)
 
+    @pytest.mark.unit
     def test_doctor_detects_secret_after_manual_injection(self) -> None:
         """10. Doctor flags warning if sensitive secrets are present in history-cache."""
         from unittest import mock
@@ -161,6 +173,7 @@ ghost_history_append_last
             self.assertEqual(status, "warn")
             self.assertIn("contains 1 sensitive token", msg)
 
+    @pytest.mark.unit
     def test_typing_latency_under_3ms(self) -> None:
         """11. ghost_history_query executes in < 3ms (zero keystroke lag)."""
         cmd = f"""
@@ -178,6 +191,7 @@ print "$diff_ms"
         latency_ms = float(res.stdout.strip())
         self.assertLess(latency_ms, 3.0, f"Keystroke query latency was {latency_ms}ms (expected < 3.0ms)")
 
+    @pytest.mark.unit
     def test_append_last_latency_under_0_1ms(self) -> None:
         """12. ghost_history_append_last executes in < 1ms per execution in precmd."""
         cmd = f"""

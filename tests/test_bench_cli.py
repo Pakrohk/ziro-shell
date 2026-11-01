@@ -5,6 +5,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path.home() / ".ziro"))
 from core import bench_cli
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestBenchCli(unittest.TestCase):
     def test_min_of(self):

@@ -4,6 +4,9 @@ import unittest
 
 from core.generator import emit_pattern, wrap_timing
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestGeneratorEmission(unittest.TestCase):
     """Test emit_pattern across all load_method and guard combinations."""

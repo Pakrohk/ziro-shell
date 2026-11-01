@@ -13,6 +13,9 @@ from core.analyzer import (
 from core.models import DetectedSignals, Strategy
 from core.resolver import ResolvedConfig, validate_cross_stage
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestAnalyzerV2(unittest.TestCase):
     def test_slug_deterministic(self):

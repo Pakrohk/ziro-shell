@@ -11,6 +11,9 @@ sys.path.insert(0, str(Path.home() / ".ziro"))
 
 from core import tag_cli
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestTagCli(unittest.TestCase):
     def setUp(self):

@@ -6,6 +6,9 @@ from pathlib import Path
 from core.build import render_boot_shim, write_boot_shim
 from core.paths import get_paths
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestBootShimPaths(unittest.TestCase):
     def test_render_boot_shim_bakes_paths(self):

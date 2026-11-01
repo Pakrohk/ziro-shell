@@ -10,6 +10,9 @@ sys.path.insert(0, str(Path.home() / ".ziro"))
 from core.analyzer import analyze_plugin, _detect_signals, _recommend
 from core.models import DetectedSignals, Strategy
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestDetectSignals(unittest.TestCase):
     def test_empty_content(self):

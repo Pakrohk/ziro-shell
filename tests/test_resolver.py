@@ -11,6 +11,9 @@ from core.models import (
 )
 from core.resolver import resolve, ConflictError
 
+import pytest
+pytestmark = pytest.mark.unit
+
 # Minimal tag set covering the builtins used below. Avoids depending on
 # $HOME/.config/ziro/tags/builtin.toml (created by install, gitignored, and
 # therefore absent on ephemeral CI runners).

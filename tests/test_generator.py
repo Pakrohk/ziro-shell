@@ -11,6 +11,9 @@ from core.generator import generate, HEADER_LINE, default_output_path, EmitOptio
 from core.models import Strategy
 from core.resolver import ResolvedConfig
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestGenerate(unittest.TestCase):
     def test_header_and_content(self):

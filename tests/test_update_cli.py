@@ -11,6 +11,9 @@ from pathlib import Path
 import pytest
 from core import update_cli
 
+import pytest
+pytestmark = pytest.mark.unit
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
 

@@ -9,6 +9,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path.home() / ".ziro"))
 from core import install_cli
 
+import pytest
+
 
 class TestInstallCli(unittest.TestCase):
     def setUp(self):
@@ -40,6 +42,7 @@ class TestInstallCli(unittest.TestCase):
                 os.environ.pop(k, None)
         self.tmp.cleanup()
 
+    @pytest.mark.unit
     def test_dry_run(self):
         buf = io.StringIO()
         with redirect_stdout(buf):
@@ -47,6 +50,7 @@ class TestInstallCli(unittest.TestCase):
         self.assertEqual(rc, 0)
         self.assertIn("dry-run", buf.getvalue())
 
+    @pytest.mark.integration
     def test_default_writes_files(self):
         buf = io.StringIO()
         with redirect_stdout(buf):
@@ -55,6 +59,7 @@ class TestInstallCli(unittest.TestCase):
         self.assertTrue((self.cfg / "defaults.toml").is_file())
         self.assertTrue((self.cfg / "tools.toml").is_file())
 
+    @pytest.mark.unit
     def test_no_overwrite(self):
         cfg = self.cfg
         cfg.mkdir(parents=True, exist_ok=True)
@@ -62,6 +67,7 @@ class TestInstallCli(unittest.TestCase):
         install_cli.main(["--default", "--no-rebuild"])
         self.assertEqual((cfg / "defaults.toml").read_text(), "# custom\n")
 
+    @pytest.mark.integration
     def test_verify_starship_missing(self):
         from unittest.mock import patch
         with patch("shutil.which", return_value=None):
@@ -75,6 +81,7 @@ class TestInstallCli(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertIn("Starship not available", err_buf.getvalue())
 
+    @pytest.mark.unit
     def test_install_man_page(self):
         repo_root = Path(__file__).resolve().parent.parent
         installed = install_cli._install_man_page(repo_root)
@@ -82,6 +89,7 @@ class TestInstallCli(unittest.TestCase):
         self.assertTrue(installed.is_file())
         self.assertIn("ziro", installed.read_text())
 
+    @pytest.mark.integration
     def test_custom_install_wizard(self):
         from unittest.mock import patch
         import tomllib
@@ -125,6 +133,7 @@ class TestInstallCli(unittest.TestCase):
         self.assertIn("ziro-aliases-core", tools)
         self.assertTrue(tools["ziro-aliases-core"].get("enabled", True))
 
+    @pytest.mark.integration
     def test_rebuild_prompt_yes_rebuilds_all(self):
         from unittest.mock import patch
 
@@ -144,6 +153,7 @@ class TestInstallCli(unittest.TestCase):
         self.assertIn("[version]", defaults_content)
         self.assertNotIn("old_content=true", defaults_content)
 
+    @pytest.mark.integration
     def test_rebuild_prompt_no_preserves_existing(self):
         from unittest.mock import patch
 
@@ -161,6 +171,7 @@ class TestInstallCli(unittest.TestCase):
         defaults_content = (cfg / "defaults.toml").read_text()
         self.assertEqual(defaults_content, "old_content=true\n")
 
+    @pytest.mark.integration
     def test_rebuild_flag_bypasses_prompt(self):
         cfg = self.cfg
         (cfg / "defaults.toml").write_text("old_content=true\n")

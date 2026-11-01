@@ -8,6 +8,9 @@ sys.path.insert(0, str(Path.home() / ".ziro"))
 
 from core.raw import RawSpec, validate_raw, emit_raw
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestValidate(unittest.TestCase):
  def test_valid_raw(self):

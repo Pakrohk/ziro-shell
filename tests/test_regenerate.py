@@ -9,6 +9,9 @@ sys.path.insert(0, str(Path.home() / ".ziro"))
 
 from core.regenerate import regenerate, TRIGGERS
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestRegenerate(unittest.TestCase):
     def test_unknown_trigger_raises(self):

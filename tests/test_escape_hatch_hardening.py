@@ -13,6 +13,9 @@ from pathlib import Path
 
 from core.build import _validate_ziro_home
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestEscapeHatchHardening(unittest.TestCase):
     """Test suite for ZIRO_ALLOW_TEST_HOME hardening (spec 016 R9)."""

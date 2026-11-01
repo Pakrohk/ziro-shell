@@ -25,11 +25,14 @@ from core.paths import get_paths
 _LIVE_CACHE = Path(os.environ.get("ZIRO_CACHE", Path.home() / ".cache" / "ziro"))
 _EVAL_CACHE = _LIVE_CACHE / "eval-cache"
 
-pytestmark = pytest.mark.skipif(
+pytestmark = [
+    pytest.mark.integration,
+    pytest.mark.skipif(
     not _EVAL_CACHE.exists() or not list(_EVAL_CACHE.glob("*.zwc")),
     reason="test_zwc_perms.py requires live ziro cache (run ziro sync first). "
     "Skipped in CI where no ziro install exists.",
-)
+),
+]
 
 
 

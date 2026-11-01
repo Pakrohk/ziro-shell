@@ -12,8 +12,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Test (Python ${{ matrix.python }} / ${{ matrix.os }})
+  unit:
+    name: Unit (py${{ matrix.python }} / ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -22,25 +22,53 @@ jobs:
         python: ['3.11', '3.12', '3.13']
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
           cache: pip
-      - name: Install zsh (Ubuntu only)
-        if: matrix.os == 'ubuntu-latest'
-        run: sudo apt-get update && sudo apt-get install -y zsh
       - uses: astral-sh/setup-uv@v3
-        with:
-          version: latest
-      - name: Install dependencies
-        run: uv pip install --system pytest
-      - name: Run tests
+      - run: uv pip install --system pytest
+      - name: Run unit tests
         env:
           PYTHONPATH: .
-          PYTEST_ADDOPTS: -v --tb=short
-        run: python -m pytest tests/ -q --durations=10
+        run: python -m pytest tests/ -m unit -v --tb=short
+
+  integration:
+    name: Integration (ubuntu / py3.12)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install zsh and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zsh rsync util-linux
+      - uses: astral-sh/setup-uv@v3
+      - run: uv pip install --system pytest
+      - name: Setup fake HOME with ziro structure
+        run: |
+          export HOME=/tmp/ziro-ci-home
+          mkdir -p $HOME/.local/share/ziro/vendor/Pakrohk
+          mkdir -p $HOME/.ziro
+          mkdir -p $HOME/.cache/ziro/eval-cache
+          mkdir -p $HOME/.config/ziro
+          chmod 700 $HOME/.ziro $HOME/.cache/ziro $HOME/.config/ziro
+          git clone --depth=1 https://github.com/Pakrohk/ziro-ghost.git $HOME/.local/share/ziro/vendor/Pakrohk/ziro-ghost
+          echo 'export ZIRO_HOME=$HOME/.ziro' > $HOME/.zshrc
+          echo 'export ZIRO_CACHE=$HOME/.cache/ziro' >> $HOME/.zshrc
+          echo 'export ZIRO_CONFIG=$HOME/.config/ziro' >> $HOME/.zshrc
+          echo 'export ZIRO_SKIP_VENV_BOOTSTRAP=1' >> $HOME/.zshrc
+          touch $HOME/.zsh_history
+          chmod 600 $HOME/.zsh_history
+      - name: Run integration tests (with pseudo-TTY)
+        env:
+          PYTHONPATH: .
+          HOME: /tmp/ziro-ci-home
+        run: |
+          script -q -c "cd $(pwd) && HOME=/tmp/ziro-ci-home python -m pytest tests/ -m integration -v --tb=short" /dev/null
 
   lint:
     name: Lint (ruff)
@@ -60,10 +88,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y zsh
-      - name: Check install.zsh
-        run: zsh -n install.zsh
-      - name: Check lib scripts
-        run: |
+      - run: zsh -n install.zsh
+      - run: |
           for f in lib/*.zsh; do
             zsh -n "$f" || exit 1
           done

@@ -5,6 +5,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path.home() / ".ziro"))
 from core import doctor_cli
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestDoctorCli(unittest.TestCase):
     def setUp(self):

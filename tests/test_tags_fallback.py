@@ -12,6 +12,9 @@ from pathlib import Path
 
 from core.tags import BUILTIN_TAGS_DEFAULT, load_all_tags, load_builtin_tags
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestTagsFallback(unittest.TestCase):
     def test_empty_config_dir_returns_7_builtin_tags(self) -> None:

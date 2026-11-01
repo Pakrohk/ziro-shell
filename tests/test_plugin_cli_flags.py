@@ -1,6 +1,9 @@
 """4-D: plugin add CLI flag parsing tests."""
 from core.plugin_cli import _parse_lazy_flags
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 def test_eager_flag():
     out = _parse_lazy_flags([], eager=True, defer_slot=None)

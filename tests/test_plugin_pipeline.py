@@ -10,6 +10,9 @@ sys.path.insert(0, str(Path.home() / ".ziro"))
 
 from core.plugin_pipeline import _clone_repo, add_plugin, remove_plugin
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestAddPlugin(unittest.TestCase):
     def test_dry_run_no_clone(self):

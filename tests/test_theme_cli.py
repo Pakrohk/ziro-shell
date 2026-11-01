@@ -11,6 +11,9 @@ sys.path.insert(0, str(Path.home() / ".ziro"))
 
 from core import theme_cli
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestThemeCli(unittest.TestCase):
     def setUp(self):

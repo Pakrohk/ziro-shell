@@ -14,6 +14,9 @@ from unittest import mock
 from core import tag_cli
 from core.tags import load_user_tags
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestTagDefine(unittest.TestCase):
     def test_define_new_custom_tag(self) -> None:

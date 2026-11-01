@@ -10,6 +10,9 @@ from core.models import AnalysisResult, DetectedSignals, Recommendation, Strateg
 from core.resolver import ResolvedConfig, resolve
 from core.ziro_load import LoadSpec, emit, emit_deferred
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestOutputGeneration(unittest.TestCase):
     def test_default_stage_slot(self):

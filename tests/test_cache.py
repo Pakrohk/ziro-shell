@@ -11,6 +11,9 @@ sys.path.insert(0, str(Path.home() / ".ziro"))
 from core.cache import compute_source_hash, load_cached, store_cached, clear_cache
 from core.models import AnalysisResult, DetectedSignals, Recommendation, Strategy
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestComputeHash(unittest.TestCase):
     def test_same_content_same_hash(self):

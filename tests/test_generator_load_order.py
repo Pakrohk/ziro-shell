@@ -11,6 +11,9 @@ from core.generator import generate, EmitOptions
 from core.models import Strategy
 from core.resolver import ResolvedConfig
 
+import pytest
+pytestmark = pytest.mark.unit
+
 
 class TestLoadOrder(unittest.TestCase):
     def test_order_enforced(self):
