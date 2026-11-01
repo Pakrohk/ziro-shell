@@ -13,6 +13,13 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.7] — 2026-11-02
+
+### CI / Infrastructure
+- Stabilized GitHub Actions CI matrix across Ubuntu and macOS runners (Spec 021, ADL-035).
+- Segmented test suite into 496 hermetic unit tests (`@pytest.mark.unit`) and 68 environment-dependent integration tests (`@pytest.mark.integration`).
+- Resolved runner environment discrepancies: user home alignment, XDG env clearing in doctor test fixture, dynamic repository root resolution in build tests, headless Linux display skip for clipboard tests, and resilient zoxide on-demand command proxy function binding.
+
 ## [v1.2.6] — 2026-11-01
 
 ### Performance
