@@ -614,6 +614,40 @@ def _check_eval_cache_perms() -> tuple[str, str, str | None]:
     return "ok", f"eval-cache dir 700, {len(zwc_files)} .zwc file(s) 600", None
 
 
+def _check_root_profile() -> tuple[str, str, str | None]:
+    """Verify root profile hardening (spec 022 R11)."""
+    import os
+    if os.geteuid() != 0:
+        return "ok", "N/A (not root)", None
+
+    paths = get_paths()
+    config_path = paths["config"] / "starship-root.toml"
+    if not config_path.exists():
+        return "error", "starship-root.toml missing", "run `ziro sync`"
+
+    try:
+        content = config_path.read_text(encoding="utf-8")
+    except Exception as e:
+        return "error", f"cannot read starship-root.toml: {e}", "run `ziro sync`"
+
+    if "[custom" in content:
+        return (
+            "error",
+            "starship-root.toml contains [custom] (CVE-2024-41815 risk)",
+            "regenerate: rm ~/.config/ziro/starship-root.toml && ziro sync",
+        )
+
+    starship_env = os.environ.get("STARSHIP_CONFIG")
+    if starship_env and Path(starship_env).resolve() != config_path.resolve():
+        return (
+            "warn",
+            f"STARSHIP_CONFIG not pointing to root config (got: {starship_env})",
+            "restart shell or run `source ~/.zshrc`",
+        )
+
+    return "ok", f"root profile active ({config_path})", None
+
+
 # Compatibility aliases for prior interfaces
 _check_python = _check_python_version
 _check_ziro_defer = _check_defer_loaded
@@ -643,6 +677,7 @@ def run_checks() -> dict[str, tuple[str, str, str | None]]:
         "theme sharing prerequisites": _check_theme_sharing_prereqs(),
         "legacy ghost cache": _check_legacy_ghost_cache(),
         "ghost cache secrets": _check_ghost_cache_secrets(),
+        "root profile": _check_root_profile(),
     }
 
 
@@ -831,6 +866,9 @@ def cmd_doctor(argv: list[str]) -> int:
     rep_cfg.start_section("Overrides & Legacy")
     rep_cfg.from_tuple(_check_external_overrides())
     rep_cfg.from_tuple(_check_legacy_config())
+
+    rep_cfg.start_section("Root Profile Hardening")
+    rep_cfg.from_tuple(_check_root_profile())
     reports.append(rep_cfg)
 
     # 5. ziro.tools

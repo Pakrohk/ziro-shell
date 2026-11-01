@@ -74,8 +74,40 @@ extract() {
 
 # ─── Clipboard Integration (Cross-Platform) ───
 
+# Spec 022 M2: clipboard buffer path resolver
+_ziro_clipboard_buffer_path() {
+  emulate -L zsh
+  if [[ -n "${XDG_RUNTIME_DIR:-}" ]] && [[ -d "$XDG_RUNTIME_DIR" ]] && [[ -w "$XDG_RUNTIME_DIR" ]]; then
+    print -- "$XDG_RUNTIME_DIR/.ziro-clipboard"
+  else
+    print -- "/tmp/.ziro_clipboard-${UID}"
+  fi
+}
+
+# Spec 022 M2: headless detection
+_ziro_is_headless() {
+  [[ -z "${DISPLAY:-}" && -z "${WAYLAND_DISPLAY:-}" ]]
+}
+
+# Spec 022 M2: 24h cleanup precmd hook (only if /tmp fallback buffer exists)
+_ziro_cleanup_old_clipboard_buffers() {
+  emulate -L zsh
+  local buf="/tmp/.ziro_clipboard-${UID}"
+  [[ -f "$buf" ]] && find /tmp -maxdepth 1 -name '.ziro_clipboard-*' -mmin +1440 -delete 2>/dev/null
+}
+autoload -Uz add-zsh-hook 2>/dev/null
+if (( $+functions[add-zsh-hook] )); then
+  add-zsh-hook precmd _ziro_cleanup_old_clipboard_buffers
+fi
+
 clipcopy() {
   emulate -L zsh
+
+  if _ziro_is_headless; then
+    local buf=$(_ziro_clipboard_buffer_path)
+    cat > "$buf" && chmod 600 "$buf"
+    return $?
+  fi
 
   if (( $+commands[wl-copy] )); then
     wl-copy "$@"
@@ -95,6 +127,15 @@ clipcopy() {
 
 clippaste() {
   emulate -L zsh
+
+  if _ziro_is_headless; then
+    local buf=$(_ziro_clipboard_buffer_path)
+    if [[ -f "$buf" ]]; then
+      cat "$buf"
+      return 0
+    fi
+    return 1
+  fi
 
   if (( $+commands[wl-paste] )); then
     wl-paste "$@"

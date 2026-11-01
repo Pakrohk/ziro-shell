@@ -1,0 +1,28 @@
+# ziro — Root Starship prompt template (spec 022 M4, ADL-036)
+# Minimal safe config: NO custom sections, NO env_var sections.
+# Root prompt shows only built-in sections to prevent command execution.
+
+command_timeout = 200
+add_newline = true
+
+[character]
+success_symbol = "[➜](bold red)"
+error_symbol = "[✗](bold red)"
+vimcmd_symbol = "[❮](bold red)"
+
+[directory]
+style = "bold red"
+truncation_length = 3
+truncate_to_repo = false
+
+[git_branch]
+style = "bold yellow"
+format = "[$symbol$branch]($style) "
+
+[cmd_duration]
+min_time = 500
+style = "bold yellow"
+format = "took [$duration]($style) "
+
+[time]
+disabled = true

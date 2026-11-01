@@ -44,6 +44,10 @@ if [ ! -f "${{ZIRO_CACHE}}/ziro-boot.zsh.zwc" ]; then
   echo 'ziro: ziro-boot.zsh.zwc missing (rule: everything compiled). Run: ziro sync' >&2
   return 1
 fi
+# Spec 022 M4: Runtime-gated starship root config (EUID check)
+if [[ $EUID -eq 0 ]] && [[ -f "${{ZIRO_CONFIG}}/starship-root.toml" ]]; then
+  export STARSHIP_CONFIG="${{ZIRO_CONFIG}}/starship-root.toml"
+fi
 source "${{ZIRO_CACHE}}/ziro-boot.zsh"
 """
 
@@ -666,6 +670,13 @@ def render_ondemand_section(tools: list[dict[str, Any]]) -> str:
             for fn in funcs:
                 lines.append(f'{fn}() {{ {proxy_fn} "$0" "$@"; }}')
 
+    # Spec 022 M1: Root FZF wrapper (must be AFTER on-demand proxy to survive override)
+    lines.append("")
+    lines.append("# Spec 022 M1: Root FZF wrapper")
+    lines.append("if [[ $EUID -eq 0 ]]; then")
+    lines.append('  _ziro_source_safe "${ZIRO_HOME}/lib/fzf-wrapper.zsh"')
+    lines.append("fi")
+
     return "\n".join(lines)
 
 
@@ -1137,6 +1148,17 @@ def build(
         )
     except Exception as e:
         print(f"[vendor] warning: failed to ensure vendor tools: {e}")
+
+    # Materialize starship-root.toml from template if missing (spec 022 M4)
+    _ziro_config = paths["config"]
+    _starship_root = _ziro_config / "starship-root.toml"
+    if not _starship_root.exists():
+        _template = Path(__file__).resolve().parent.parent / "lib" / "starship-root-template.toml"
+        if _template.exists():
+            _ziro_config.mkdir(parents=True, exist_ok=True)
+            _starship_root.write_text(_template.read_text(encoding="utf-8"), encoding="utf-8")
+            _ensure_secure_perms(_starship_root)
+            _ensure_secure_perms(_ziro_config)
 
     # Rebuild eval caches if starship is installed or cache missing
     eval_cache_dir = paths["cache"] / "eval-cache"

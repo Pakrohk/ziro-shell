@@ -13,6 +13,28 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.8] — 2026-11-02
+
+### Security (Root Profile Hardening)
+- **M1 (FZF)**: Root shell blocks execute() bindings in FZF (privilege escalation vector). Override: `ZIRO_ALLOW_ROOT_FZF_EXECUTE=1`.
+- **M2 (Clipboard)**: Headless clipboard uses `$XDG_RUNTIME_DIR` (0700/0600) over `/tmp`. 24h cleanup on `/tmp` fallback.
+- **M3 (SSH)**: agent-forwarding explicitly off by default. Opt-in: `ZIRO_SSH_FORWARDING=1`.
+- **M4 (Starship)**: Root uses isolated `~/.config/ziro/starship-root.toml` (no `[custom]` sections, CVE-2024-41815 mitigation).
+
+### Added
+- Doctor check: root profile (Spec 022 R11).
+- `tests/test_root_profile.py` (18 unit & integration tests).
+- `docs/CONFIGURATION.md`: Root Profile Hardening section.
+
+### Preserved
+- **Normal user (EUID!=0) shell behavior: byte-for-byte identical to v1.2.7**.
+- All 564 existing tests pass.
+- Startup silent for normal user.
+
+**Spec**: 022-root-profile-hardening
+**Tests**: 564 → 578+
+**Rollback**: git revert v1.2.8
+
 ## [v1.2.7] — 2026-11-02
 
 ### CI / Infrastructure

@@ -382,3 +382,31 @@ ziro theme submit --name my-minimalist-prompt
 ziro doctor
 ```
 
+---
+
+## Root Profile Hardening
+
+When running Ziro as root (`EUID == 0`), additional security measures activate automatically (Spec 022, M1–M4):
+
+### M1: FZF Execute Blocking
+- `FZF_DEFAULT_OPTS` is overridden to safe defaults (`--no-mouse --height=40% --layout=reverse`, no `execute` or `execute-silent` bindings).
+- A wrapper function `fzf` inspects arguments and blocks any invocation containing `--bind=...:execute(...)` or `execute-silent`.
+- **Bypass**: Set `ZIRO_ALLOW_ROOT_FZF_EXECUTE=1` to override (not recommended).
+
+### M2: Clipboard Buffer Isolation
+- Headless environments (no `DISPLAY` or `WAYLAND_DISPLAY`): file buffer stored at `$XDG_RUNTIME_DIR/.ziro-clipboard` (permissions `0600`).
+- Fallback: `/tmp/.ziro_clipboard-$UID` (permissions `0600`, with automatic 24-hour cleanup precmd hook).
+- GUI sessions: unchanged native clipboard tool behavior (`wl-copy`, `pbcopy`, `xclip`, `xsel`).
+
+### M3: SSH Agent Forwarding
+- `agent-forwarding no` is enforced explicitly by default (even in remote SSH sessions).
+- **Opt-in**: Set `ZIRO_SSH_FORWARDING=1` to allow agent forwarding.
+
+### M4: Isolated Starship Root Prompt
+- Root shells automatically use `~/.config/ziro/starship-root.toml`.
+- Guaranteed to contain zero `[custom.*]` and zero `[env_var.*]` sections, mitigating prompt injection risks (CVE-2024-41815).
+- Standard user Starship configuration (`~/.config/starship.toml`) remains completely unaffected.
+
+Run `ziro doctor` as root to verify that all hardening controls are active.
+
+
