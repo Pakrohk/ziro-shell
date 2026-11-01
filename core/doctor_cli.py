@@ -531,6 +531,32 @@ def _check_legacy_ghost_cache() -> tuple[str, str, str | None]:
     return "ok", "ghost history cache post-dates v1.2.3 filter", None
 
 
+def _check_ghost_cache_secrets() -> tuple[str, str, str | None]:
+    """Audit ghost history cache for sensitive tokens or credentials."""
+    from core.build import _is_ghost_line_sensitive
+    cache_file = Path.home() / ".cache" / "ziro" / "ghost" / "history-cache"
+    if not cache_file.is_file():
+        return "ok", "no ghost history cache (clean)", None
+
+    try:
+        lines = cache_file.read_text(encoding="utf-8", errors="replace").splitlines()
+    except OSError as e:
+        return "warn", f"could not read ghost history cache: {e}", None
+
+    flagged = 0
+    for line in lines:
+        if _is_ghost_line_sensitive(line):
+            flagged += 1
+
+    if flagged > 0:
+        return (
+            "warn",
+            f"ghost history cache contains {flagged} sensitive token(s)",
+            "run `ziro sync` to sanitize history cache",
+        )
+    return "ok", f"ghost history cache clean (0 secrets in {len(lines)} lines)", None
+
+
 def _check_theme_sharing_prereqs() -> tuple[str, str, str | None]:
     """Check prerequisites for ziro theme submit (gh CLI, auth status, starship config)."""
     gh_bin = shutil.which("gh")
@@ -616,6 +642,7 @@ def run_checks() -> dict[str, tuple[str, str, str | None]]:
         "legacy config": _check_legacy_config(),
         "theme sharing prerequisites": _check_theme_sharing_prereqs(),
         "legacy ghost cache": _check_legacy_ghost_cache(),
+        "ghost cache secrets": _check_ghost_cache_secrets(),
     }
 
 
@@ -779,6 +806,7 @@ def cmd_doctor(argv: list[str]) -> int:
     rep_byte.start_section("Eval Caches & Permissions")
     rep_byte.from_tuple(_check_eval_cache_perms())
     rep_byte.from_tuple(_check_ghost_cache_perms())
+    rep_byte.from_tuple(_check_ghost_cache_secrets())
     rep_byte.from_tuple(_check_legacy_ghost_cache())
     eval_cache_dir = paths["cache"] / "eval-cache"
     for cache_name in ("starship.zsh", "zcolors.zsh", "zoxide.zsh", "fzf.zsh"):

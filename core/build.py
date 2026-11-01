@@ -11,6 +11,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -980,6 +981,85 @@ def _validate_ziro_home(home_path: Path) -> None:
         )
 
 
+GHOST_SECRET_PATTERNS = [
+    re.compile(r"(--password|--passwd|--token|--secret|--api[-_]key|--auth|--passphrase)="),
+    re.compile(r"authorization:\s*(bearer|basic)", re.IGNORECASE),
+    re.compile(r"-p\S+"),
+    re.compile(r"(passphrase|passout|passin|credential)", re.IGNORECASE),
+    re.compile(r"(ghp|gho|ghu|ghs|ghr)_[A-Za-z0-9]{36}"),
+    re.compile(r"AKIA[0-9A-Z]{16}"),
+    re.compile(r"sk-[A-Za-z0-9_-]{20,}"),
+    re.compile(r"xox[bp]-[A-Za-z0-9-]{10,}"),
+    re.compile(r"BEGIN.*(private key|rsa private key|openssh private key)", re.IGNORECASE),
+    re.compile(r"(id_rsa|id_ed25519|id_ecdsa|id_dsa)"),
+]
+
+
+def _is_ghost_line_sensitive(line: str) -> bool:
+    """Check if a history line matches known secret / credential patterns."""
+    if not line or line.startswith(" ") or len(line) > 500:
+        return True
+    if re.search(r"[A-Za-z0-9]{40,}", line):
+        return True
+    return any(p.search(line) for p in GHOST_SECRET_PATTERNS)
+
+
+def _sanitize_ghost_history_cache(paths: dict[str, Path]) -> tuple[int, int]:
+    """Sanitize ghost history cache offline during sync (spec 016, zero-lag architecture).
+
+    Filters sensitive lines, deduplicates, and enforces 0600 on file and 0700 on dir.
+    Returns (total_scanned, filtered_count).
+    """
+    ghost_dir = paths["cache"] / "ghost"
+    cache_file = ghost_dir / "history-cache"
+
+    raw_lines: list[str] = []
+    if cache_file.is_file():
+        try:
+            raw_lines = cache_file.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            raw_lines = []
+
+    # If cache is missing or empty, bootstrap from ~/.zsh_history if available
+    if not raw_lines:
+        hist_file = Path.home() / ".zsh_history"
+        if hist_file.is_file():
+            try:
+                hist_raw = hist_file.read_text(encoding="utf-8", errors="replace").splitlines()[-2000:]
+                for h in hist_raw:
+                    if h.startswith(": ") and ";" in h:
+                        raw_lines.append(h.split(";", 1)[1])
+                    else:
+                        raw_lines.append(h)
+            except OSError:
+                pass
+
+    if not raw_lines:
+        return 0, 0
+
+    clean_lines: list[str] = []
+    seen = set()
+    filtered = 0
+
+    for line in raw_lines:
+        line_clean = line.strip()
+        if not line_clean:
+            continue
+        if _is_ghost_line_sensitive(line_clean):
+            filtered += 1
+            continue
+        if line_clean not in seen:
+            seen.add(line_clean)
+            clean_lines.append(line_clean)
+
+    ghost_dir.mkdir(parents=True, exist_ok=True)
+    _ensure_secure_perms(ghost_dir)
+    cache_file.write_text("\n".join(clean_lines) + ("\n" if clean_lines else ""), encoding="utf-8")
+    _ensure_secure_perms(cache_file)
+
+    return len(raw_lines), filtered
+
+
 def write_boot_shim(boot_zsh_path: Path, paths: dict[str, Path] | None = None) -> Path:
     """Write the boot shim with baked runtime paths.
 
@@ -1186,6 +1266,12 @@ def build(
         comp_file = comp_dir / "_ziro"
         comp_file.write_text(generate_zsh_completion(), encoding="utf-8")
         _ensure_secure_perms(comp_file)
+    except Exception:
+        pass
+
+    # Step 7c: Sanitize ghost history cache offline (Spec 016, zero-lag architecture)
+    try:
+        _sanitize_ghost_history_cache(paths)
     except Exception:
         pass
 

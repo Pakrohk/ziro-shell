@@ -338,3 +338,61 @@ def test_doctor_legacy_cache_ok(tmp_path: Path, monkeypatch: pytest.MonkeyPatch)
     status, msg, advice = _check_legacy_ghost_cache()
     assert status == "ok"
     assert "post-dates v1.2.3 filter" in msg
+
+
+def test_doctor_ghost_cache_secrets_clean(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Doctor check confirms ghost cache has 0 secrets detected."""
+    from core.doctor_cli import _check_ghost_cache_secrets
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    ghost_dir = tmp_path / ".cache" / "ziro" / "ghost"
+    ghost_dir.mkdir(parents=True)
+    cache_file = ghost_dir / "history-cache"
+    cache_file.write_text("git status\nls -la\ncd ~/Projects\n", encoding="utf-8")
+
+    status, msg, advice = _check_ghost_cache_secrets()
+    assert status == "ok"
+    assert "clean (0 secrets in 3 lines)" in msg
+
+
+def test_doctor_ghost_cache_secrets_flagged(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """Doctor check warns if sensitive token is found in ghost cache."""
+    from core.doctor_cli import _check_ghost_cache_secrets
+    monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    ghost_dir = tmp_path / ".cache" / "ziro" / "ghost"
+    ghost_dir.mkdir(parents=True)
+    cache_file = ghost_dir / "history-cache"
+    cache_file.write_text("git status\nexport AWS_SECRET_ACCESS_KEY='AKIAIOSFODNN7EXAMPLE'\n", encoding="utf-8")
+
+    status, msg, advice = _check_ghost_cache_secrets()
+    assert status == "warn"
+    assert "contains 1 sensitive token(s)" in msg
+    assert "run `ziro sync`" in advice
+
+
+def test_sync_sanitizes_ghost_history_cache(tmp_path: Path) -> None:
+    """_sanitize_ghost_history_cache filters secrets and ensures mode 0600/0700."""
+    from core.build import _sanitize_ghost_history_cache
+    cache_root = tmp_path / "cache"
+    ghost_dir = cache_root / "ghost"
+    ghost_dir.mkdir(parents=True)
+    cache_file = ghost_dir / "history-cache"
+    cache_file.write_text(
+        "git status\n"
+        "curl -H 'Authorization: Bearer secret_token' http://api\n"
+        "ls -la\n"
+        "mysql -u root -pSecretPass db\n",
+        encoding="utf-8",
+    )
+
+    paths = {"cache": cache_root}
+    scanned, filtered = _sanitize_ghost_history_cache(paths)
+    assert scanned == 4
+    assert filtered == 2
+
+    cleaned_content = cache_file.read_text(encoding="utf-8")
+    assert "git status" in cleaned_content
+    assert "ls -la" in cleaned_content
+    assert "secret_token" not in cleaned_content
+    assert "SecretPass" not in cleaned_content
+    assert stat.S_IMODE(cache_file.stat().st_mode) == 0o600
+    assert stat.S_IMODE(ghost_dir.stat().st_mode) == 0o700
