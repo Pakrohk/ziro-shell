@@ -13,7 +13,15 @@ def _import_check(name):
 
 @pytest.fixture(autouse=True)
 def _clean_ziro_env(monkeypatch):
-    for var in ("ZIRO_HOME", "ZIRO_CONFIG", "ZIRO_DATA", "ZIRO_CACHE"):
+    for var in (
+        "ZIRO_HOME",
+        "ZIRO_CONFIG",
+        "ZIRO_DATA",
+        "ZIRO_CACHE",
+        "XDG_CONFIG_HOME",
+        "XDG_CACHE_HOME",
+        "XDG_DATA_HOME",
+    ):
         monkeypatch.delenv(var, raising=False)
 
 

@@ -132,7 +132,7 @@ def test_render_sections(sample_manifest):
 
 @pytest.mark.integration
 def test_build_end_to_end(tmp_path, monkeypatch):
-    home_dir = Path("/home/ali/.ziro")
+    home_dir = Path(__file__).resolve().parent.parent
     config_dir = tmp_path / "config" / "ziro"
     data_dir = tmp_path / "data" / "ziro"
     cache_dir = tmp_path / "cache" / "ziro"

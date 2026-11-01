@@ -77,6 +77,10 @@ def test_extract_first_call(tmp_path: Path):
 
 
 def test_clipcopy_and_clippaste_first_call():
+    import os, sys
+    if sys.platform.startswith("linux") and not (os.environ.get("WAYLAND_DISPLAY") or os.environ.get("DISPLAY")):
+        pytest.skip("clippaste requires X11 or Wayland display on Linux")
+
     # Note: wl-copy forks to serve clipboard data; redirecting stdout/stderr avoids
     # holding python's capture pipe open.
     res = _run_zsh("echo 'ziro_clip_test' | clipcopy >/dev/null 2>&1; echo DONE")

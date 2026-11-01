@@ -54,9 +54,8 @@ jobs:
           curl -sS https://starship.rs/install.sh | sh -s -- -y
       - uses: astral-sh/setup-uv@v3
       - run: uv pip install --system pytest cyclopts
-      - name: Setup simulated environment and seed sync
+      - name: Setup environment and seed sync
         run: |
-          export HOME=/tmp/ziro-ci-home
           mkdir -p $HOME/.local/share/ziro/vendor/Pakrohk
           mkdir -p $HOME/.local/share/ziro/vendor/mfaerevaag
           mkdir -p $HOME/.local/share/ziro/vendor/zsh-users/zsh-completions
@@ -73,13 +72,13 @@ jobs:
           touch $HOME/.local/share/ziro/vendor/zsh-users/zsh-completions/zsh-completions.plugin.zsh
           touch $HOME/.local/share/ziro/vendor/ohmyzsh/ohmyzsh/plugins/git/git.plugin.zsh
 
-          # Stub eval-cache files for eager precompilation
-          for f in starship.zsh zcolors.zsh zoxide.zsh fzf.zsh; do
+          # Stub eval-cache files for tools not pre-installed
+          for f in zcolors.zsh fzf.zsh; do
             echo "# stub" > $HOME/.cache/ziro/eval-cache/$f
           done
 
-          # Symlink repo workspace
-          ln -s "$GITHUB_WORKSPACE" $HOME/.ziro
+          # Symlink repo workspace to ~/.ziro
+          ln -sfn "$GITHUB_WORKSPACE" $HOME/.ziro
 
           # Dotfiles
           cat << 'EOF' > $HOME/.zshrc
@@ -99,12 +98,8 @@ jobs:
           chmod 600 $HOME/.zsh_history
           chmod 700 $HOME/.cache/ziro $HOME/.config/ziro
 
-          # Seed sync
-          HOME=/tmp/ziro-ci-home \
+          # Seed sync to generate load.toml, boot.zsh, ziro-boot.zsh, and compile zwc artifacts
           ZIRO_HOME="$GITHUB_WORKSPACE" \
-          ZIRO_CACHE=/tmp/ziro-ci-home/.cache/ziro \
-          ZIRO_CONFIG=/tmp/ziro-ci-home/.config/ziro \
-          ZIRO_DATA=/tmp/ziro-ci-home/.local/share/ziro \
           ZIRO_SKIP_VENV_BOOTSTRAP=1 \
           ZIRO_NONINTERACTIVE=1 \
           ZIRO_SKIP_VENDOR_CLONE=1 \
@@ -113,7 +108,6 @@ jobs:
       - name: Run integration tests
         env:
           PYTHONPATH: .
-          HOME: /tmp/ziro-ci-home
           ZIRO_HOME: ${{ github.workspace }}
           ZIRO_SKIP_VENV_BOOTSTRAP: '1'
           ZIRO_NONINTERACTIVE: '1'
