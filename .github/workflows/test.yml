@@ -26,11 +26,18 @@ jobs:
         with:
           python-version: ${{ matrix.python }}
           cache: pip
+      - name: Install zsh
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y zsh
       - uses: astral-sh/setup-uv@v3
-      - run: uv pip install --system pytest
+      - run: uv pip install --system pytest cyclopts
       - name: Run unit tests
         env:
           PYTHONPATH: .
+          ZIRO_SKIP_VENV_BOOTSTRAP: '1'
+          ZIRO_NONINTERACTIVE: '1'
         run: python -m pytest tests/ -m unit -v --tb=short
 
   integration:
@@ -45,30 +52,78 @@ jobs:
       - name: Install zsh and dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y zsh rsync util-linux
+          sudo apt-get install -y zsh rsync
       - uses: astral-sh/setup-uv@v3
-      - run: uv pip install --system pytest
-      - name: Setup fake HOME with ziro structure
+      - run: uv pip install --system pytest cyclopts
+      - name: Setup simulated environment and seed sync
         run: |
           export HOME=/tmp/ziro-ci-home
           mkdir -p $HOME/.local/share/ziro/vendor/Pakrohk
-          mkdir -p $HOME/.ziro
+          mkdir -p $HOME/.local/share/ziro/vendor/mfaerevaag
+          mkdir -p $HOME/.local/share/ziro/vendor/zsh-users/zsh-completions
+          mkdir -p $HOME/.local/share/ziro/vendor/ohmyzsh/ohmyzsh/plugins/git
+          mkdir -p $HOME/.local/share/ziro/completions
           mkdir -p $HOME/.cache/ziro/eval-cache
           mkdir -p $HOME/.config/ziro
-          chmod 700 $HOME/.ziro $HOME/.cache/ziro $HOME/.config/ziro
+
+          # Clone required runtime vendor plugins
           git clone --depth=1 https://github.com/Pakrohk/ziro-ghost.git $HOME/.local/share/ziro/vendor/Pakrohk/ziro-ghost
-          echo 'export ZIRO_HOME=$HOME/.ziro' > $HOME/.zshrc
-          echo 'export ZIRO_CACHE=$HOME/.cache/ziro' >> $HOME/.zshrc
-          echo 'export ZIRO_CONFIG=$HOME/.config/ziro' >> $HOME/.zshrc
-          echo 'export ZIRO_SKIP_VENV_BOOTSTRAP=1' >> $HOME/.zshrc
+          git clone --depth=1 https://github.com/mfaerevaag/wd.git $HOME/.local/share/ziro/vendor/mfaerevaag/wd
+
+          # Stub files for vendor path resolution
+          touch $HOME/.local/share/ziro/vendor/zsh-users/zsh-completions/zsh-completions.plugin.zsh
+          touch $HOME/.local/share/ziro/vendor/ohmyzsh/ohmyzsh/plugins/git/git.plugin.zsh
+
+          # Stub eval-cache files for eager precompilation
+          for f in starship.zsh zcolors.zsh zoxide.zsh fzf.zsh; do
+            echo "# stub" > $HOME/.cache/ziro/eval-cache/$f
+          done
+
+          # Symlink repo workspace
+          ln -s "$GITHUB_WORKSPACE" $HOME/.ziro
+
+          # Dotfiles
+          cat << 'EOF' > $HOME/.zshrc
+          export ZIRO_HOME="$HOME/.ziro"
+          export ZIRO_CACHE="$HOME/.cache/ziro"
+          export ZIRO_CONFIG="$HOME/.config/ziro"
+          export ZIRO_DATA="$HOME/.local/share/ziro"
+          export ZIRO_SKIP_VENV_BOOTSTRAP=1
+          export ZIRO_NONINTERACTIVE=1
+          export ZIRO_SKIP_VENDOR_CLONE=1
+          if [ -f "$HOME/.config/ziro/boot.zsh" ]; then
+            source "$HOME/.config/ziro/boot.zsh"
+          fi
+          EOF
+
           touch $HOME/.zsh_history
           chmod 600 $HOME/.zsh_history
-      - name: Run integration tests (with pseudo-TTY)
+          chmod 700 $HOME/.cache/ziro $HOME/.config/ziro
+
+          # Seed sync
+          HOME=/tmp/ziro-ci-home \
+          ZIRO_HOME="$GITHUB_WORKSPACE" \
+          ZIRO_CACHE=/tmp/ziro-ci-home/.cache/ziro \
+          ZIRO_CONFIG=/tmp/ziro-ci-home/.config/ziro \
+          ZIRO_DATA=/tmp/ziro-ci-home/.local/share/ziro \
+          ZIRO_SKIP_VENV_BOOTSTRAP=1 \
+          ZIRO_NONINTERACTIVE=1 \
+          ZIRO_SKIP_VENDOR_CLONE=1 \
+          PYTHONPATH="$GITHUB_WORKSPACE" \
+          python -m core sync
+      - name: Run integration tests
         env:
           PYTHONPATH: .
           HOME: /tmp/ziro-ci-home
+          ZIRO_HOME: ${{ github.workspace }}
+          ZIRO_CACHE: /tmp/ziro-ci-home/.cache/ziro
+          ZIRO_CONFIG: /tmp/ziro-ci-home/.config/ziro
+          ZIRO_DATA: /tmp/ziro-ci-home/.local/share/ziro
+          ZIRO_SKIP_VENV_BOOTSTRAP: '1'
+          ZIRO_NONINTERACTIVE: '1'
+          ZIRO_SKIP_VENDOR_CLONE: '1'
         run: |
-          script -q -c "cd $(pwd) && HOME=/tmp/ziro-ci-home python -m pytest tests/ -m integration -v --tb=short" /dev/null
+          python -m pytest tests/ -m integration -v --tb=short
 
   lint:
     name: Lint (ruff)
