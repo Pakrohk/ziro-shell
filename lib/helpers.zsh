@@ -104,9 +104,15 @@ clipcopy() {
   emulate -L zsh
 
   if _ziro_is_headless; then
-    local buf=$(_ziro_clipboard_buffer_path)
-    cat > "$buf" && chmod 600 "$buf"
-    return $?
+    if (( $+commands[cat] )); then
+      local buf=$(_ziro_clipboard_buffer_path)
+      if [[ $# -gt 0 ]]; then
+        print -r -- "$@" > "$buf" && chmod 600 "$buf" 2>/dev/null
+      else
+        cat > "$buf" && chmod 600 "$buf" 2>/dev/null
+      fi
+      return $?
+    fi
   fi
 
   if (( $+commands[wl-copy] )); then
@@ -134,7 +140,10 @@ clippaste() {
       cat "$buf"
       return 0
     fi
-    return 1
+    if (( ! $+commands[wl-paste] && ! $+commands[pbpaste] && ! $+commands[xclip] && ! $+commands[xsel] && ! $+commands[powershell.exe] )); then
+      print -u2 "clippaste: no supported clipboard tool found (wl-paste, pbpaste, xclip, xsel, powershell.exe)"
+      return 1
+    fi
   fi
 
   if (( $+commands[wl-paste] )); then

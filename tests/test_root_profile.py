@@ -185,16 +185,23 @@ fzf --bind='enter:execute(id)' --version 2>&1
         from core.build import build
         from core.paths import get_paths
 
-        paths = get_paths()
-        root_toml = paths["config"] / "starship-root.toml"
-        if root_toml.exists():
-            root_toml.unlink()
-
-        ok, msg, _ = build()
-        self.assertTrue(ok, f"build failed: {msg}")
-        self.assertTrue(root_toml.is_file(), "starship-root.toml was not materialized")
-        mode = stat.S_IMODE(root_toml.stat().st_mode)
-        self.assertEqual(mode, 0o600)
+        with tempfile.TemporaryDirectory() as td:
+            temp_config = Path(td) / "config"
+            temp_config.mkdir(parents=True, exist_ok=True)
+            custom_paths = {
+                "home": REPO_ROOT,
+                "config": temp_config,
+                "cache": Path(td) / "cache",
+                "data": Path(td) / "data",
+            }
+            with patch("core.build.get_paths", return_value=custom_paths), \
+                 patch("core.paths.get_paths", return_value=custom_paths):
+                ok, msg, _ = build()
+                self.assertTrue(ok, f"build failed: {msg}")
+                root_toml = temp_config / "starship-root.toml"
+                self.assertTrue(root_toml.is_file(), "starship-root.toml was not materialized")
+                mode = stat.S_IMODE(root_toml.stat().st_mode)
+                self.assertEqual(mode, 0o600)
 
     def test_boot_shim_template_contains_euid_gate(self) -> None:
         """AC13-adjacent: BOOT_SHIM_TEMPLATE contains runtime EUID check for starship-root."""
@@ -221,6 +228,7 @@ fzf --bind='enter:execute(id)' --version 2>&1
 
         paths = get_paths()
         root_toml = paths["config"] / "starship-root.toml"
+        root_toml.parent.mkdir(parents=True, exist_ok=True)
         if not root_toml.exists():
             root_toml.write_text("command_timeout = 200\n", encoding="utf-8")
 
@@ -238,6 +246,10 @@ fzf --bind='enter:execute(id)' --version 2>&1
 
     def test_normal_user_startup_silent(self) -> None:
         """AC18: Startup remains completely silent for normal user."""
+        dot_zshrc = Path.home() / ".zshrc"
+        if not dot_zshrc.is_file():
+            self.skipTest("~/.zshrc not present in test environment")
+
         res = subprocess.run(
             ["zsh", "-f", "-c", "source ~/.zshrc 2>&1"],
             capture_output=True,
