@@ -13,6 +13,19 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.10] — 2026-11-02
+
+### Added (External Tools Observability)
+- `ziro stats` — aggregate metrics from any tool at ~/.cache/ziro/<tool>/metrics.jsonl
+- `ziro health [tool]` — run health checks (health.json or manifest health_command)
+- `ziro doctor` extended with 'external tools' check
+- **Protocol v1**: any tool writing metrics.jsonl is auto-discovered, zero integration
+- 18+ new tests, 600 → 618 passed
+
+**Note**: ziro-shell v1.2.10 is a small observability release. After this, ziro-shell returns to PAUSE until ghost v2.0.0 released (v1.3.0 = full integration).
+
+**Rollback**: git revert v1.2.10
+
 ## [v1.2.9] — 2026-11-02
 
 ### Added (Headless & SSH Refinements)

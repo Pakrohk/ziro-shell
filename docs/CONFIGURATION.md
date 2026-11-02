@@ -445,5 +445,43 @@ Run `ziro doctor` in a headless session to verify your terminal's capabilities a
 ### Open/xdg-open in headless
 In headless environments, `open` and `xdg-open` safely display text files with `$PAGER` (fallback `less` / `cat`). URLs and binary files print a clear diagnostic error and exit with code 1.
 
+---
+
+## External Tools Observability
+
+Ziro can observe other tools that emit metrics to standard paths. No integration required — just file presence.
+
+### Protocol v1: Metrics
+
+Tool must write JSONL to: `~/.cache/ziro/<tool-name>/metrics.jsonl`
+
+Each line is a JSON object with schema:
+```json
+{"ts": 1699123456.789, "intent_id": "...", "name": "...", "level": "ephemeral|standard|critical", "duration_ms": 0.34, "status": "ok|error|timeout", "source": "...", "cache_hit": true, "session": "..."}
+```
+
+### Protocol v1: Health (optional)
+
+Tool can expose health via ONE of:
+1. `~/.cache/ziro/<tool>/health.json` — static snapshot, format: `{"status": "ok|warn|error", "message": "...", "checks": [...]}`
+2. `<tool-manifest>/ziro-plugin.toml` with `[health]` section: `command = "<shell command>"` — ziro runs command with 5s timeout, expects JSON output
+
+### Commands
+
+- `ziro stats` — aggregate metrics from all tools (P50/P95/P99, error rate, cache hit)
+- `ziro stats --tool ghost` — single tool
+- `ziro stats --json` — machine-readable
+- `ziro health` — run health checks for all tools
+- `ziro health ghost` — single tool
+- `ziro doctor` — includes 'external tools' summary line
+
+### Example: ghost
+
+Ghost v2.0.0+ emits metrics automatically. After using ghost's suggest feature, run:
+```bash
+ziro stats ghost
+ziro health ghost
+```
+
 
 

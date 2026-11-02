@@ -20,9 +20,11 @@ COMMANDS: tuple[str, ...] = (
     "completion",
     "config",
     "doctor",
+    "health",
     "install",
     "plugin",
     "prompt",
+    "stats",
     "suggest",
     "sync",
     "tag",
@@ -442,6 +444,48 @@ def local(*tokens: str) -> int:
         return res.returncode
     print("ziro: 'local' is a deprecated layer-0 helper; use 'ziro plugin add --local' instead.", file=sys.stderr)
     return 1
+
+
+@app.command
+def stats(
+    tool: Optional[str] = None,
+    json: bool = False,
+    since: Optional[str] = None,
+    limit: int = 10000,
+    verbose: bool = False,
+) -> int:
+    """Display aggregated metrics from external tools."""
+    from core import stats_cli
+    args: list[str] = []
+    if tool:
+        args.extend(["--tool", tool])
+    if json:
+        args.append("--json")
+    if since:
+        args.extend(["--since", since])
+    if limit != 10000:
+        args.extend(["--limit", str(limit)])
+    if verbose:
+        args.append("--verbose")
+    return stats_cli.cmd_stats(args)
+
+
+@app.command
+def health(
+    tool: Optional[str] = None,
+    json: bool = False,
+    all: bool = False,
+) -> int:
+    """Inspect health status of external tools."""
+    from core import health_cli
+    args: list[str] = []
+    if tool:
+        args.append(tool)
+    if json:
+        args.append("--json")
+    if all:
+        args.append("--all")
+    return health_cli.cmd_health(args)
 
 
 def run(argv: list[str] | None = None) -> int:

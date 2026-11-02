@@ -770,6 +770,32 @@ def _check_headless_capabilities() -> CheckResult:
     )
 
 
+def _check_external_tools() -> tuple[str, str, str | None]:
+    """Check external tools that emit metrics to ~/.cache/ziro/<tool>/."""
+    from core.external_tools import aggregate, discover_tools, read_health, read_metrics
+
+    tools = discover_tools()
+    if not tools:
+        return "info", "external tools: none configured", None
+
+    summaries = []
+    has_error = False
+    for tool in tools:
+        m = read_metrics(tool)
+        agg = aggregate(m)
+        h = read_health(tool)
+        summary = f"{tool} ({agg['total']} events, {agg['error_count']} errors)"
+        if h:
+            h_status = h.get("status", "info")
+            summary += f", health: {h_status}"
+            if h_status == "error":
+                has_error = True
+        summaries.append(summary)
+
+    status = "warn" if has_error else "ok"
+    return status, f"external tools: {' | '.join(summaries)}", None
+
+
 # Compatibility aliases for prior interfaces
 _check_python = _check_python_version
 _check_ziro_defer = _check_defer_loaded
@@ -801,6 +827,7 @@ def run_checks() -> dict[str, tuple[str, str, str | None]]:
         "ghost cache secrets": _check_ghost_cache_secrets(),
         "root profile": _check_root_profile(),
         "headless capabilities": _check_headless_capabilities(),
+        "external tools": _check_external_tools(),
     }
 
 
@@ -1078,6 +1105,10 @@ def cmd_doctor(argv: list[str]) -> int:
     rep_tools.start_section("Theme Sharing Prerequisites")
     theme_res = _check_theme_sharing_prereqs()
     rep_tools.from_tuple(theme_res)
+
+    rep_tools.start_section("External Tools Observability")
+    ext_res = _check_external_tools()
+    rep_tools.from_tuple(ext_res)
     reports.append(rep_tools)
 
     # Header banner matching Neovim checkhealth
