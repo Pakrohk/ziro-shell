@@ -17,6 +17,15 @@ from pathlib import Path
 
 from core.paths import get_paths
 
+OSC52_ENABLE_GUIDE = {
+    "iTerm.app": 'Settings → General → Selection → enable "Applications in terminal may access clipboard"',
+    "tmux": "Add to ~/.tmux.conf: set -g set-clipboard on, then: tmux source ~/.tmux.conf",
+    "Apple_Terminal": "Terminal.app does not support OSC 52. Ziro uses pbcopy/pbpaste fallback automatically.",
+    "gnome-terminal": "Supported in GNOME Terminal 3.44+. If not working, upgrade terminal.",
+    "mintty": 'Check Options → Terminal → "Allow OSC52" (usually enabled by default)',
+    "Windows Terminal": "Supported by default in Windows Terminal 1.15+. If not working, upgrade Windows Terminal.",
+}
+
 
 def _config_dir() -> Path:
     return get_paths()["config"]
@@ -648,6 +657,119 @@ def _check_root_profile() -> tuple[str, str, str | None]:
     return "ok", f"root profile active ({config_path})", None
 
 
+class CheckResult(tuple):
+    """Result tuple compatible with (status, message, suggestion) and dict-like indexing."""
+
+    def __new__(
+        cls,
+        status: str,
+        message: str,
+        suggestion: str | None = None,
+        name: str = "headless capabilities",
+    ):
+        return super().__new__(cls, (status, message, suggestion))
+
+    def __init__(
+        self,
+        status: str,
+        message: str,
+        suggestion: str | None = None,
+        name: str = "headless capabilities",
+    ):
+        self.status = status
+        self.message = message
+        self.suggestion = suggestion
+        self.name = name
+
+    def __getitem__(self, item: Any) -> Any:
+        if isinstance(item, str):
+            if item == "status":
+                return self.status
+            if item == "message":
+                return self.message
+            if item == "suggestion":
+                return self.suggestion
+            if item == "name":
+                return self.name
+            raise KeyError(item)
+        return super().__getitem__(item)
+
+    def get(self, key: str, default: Any = None) -> Any:
+        try:
+            return self[key]
+        except KeyError:
+            return default
+
+
+def _check_headless_capabilities() -> CheckResult:
+    """Spec 023 R7: headless clipboard capability detection."""
+    # GUI fast path (zero overhead)
+    if os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"):
+        return CheckResult("ok", "GUI session — native clipboard available")
+
+    # Headless path — full detection
+    term = os.environ.get("TERM", "unknown")
+    term_program = os.environ.get("TERM_PROGRAM", "")
+
+    # Known but needs manual enable or unsupported
+    key = term_program or term.split("-")[0]
+    if key in ("iTerm.app", "tmux"):
+        return CheckResult(
+            "warn",
+            f"headless — OSC 52 NOT enabled for {key}",
+            OSC52_ENABLE_GUIDE.get(key),
+        )
+    if key == "Apple_Terminal":
+        return CheckResult(
+            "info",
+            "headless — OSC 52 not supported by Apple_Terminal; using pbcopy fallback",
+            OSC52_ENABLE_GUIDE.get(key),
+        )
+
+    # Env heuristic (fast)
+    env_supported = bool(
+        os.environ.get("KITTY_WINDOW_ID")
+        or os.environ.get("WEZTERM_PANE")
+        or os.environ.get("ALACRITTY_WINDOW_ID")
+        or os.environ.get("GHOSTTY_RESOURCES_DIR")
+        or "kitty" in term
+        or "alacritty" in term
+        or "wezterm" in term
+        or "foot" in term
+    )
+    if env_supported:
+        family = (
+            "kitty"
+            if "kitty" in term or os.environ.get("KITTY_WINDOW_ID")
+            else (
+                "wezterm"
+                if "wezterm" in term or os.environ.get("WEZTERM_PANE")
+                else (
+                    "alacritty"
+                    if "alacritty" in term or os.environ.get("ALACRITTY_WINDOW_ID")
+                    else (
+                        "ghostty"
+                        if os.environ.get("GHOSTTY_RESOURCES_DIR")
+                        else "iTerm2"
+                    )
+                )
+            )
+        )
+        return CheckResult("ok", f"headless — OSC 52 supported (terminal: {family})")
+
+    if key in OSC52_ENABLE_GUIDE:
+        return CheckResult(
+            "warn",
+            f"headless — OSC 52 NOT enabled for {key}",
+            OSC52_ENABLE_GUIDE[key],
+        )
+
+    return CheckResult(
+        "info",
+        f"headless — OSC 52 support unknown (terminal: {term}); file buffer fallback will be used",
+    )
+
+
 # Compatibility aliases for prior interfaces
 _check_python = _check_python_version
 _check_ziro_defer = _check_defer_loaded
@@ -678,6 +800,7 @@ def run_checks() -> dict[str, tuple[str, str, str | None]]:
         "legacy ghost cache": _check_legacy_ghost_cache(),
         "ghost cache secrets": _check_ghost_cache_secrets(),
         "root profile": _check_root_profile(),
+        "headless capabilities": _check_headless_capabilities(),
     }
 
 
@@ -950,6 +1073,7 @@ def cmd_doctor(argv: list[str]) -> int:
         rep_tools.ok(f"clipboard tool found: {found_clip[0]}")
     else:
         rep_tools.info(f"no clipboard tool found ({', '.join(clip_tools)})")
+    rep_tools.from_tuple(_check_headless_capabilities(), prefix="headless capabilities: ")
 
     rep_tools.start_section("Theme Sharing Prerequisites")
     theme_res = _check_theme_sharing_prereqs()

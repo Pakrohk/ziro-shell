@@ -409,4 +409,41 @@ When running Ziro as root (`EUID == 0`), additional security measures activate a
 
 Run `ziro doctor` as root to verify that all hardening controls are active.
 
+---
+
+## Headless & SSH Sessions
+
+Ziro supports headless environments (no `DISPLAY`, no `WAYLAND_DISPLAY`) via a 4-layer clipboard fallback chain (Spec 023).
+
+### Clipboard copy chain
+1. **GUI native** — `wl-copy` or `xclip` (if `DISPLAY` or `WAYLAND_DISPLAY` set, zero overhead)
+2. **macOS native** — `pbcopy` (prioritized before OSC 52 because Apple `Terminal.app` does not support OSC 52)
+3. **OSC 52** — terminal escape sequence (`\e]52;c;<base64>\a`), works seamlessly over SSH without X11 forwarding
+4. **File buffer** — `$XDG_RUNTIME_DIR/.ziro-clipboard` (mode `0600`)
+
+### Clipboard paste chain
+1. GUI native → 2. macOS `pbpaste` → 3. (OSC 52 read skipped — not standardized / security prompt risks) → 4. File buffer
+
+### Terminal enable guide
+
+| Terminal | OSC 52 | Enable / Notes |
+|---|---|---|
+| kitty, WezTerm, Alacritty, Ghostty | ✅ native | Supported by default; no configuration needed |
+| iTerm2 (macOS) | ⚠️ manual | Settings → General → Selection → enable "Applications in terminal may access clipboard" |
+| tmux | ⚠️ manual | Add `set -g set-clipboard on` to `~/.tmux.conf`, then `tmux source ~/.tmux.conf` |
+| GNOME Terminal 3.44+ | ✅ native | Supported in GNOME Terminal 3.44+; upgrade if running older release |
+| Apple Terminal.app | ❌ | Does not support OSC 52; Ziro uses `pbcopy`/`pbpaste` fallback automatically |
+| Windows Terminal 1.15+ | ✅ native | Supported by default in Windows Terminal 1.15+; upgrade if running older release |
+
+Run `ziro doctor` in a headless session to verify your terminal's capabilities and see per-terminal guidance.
+
+### Environment variables
+- `ZIRO_CLIPBOARD_VERBOSE=1` — print clipboard layer fallback decisions to `stderr` (silent by default)
+- `ZIRO_OSC52_DA1_DISABLE=1` — disable Primary Device Attributes (DA1) terminal query fallback
+- `ZIRO_OSC52_TERM_ALLOWLIST="pattern*"` — space-separated glob patterns for custom terminal `$TERM` matching
+
+### Open/xdg-open in headless
+In headless environments, `open` and `xdg-open` safely display text files with `$PAGER` (fallback `less` / `cat`). URLs and binary files print a clear diagnostic error and exit with code 1.
+
+
 

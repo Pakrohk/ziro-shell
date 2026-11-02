@@ -13,6 +13,24 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 - **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
 - **v1.4.0** — pf (cross-shell package manager) integration
 
+## [v1.2.9] — 2026-11-02
+
+### Added (Headless & SSH Refinements)
+- **OSC 52 clipboard escape** — copy from remote SSH to local terminal clipboard (kitty, WezTerm, Alacritty, Ghostty, iTerm2 with manual enable, tmux with set-clipboard on).
+- **4-layer clipboard chain**: GUI native → macOS native → OSC 52 → file buffer.
+- **Doctor check**: `headless capabilities` with per-terminal enable guidance (iTerm2, tmux, GNOME Terminal, mintty, Windows Terminal, Apple Terminal.app).
+- **open/xdg-open wrappers**: headless text files open via $PAGER; URLs and binaries return clear error.
+- **Environment variables**: `ZIRO_CLIPBOARD_VERBOSE`, `ZIRO_OSC52_DA1_DISABLE`, `ZIRO_OSC52_TERM_ALLOWLIST`.
+
+### Preserved
+- **GUI user (DISPLAY/WAYLAND): byte-for-byte identical to v1.2.8** (zero overhead).
+- All 582 existing tests pass.
+- Startup silent for all users.
+
+**Spec**: 023-headless-refinements  
+**Tests**: 582 → 603  
+**Rollback**: git revert v1.2.9
+
 ## [v1.2.8] — 2026-11-02
 
 ### Security (Root Profile Hardening)
