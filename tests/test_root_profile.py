@@ -4,6 +4,7 @@ import os
 import shutil
 import stat
 import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -73,6 +74,7 @@ class TestRootProfileHardening(unittest.TestCase):
         res = subprocess.run(cmd, env=env, capture_output=True, text=True)
         self.assertEqual(res.returncode, 0)
 
+    @unittest.skipIf(sys.platform == "darwin", "macOS uses pbcopy/pbpaste per Spec 023 AC11/AC12")
     def test_headless_clipboard_xdg_path(self) -> None:
         """AC8: In headless session with XDG_RUNTIME_DIR, clipcopy uses 0600 file buffer."""
         with tempfile.TemporaryDirectory() as td:
@@ -94,6 +96,7 @@ class TestRootProfileHardening(unittest.TestCase):
             mode = stat.S_IMODE(buf_file.stat().st_mode)
             self.assertEqual(mode, 0o600)
 
+    @unittest.skipIf(sys.platform == "darwin", "macOS uses pbcopy/pbpaste per Spec 023 AC11/AC12")
     def test_headless_clipboard_tmp_fallback(self) -> None:
         """AC9: In headless session without XDG_RUNTIME_DIR, fallback to /tmp with mode 0600."""
         env = dict(os.environ)

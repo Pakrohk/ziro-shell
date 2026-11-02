@@ -108,6 +108,9 @@ def test_osc52_copy_emits_escape() -> None:
     assert res.stdout.endswith("\x07")
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin", reason="macOS prioritizes pbcopy before OSC 52 (DD5)"
+)
 def test_clipcopy_headless_uses_osc52() -> None:
     env = {
         "DISPLAY": "",
@@ -121,6 +124,9 @@ def test_clipcopy_headless_uses_osc52() -> None:
     assert "cGF5bG9hZDEyMw" in res.stdout  # base64 of payload123
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin", reason="macOS prioritizes pbcopy before file buffer (DD5)"
+)
 def test_clipcopy_headless_no_osc52_file_buffer() -> None:
     with tempfile.TemporaryDirectory() as td:
         runtime_dir = Path(td) / "run"
@@ -145,6 +151,9 @@ def test_clipcopy_headless_no_osc52_file_buffer() -> None:
         assert stat.S_IMODE(buf_file.stat().st_mode) == 0o600
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin", reason="macOS prioritizes pbcopy before file buffer (DD5)"
+)
 def test_clipcopy_verbose_logging() -> None:
     with tempfile.TemporaryDirectory() as td:
         runtime_dir = Path(td) / "run"
@@ -167,6 +176,9 @@ def test_clipcopy_verbose_logging() -> None:
         assert "clipcopy: using layer 4" in res.stderr
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin", reason="macOS prioritizes pbpaste before file buffer (DD5)"
+)
 def test_clippaste_missing_buffer() -> None:
     with tempfile.TemporaryDirectory() as td:
         runtime_dir = Path(td) / "run"
@@ -181,6 +193,9 @@ def test_clippaste_missing_buffer() -> None:
         assert "clippaste: no clipboard content" in res.stderr
 
 
+@pytest.mark.skipif(
+    sys.platform == "darwin", reason="macOS prioritizes pbpaste before file buffer (DD5)"
+)
 def test_clippaste_reads_buffer() -> None:
     with tempfile.TemporaryDirectory() as td:
         runtime_dir = Path(td) / "run"
@@ -197,6 +212,27 @@ def test_clippaste_reads_buffer() -> None:
         res = _run_helpers_zsh("clippaste", env)
         assert res.returncode == 0
         assert res.stdout.strip() == "pasted_content"
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="macOS-specific AC11 test")
+def test_clipcopy_macos_uses_pbcopy() -> None:
+    env = {
+        "DISPLAY": "",
+        "WAYLAND_DISPLAY": "",
+        "TERM": "alacritty",
+    }
+    res = _run_helpers_zsh("echo mac_payload | clipcopy", env)
+    assert res.returncode == 0
+
+
+@pytest.mark.skipif(sys.platform != "darwin", reason="macOS-specific AC12 test")
+def test_clippaste_macos_uses_pbpaste() -> None:
+    env = {
+        "DISPLAY": "",
+        "WAYLAND_DISPLAY": "",
+    }
+    res = _run_helpers_zsh("clippaste", env)
+    assert res.returncode == 0
 
 
 def test_open_headless_text_file(tmp_path: Path) -> None:
@@ -307,7 +343,7 @@ def test_doctor_headless_info_dumb(monkeypatch: pytest.MonkeyPatch) -> None:
 
     monkeypatch.delenv("DISPLAY", raising=False)
     monkeypatch.delenv("WAYLAND_DISPLAY", raising=False)
-    monkeypatch.delenv("TERM", "dumb")
+    monkeypatch.setenv("TERM", "dumb")
     monkeypatch.delenv("TERM_PROGRAM", raising=False)
     monkeypatch.delenv("KITTY_WINDOW_ID", raising=False)
     monkeypatch.delenv("WEZTERM_PANE", raising=False)
