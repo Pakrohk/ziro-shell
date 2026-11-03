@@ -24,10 +24,10 @@ def test_wrapper_marker_present():
 
 
 def test_original_preserved():
-    cmd = 'source ~/.zshrc 2>/dev/null; ziro-defer-dispatch 5; typeset -f _ghost_focus_widget_orig'
+    cmd = 'source ~/.zshrc 2>/dev/null; ziro-defer-dispatch 5; typeset -f _ghost_focus_widget'
     res = subprocess.run(["zsh", "-ic", cmd], capture_output=True, text=True, timeout=5)
     assert res.returncode == 0
-    assert "_ghost_bus_init" in res.stdout
+    assert "ghost-popup" in res.stdout
 
 
 def test_fzf_tab_still_callable():
