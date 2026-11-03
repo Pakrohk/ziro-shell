@@ -35,8 +35,8 @@ _Updated at every meaningful change (see Cold Start Protocol §4)._
 - **ziro-themes** (planned): planned ecosystem plugin
 
 ## Current Versions
-- **ziro-shell**: v1.2.0 (post-integration architecture — Section 4 closed 2026-10-22)
-- **ziro-ghost**: v1.0.3 (STABLE patch — ghost line only) / v2.0.0 (design package complete)
+- **ziro-shell**: v1.3.1 (main branch, latest tag v1.3.1, working tree at v1.3.2 preparation)
+- **ziro-ghost**: v2.0.1 (multi-arch binary release & vendor sync)
 - **ziro-defer**: v2.0.0 (deployed; module lazy in production)
 - **ziro-pf**: v0.1.0 (prototype)
 
@@ -44,16 +44,25 @@ _Updated at every meaningful change (see Cold Start Protocol §4)._
 
 _Updated at every meaningful change (see Cold Start Protocol §4)._
 
-- **HANDOFF canonical**: `.specify/HANDOFF.md` (this file). Root has no HANDOFF.
-- **Branch**: `feat/analyzer-v2.0.0-refactor`
-- **Architecture**: post-integration — `~/.zshrc` → `~/.config/ziro/boot.zsh` → `~/.cache/ziro/ziro-boot.zwc` (see ADL-014)
-- **M-2 (real shell, live)**: 16.78ms median (pre-4E: 19.77ms via legacy integration path)
-- **Live eager artifacts**: ziro-boot.zwc + starship.zsh.zwc + zcolors.zsh.zwc + git.plugin.zsh.zwc + zsh-completions.plugin.zsh.zwc
-- **Znap**: fully removed from live paths (runtime zero, cold-path uses Python native git clone, integration shimmed). Vendor preserved for cleanup.
-- **Bottleneck**: compinit (6.75ms, 67% of boot). Floor for pure-Zsh sync compinit = ~16ms.
-- **Tests**: 343 pytest + 15 zsh suites passing
-- **Backups alive**: `/tmp/ziro_4e_checkpoint_20261022_162342/` (zshrc, integration.zsh, HANDOFF, config)
-- **Pending**: 4-D-analyzer (analyzer→load.toml output, overrides, CLI flags, reason in doctor), cleanup phase (delete obsolete specs, README)
+- **HANDOFF canonical**: `.specify/HANDOFF.md` (this file).
+- **Branch**: `main`
+- **Version**: v1.3.1 (with Ghost Tab wrapper fix on `main`)
+- **Architecture**: `.zshrc` → `boot.zsh` (compiled check) → `ziro-boot.zwc`
+- **Ghost v2.0.1 Integration**:
+  - `ghost-v2-line` (deferred autosuggestions / Intent Bus)
+  - `ghost-v2-focus` (on-demand Focus Mode Tab widget)
+  - Ghost Tab priority: `_ziro_ghost_wrap_tab` in `core/build.py` ensures Ghost Focus Mode popup is primary when `POSTDISPLAY` is present, with `fzf-tab-complete` as fallback when empty.
+- **AI-Safe MCP Layer (`ziro mcp`)**:
+  - JSON-RPC 2.0 stdio server with 16 tools across 5 categories (system, directory, command safety, ghost proxy, ziro diagnostics).
+  - Safe-mode enabled by default; mutating commands require `--allow-execute` and a 60s ephemeral confirmation token.
+  - Audit logging to `~/.cache/ziro/mcp/audit.jsonl` (mode 0600).
+- **Documentation & Releases**:
+  - SDD Step 8.5 mandated: user-facing release manifests in `.specify/releases/vX.Y.Z.md`.
+  - 12 comprehensive manifests (`v1.2.1.md` through `v1.3.1.md`) + `docs/JOURNEY.md` narrative.
+  - All 12 GitHub release descriptions populated via GitHub API.
+- **Doctor Status**: 33 checks healthy (`ziro doctor`), external tools observed with Ghost v2.0.1 telemetry.
+- **Tests**: 675 pytest passing (475 in v1.2.0 → 618 in v1.2.10 → 670 in v1.3.0 → 675 in v1.3.2 prep).
+- **Startup Latency**: ~22-24ms (unchanged).
 
 ## Integration Plan
 - `ziro-ghost` v1.0.0 integrated into `ziro-shell` v1.1.3 via znap (`Pakrohk/ziro-ghost`, clone-source)
@@ -662,3 +671,12 @@ _Latest chat stop location. The next chat resumes here._
 - **Benchmark**: No code changes. Tests 670 unchanged. Startup ~23ms unchanged.
 - **Status**: ACTIVE
 - **Notes**: This release closes the documentation gap for v1.2.x → v1.3.x. Future releases will include manifest per Step 8.5. v1.4.0 is the only remaining milestone before public launch.
+
+### ADL-041 — 2026-11-03 — v1.3.2 prep: Ghost Tab binding fix (fzf-tab fallback)
+- **Phase**: v1.3.2 (post-v1.3.1, bugfix)
+- **Category**: bugfix / zle-integration
+- **Decision**: Made Ghost Focus Mode popup primary Tab handler via wrapper `_ziro_ghost_wrap_tab` in `core/build.py` (rendered at stage 5 slot d, after all stage 5 plugins). `fzf-tab` becomes fallback-only (called when `POSTDISPLAY` is empty). Fix is entirely in ziro-shell — ghost v2.0.1 vendor untouched. Root cause: `fzf-tab` (stage 5, loaded after ghost) was overriding ghost's Tab binding with `fzf-tab-complete`, bypassing popup entirely. Also synced `load.toml` via `ziro analyze --full` to register `ghost-v2-line` and `ghost-v2-focus`.
+- **Files**: core/build.py (wrapper), tests/test_ghost_popup_binding.py (new, 5 tests)
+- **Benchmark**: Startup unchanged (~22ms). Tests 670 → 675.
+- **Status**: ACTIVE
+- **Notes**: Tested and verified with 5 new automated tests. Working tree prepared for comprehensive benchmark v2.
