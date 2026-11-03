@@ -702,6 +702,15 @@ def cmd_update(argv: list[str]) -> int:
             if not quiet:
                 print(f"  ✔ Updated plugin: {name}")
 
+    # Step 2.5: Ensure Ghost v2.0.1 vendor and binary are current (Spec 024)
+    if not dry_run and (not target_plugin or "ghost" in target_plugin.lower()):
+        try:
+            from core.ghost_fetch import fetch_ghost_binary, fetch_ghost_vendor
+            fetch_ghost_vendor()
+            fetch_ghost_binary()
+        except Exception:
+            pass
+
     # Step 3: Tool-set drift analysis
     if updated_plugins and not no_analyze:
         should_analyze = yes

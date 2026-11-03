@@ -214,8 +214,9 @@ Ziro combines defensive shell defaults, classified file listings, and unified na
 - **Analyzed (Cold Path)**: The offline analyzer inspects ZLE widgets, options, hooks, and completions to generate deterministic loading plans without runtime heuristics.
 - **Compiled (Hot Path)**: Managed scripts and completion files are pre-compiled to `.zwc` wordcode, eliminating parsing overhead and disk I/O on startup.
 - **Lazy (On-Demand)**: Tools remain dormant until invoked via autoload wrappers that intercept command execution.
-- **Batteries Included (28 Tools)**: Pre-configured integrations for Starship prompt (including the built-in `ziro theme` manager), `zoxide`, `fzf`, `fzf-tab`, `zsh-completions`, `fast-syntax-highlighting`, `ziro-ghost`, `eza`, `bat`, `ripgrep`, `fd`, `git`, and core navigation.
-- **Observable**: `ziro doctor` audits health and symlinks; `ziro analyze` inspects classifications; `ziro bench` tracks startup metrics.
+- **Batteries Included (28 Tools)**: Pre-configured integrations for Starship prompt (including the built-in `ziro theme` manager), `zoxide`, `fzf`, `fzf-tab`, `zsh-completions`, `fast-syntax-highlighting`, Ghost v2.0.1 (`ghost-v2-line` and `ghost-v2-focus`), `eza`, `bat`, `ripgrep`, `fd`, `git`, and core navigation.
+- **AI-Safe MCP Management Layer (`ziro mcp`)**: 16 structured tools across system, directory, command safety, ghost proxy, and ziro diagnostics. Default safe-mode with two-step deliberative token execution and 0600 audit logging.
+- **Observable**: `ziro doctor` audits health and symlinks; `ziro analyze` inspects classifications; `ziro bench` tracks startup metrics; `ziro stats` / `ziro health` monitor tool telemetry.
 
 ### Benchmark Data
 

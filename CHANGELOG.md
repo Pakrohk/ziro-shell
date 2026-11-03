@@ -8,12 +8,22 @@ This project adheres to a 3-tier versioning discipline (ADR-007):
 
 ## Upcoming
 
-- **v1.1.4** — Starship themes ecosystem integration
-- **v1.1.5** — Documentation polish & contributor handbook
-- **v1.2.0** — Error reporting mechanism (Spec 013) + Rich CLI Progress
-- **v1.4.0** — pf (cross-shell package manager) integration
+- **v1.4.0** — Release audit, cleanup, and public launch
 
-## [v1.2.10] — 2026-11-02
+## [v1.3.0] — 2026-11-03
+
+### Added (Ghost v2.0.1 Integration & AI-Safe MCP Management Layer)
+- **Ghost v2.0.1 Integration**:
+  - Multi-arch binary automated download with SHA256 verification (`linux-x86_64`, `linux-aarch64`, `darwin-x86_64`, `darwin-arm64`).
+  - Declarative tools factory split into `ghost-v2-line` (deferred autosuggestions) and `ghost-v2-focus` (on-demand Tab widget).
+  - Doctor observability displays Ghost companion binary version and health.
+  - Deprecated `ziro ghost preview` with redirect guidance to `ziro update`.
+- **AI-Safe MCP Management Layer (`ziro mcp`)**:
+  - Full JSON-RPC 2.0 stdio server providing 16 tools across 5 domain categories.
+  - Read-only tools (`ziro.system.*`, `ziro.dir.*`, `ziro.cmd.check`, `ghost.*`, `ziro.*`).
+  - Strict safe-mode by default; command execution requires `--allow-execute` plus a two-step 60s ephemeral confirmation token.
+  - Comprehensive immutable audit trail logging to `~/.cache/ziro/mcp/audit.jsonl` (mode 0600).
+- 47 new tests across server, tools, and integration (total 665+ tests).
 
 ### Added (External Tools Observability)
 - `ziro stats` — aggregate metrics from any tool at ~/.cache/ziro/<tool>/metrics.jsonl

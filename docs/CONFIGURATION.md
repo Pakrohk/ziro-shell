@@ -485,3 +485,43 @@ ziro health ghost
 
 
 
+
+---
+
+## AI-Safe System Management Layer (`ziro mcp`)
+
+Ziro Shell provides an AI-safe Model Context Protocol (MCP) server designed for integration with coding agents, AI assistants, and developer environments.
+
+### Philosophy
+Safety does not come from artificial blinders or synthetic restrictions; it comes from **accurate real-time system observability** and **deliberative confirmation gates** for mutating operations.
+
+### Tools Overview (16 Tools)
+1. **System Inventory (`ziro.system.*`)**:
+   - `ziro.system.info`: OS, kernel, architecture, Python, and Ziro versions.
+   - `ziro.system.packages`: Package manager counts and samples (`pip`, `uv`, `npm`, `cargo`, `brew`, `apt`).
+   - `ziro.system.binaries`: Resolved paths and versions of developer CLI binaries.
+   - `ziro.system.env`: Whitelisted, secret-redacted environment variables.
+2. **Directory Awareness (`ziro.dir.*`)**:
+   - `ziro.dir.inspect`: Inspect directory semantics (git status, language breakdown, manifests).
+   - `ziro.dir.types`: Classify directories (`project_root`, `build_dir`, `cache_dir`, `temp_dir`).
+   - `ziro.dir.safe_to_delete`: Automated cleanup heuristics and safety evaluation.
+3. **Command Safety (`ziro.cmd.*`)**:
+   - `ziro.cmd.check`: Static risk scoring (0-10) and blocked primitives.
+   - `ziro.cmd.execute`: Gated execution requiring two-step token confirmation and audit logging.
+4. **Ghost Companion (`ghost.*`)**:
+   - `ghost.suggest`: Real-time autosuggestion query proxy.
+   - `ghost.health`: Diagnostic status proxy.
+   - `ghost.stats`: Latency and error telemetry.
+5. **Native Ziro (`ziro.*`)**:
+   - `ziro.analyze`: Active tools and performance footprint.
+   - `ziro.doctor`: Structured system health checks.
+   - `ziro.stats`: Aggregated metrics.
+   - `ziro.plugin.list`: Installed plugins registry.
+
+### Safe-Mode & Two-Step Deliberative Confirmation
+- `ziro mcp` defaults to **safe-mode** (read-only queries).
+- Mutating execution requires starting the server with `--allow-execute`.
+- Execution follows a strict **two-step pattern**:
+  1. Call `ziro.cmd.execute` with `command` and `reason` (returns a preview and a 60s ephemeral token).
+  2. Call `ziro.cmd.execute` with the exact command and `confirm_token` to execute.
+- All actions log an immutable event to `~/.cache/ziro/mcp/audit.jsonl` (mode `0600`).

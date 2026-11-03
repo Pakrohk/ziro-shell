@@ -788,6 +788,8 @@ def _check_external_tools() -> tuple[str, str, str | None]:
         if h:
             h_status = h.get("status", "info")
             summary += f", health: {h_status}"
+            if tool == "ghost" and "version" in h:
+                summary += f" v{h['version']}"
             if h_status == "error":
                 has_error = True
         summaries.append(summary)

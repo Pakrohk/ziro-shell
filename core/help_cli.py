@@ -566,6 +566,20 @@ HELP_REGISTRY: dict[str, HelpEntry] = {
         ],
         related=["sync", "doctor"],
     ),
+    "mcp": HelpEntry(
+        name="mcp",
+        summary="Start the AI-safe Model Context Protocol (MCP) server over stdio",
+        usage="ziro mcp [--safe-mode | --allow-execute]",
+        flags=[
+            ("--safe-mode", "Enforce read-only inspection tools (default)"),
+            ("--allow-execute", "Unlock command execution via two-step confirmation token"),
+        ],
+        examples=[
+            "ziro mcp",
+            "ziro mcp --allow-execute",
+        ],
+        related=["doctor", "stats"],
+    ),
     "sync": HelpEntry(
         name="sync",
         summary="Compile and synchronize shell boot artifacts",
@@ -732,6 +746,7 @@ def list_all(colorize: bool | None = None) -> str:
         ("bench", "Benchmark startup and command performance"),
         ("completion", "Generate shell completion script"),
         ("analyze", "Analyze tools and inspect load manifest"),
+        ("mcp", "Start AI-safe Model Context Protocol (MCP) server over stdio"),
         ("sync", "Compile and synchronize shell boot artifacts"),
         ("update", "Check for updates and update ziro components"),
         ("help", "Show help information for ziro commands"),

@@ -279,6 +279,14 @@ def _configure_ghost_nerd_font(
     _ensure_secure_perms(ghost_conf)
     print(f"✅ wrote: {ghost_conf}")
 
+    # Ensure Ghost v2.0.1 vendor and binary are provisioned (Spec 024)
+    try:
+        from core.ghost_fetch import fetch_ghost_binary, fetch_ghost_vendor
+        fetch_ghost_vendor()
+        fetch_ghost_binary()
+    except Exception:
+        pass
+
 
 def _data_dir() -> Path:
     return get_paths()["data"]

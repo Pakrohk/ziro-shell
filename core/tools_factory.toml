@@ -159,17 +159,29 @@ theme_supported = false
 notes = "On-demand: first key sources cache; stays loaded for session."
 
 [[tool]]
-name = "ziro-ghost"
+name = "ghost-v2-line"
 type = "plugin"
 category = "auto_suggest"
-load_method = "clone-source"
+load_method = "local-source"
 load_timing = "defer"
-load_order = 6
+load_order = 21
 guard = "none"
-source = "Pakrohk/ziro-ghost"
+local_path = "$ZIRO_DATA/vendor/Pakrohk/ziro-ghost/ghost.plugin.zsh"
 conflicts_with = ["zsh-autosuggestions"]
 github = "https://github.com/Pakrohk/ziro-ghost"
-description = "IDE-like autocomplete for Zsh (standalone, v1.0.0)"
+description = "Ghost v2.0.1 Zsh line (autosuggest, IOP Intent Bus)"
+
+[[tool]]
+name = "ghost-v2-focus"
+type = "binary"
+category = "auto_suggest"
+load_method = "on-demand"
+load_timing = "on-demand"
+load_order = 22
+guard = "binary-check"
+binary_path = "$ZIRO_DATA/vendor/Pakrohk/ziro-ghost/bin/ghost-popup"
+trigger = "key:Tab"
+description = "Ghost v2.0.1 Focus Mode popup (Rust, Tab-triggered)"
 
 [[tool]]
 name = "fast-syntax-highlighting"

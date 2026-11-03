@@ -22,6 +22,7 @@ COMMANDS: tuple[str, ...] = (
     "doctor",
     "health",
     "install",
+    "mcp",
     "plugin",
     "prompt",
     "stats",
@@ -486,6 +487,21 @@ def health(
     if all:
         args.append("--all")
     return health_cli.cmd_health(args)
+
+
+@app.command
+def mcp(
+    allow_execute: bool = False,
+    safe_mode: bool = True,
+) -> int:
+    """Start the AI-safe Model Context Protocol (MCP) server over stdio."""
+    from core import mcp_cli
+    args: list[str] = []
+    if allow_execute:
+        args.append("--allow-execute")
+    elif safe_mode:
+        args.append("--safe-mode")
+    return mcp_cli.cmd_mcp(args)
 
 
 def run(argv: list[str] | None = None) -> int:
