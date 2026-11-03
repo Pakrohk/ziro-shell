@@ -588,6 +588,31 @@ def render_deferred_section(tools: list[dict[str, Any]]) -> str:
             name_flag = f'--name="{name}" ' if name else ""
             lines.append(f'ziro-defer --stage={stage} --slot={slot} {name_flag}_ziro_source_safe "{path}"')
 
+    # Ghost popup wrapper (v1.3.2 fix)
+    # Ensures ghost popup is primary Tab, fzf-tab is fallback
+    wrapper_code = """_ziro_ghost_wrap_tab() {
+  if (( $+functions[_ghost_focus_widget] )) && [[ -z "${ZIRO_GHOST_FOCUS_WRAPPED:-}" ]]; then
+    typeset -g ZIRO_GHOST_FOCUS_WRAPPED=1
+    functions[_ghost_focus_widget_orig]="$functions[_ghost_focus_widget]"
+    _ghost_focus_widget() {
+      if [[ -n "$POSTDISPLAY" && "${_GHOST_FOCUS_ENABLED:-1}" != "0" ]]; then
+        _ghost_focus_widget_orig "$@"
+      else
+        if (( $+widgets[fzf-tab-complete] )); then
+          zle fzf-tab-complete
+        elif (( $+widgets[expand-or-complete] )); then
+          zle expand-or-complete
+        fi
+      fi
+    }
+    zle -N _ghost_focus_widget
+    bindkey -M emacs '^I' _ghost_focus_widget
+    bindkey -M viins '^I' _ghost_focus_widget
+  fi
+}
+ziro-defer --stage=5 --slot=d --name="ghost-tab-wrapper" _ziro_ghost_wrap_tab"""
+    lines.append(wrapper_code)
+
     return "\n".join(lines)
 
 
