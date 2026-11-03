@@ -8,8 +8,8 @@
   <a href="https://www.python.org/"><img src="https://img.shields.io/badge/python-3.11%2B-blue.svg?logo=python&logoColor=white" alt="Python 3.11+"></a>
   <a href="https://www.zsh.org/"><img src="https://img.shields.io/badge/zsh-5.8%2B-orange.svg" alt="Zsh 5.8+"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green.svg" alt="License: MIT"></a>
-  <a href="https://github.com/Pakrohk/ziro-shell/releases"><img src="https://img.shields.io/badge/version-v1.2.0-blueviolet.svg" alt="Version: v1.2.0"></a>
-  <a href="tests/"><img src="https://img.shields.io/badge/tests-475%20passing-success.svg" alt="Tests: 475 passing"></a>
+  <a href="https://github.com/Pakrohk/ziro-shell/releases"><img src="https://img.shields.io/badge/version-v1.3.1-blueviolet.svg" alt="Version: v1.3.1"></a>
+  <a href="tests/"><img src="https://img.shields.io/badge/tests-670%20passing-success.svg" alt="Tests: 670 passing"></a>
 </p>
 
 <h3 align="center">The intent-oriented Zsh</h3>
@@ -217,6 +217,7 @@ Ziro combines defensive shell defaults, classified file listings, and unified na
 - **Batteries Included (28 Tools)**: Pre-configured integrations for Starship prompt (including the built-in `ziro theme` manager), `zoxide`, `fzf`, `fzf-tab`, `zsh-completions`, `fast-syntax-highlighting`, Ghost v2.0.1 (`ghost-v2-line` and `ghost-v2-focus`), `eza`, `bat`, `ripgrep`, `fd`, `git`, and core navigation.
 - **AI-Safe MCP Management Layer (`ziro mcp`)**: 16 structured tools across system, directory, command safety, ghost proxy, and ziro diagnostics. Default safe-mode with two-step deliberative token execution and 0600 audit logging.
 - **Observable**: `ziro doctor` audits health and symlinks; `ziro analyze` inspects classifications; `ziro bench` tracks startup metrics; `ziro stats` / `ziro health` monitor tool telemetry.
+- **Architectural Journey**: Read [docs/JOURNEY.md](docs/JOURNEY.md) for a narrative history of technical decisions from v1.2.0 through v1.3.1.
 
 ### Benchmark Data
 
