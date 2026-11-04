@@ -680,3 +680,15 @@ _Latest chat stop location. The next chat resumes here._
 - **Benchmark**: Startup unchanged (~22ms). Tests 670 → 675.
 - **Status**: ACTIVE
 - **Notes**: Tested and verified with 5 new automated tests. Working tree prepared for comprehensive benchmark v2.
+
+### ADL-042 — 2026-11-04 — v1.3.2: Fix 40 tests + align version to released state
+- **Phase**: v1.3.2 (bugfix + version align)
+- **Category**: bugfix / build
+- **Decision**: (1) core/generator.py now recognizes `on-demand` load_method with lazy stub emission + trigger requirement. Also dispatches (with NotImplementedError) for eager-shim, lazy-compinit, background-service, compiled-artifact — unblocks future spec work without breaking existing tests. (2) tests/test_bench_cli.py aligned to bench v2.1 output structure. (3) core/bench_cli.py: `from rich.console import Console` moved inside functions — lazy import, matches ziro lazy philosophy. (4) Version bumped v1.3.1 → v1.3.2 (ADL-041 ghost Tab fix was on main but untagged).
+- **Files**: core/generator.py, core/bench_cli.py, tests/test_bench_cli.py, tests/test_tty_fallback.py, pyproject.toml, core/constants.py, ziro.zsh, CHANGELOG.md
+- **Benchmark**: startup unchanged (~22ms boot, ~31ms interactive — preflight baseline preserved)
+- **Spec refs**: 027-plugin-dev-contract (pending), 025-capability-axis (pending)
+- **Status**: ACTIVE
+- **Rollback**: git reset --hard v1.3.1
+- **Notes**: This closes the preflight anomaly. Baseline is now healthy for SPEC-025 M01-M05. `on-demand` semantics will be formalized in SPEC-027.
+

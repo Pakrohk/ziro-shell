@@ -71,6 +71,25 @@ class TestGenerate(unittest.TestCase):
         p = default_output_path(Path("/home/x/.config/ziro"))
         self.assertEqual(str(p), "/home/x/.config/ziro/derived/plugins.gen.zsh")
 
+    def test_on_demand_and_future_strategies(self):
+        from core.generator import emit_pattern
+        tool_key = {
+            "name": "my-tool",
+            "load_method": "on-demand",
+            "trigger": "key:^X",
+            "local_path": "/tmp/my-tool.zsh",
+        }
+        res = emit_pattern(tool_key)
+        self.assertIn("bindkey '^X' my-tool", res)
+        self.assertIn("unfunction my-tool", res)
+
+        tool_future = {
+            "name": "my-future",
+            "load_method": "lazy-compinit",
+        }
+        with self.assertRaises(NotImplementedError):
+            emit_pattern(tool_future)
+
 
 if __name__ == "__main__":
     unittest.main()

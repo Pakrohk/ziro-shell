@@ -54,7 +54,7 @@ class TestV111Tools(unittest.TestCase):
         """
         tools = load_tools_registry()
         self.assertEqual(
-            len(tools), 28,
+            len(tools), 29,
             "Tool count changed. If intentional, update this test "
             "AND document the delta in .specify/HANDOFF.md.",
         )

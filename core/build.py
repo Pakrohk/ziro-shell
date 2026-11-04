@@ -114,10 +114,12 @@ fpath = ["${ZIRO_DATA}/completions", "${ZIRO_DATA}/vendor/zsh-users/zsh-completi
 name = "ohmyzsh-git"
 source = "ohmyzsh/ohmyzsh"
 subpath = "plugins/git"
-timing = "eager"
+timing = "deferred"
 order = 2
 method = "source"
 path = "${ZIRO_DATA}/vendor/ohmyzsh/ohmyzsh/plugins/git/git.plugin.zsh"
+defer_stage = 5
+defer_slot = "b"
 
 [[tool]]
 name = "compinit"
@@ -627,7 +629,11 @@ def render_deferred_section(tools: list[dict[str, Any]]) -> str:
           if (( ${#matching} > 0 )); then
             zle -I
             local selected
-            selected=$("$bin_path" focus "${matching[@]}")
+            if [[ -r /dev/tty ]]; then
+              selected=$("$bin_path" focus --query="$BUFFER" "${matching[@]}" </dev/tty)
+            else
+              selected=$("$bin_path" focus --query="$BUFFER" "${matching[@]}")
+            fi
             if [[ -n "$selected" ]]; then
               BUFFER="$selected"
               CURSOR=${#BUFFER}

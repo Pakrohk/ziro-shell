@@ -147,19 +147,80 @@ def emit_on_demand_function(tool: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def emit_on_demand(tool: dict[str, Any]) -> str:
+    """Emit on-demand lazy stub triggered by key, command, or event (SPEC-027)."""
+    name = tool.get("name", "")
+    trigger = tool.get("trigger", "")
+    tt = tool.get("trigger_type", "")
+
+    # Legacy trigger_type support
+    if tt == "key":
+        return emit_on_demand_key(tool)
+    elif tt == "command":
+        return emit_on_demand_command(tool)
+    elif tt == "function":
+        return emit_on_demand_function(tool)
+
+    if not trigger:
+        raise ValueError(
+            f"Tool {name!r} declared with 'on-demand' requires a trigger declaration (key:/command:/event:)"
+        )
+
+    resolved_path = (
+        tool.get("local_path")
+        or tool.get("binary_path")
+        or tool.get("source")
+        or ""
+    )
+
+    lines = [
+        f"# {name} — on-demand stub (SPEC-027)",
+        f"{name}() {{",
+        f"  unfunction {name}",
+        f"  source {resolved_path}" if not tool.get("binary_path") else f"  {resolved_path} \"$@\"",
+        f"  {name} \"$@\"",
+        f"}}",
+    ]
+
+    if trigger.startswith("key:"):
+        key = trigger.split(":", 1)[1]
+        lines.append(f"bindkey '{key}' {name}")
+    elif trigger.startswith("command:"):
+        cmd = trigger.split(":", 1)[1]
+        if cmd != name:
+            lines.append(f"alias {cmd}={name}")
+    elif trigger.startswith("event:"):
+        event = trigger.split(":", 1)[1]
+        lines.append(f"add-zsh-hook {event} {name}")
+    else:
+        raise ValueError(
+            f"Invalid trigger format {trigger!r} for tool {name!r}. Must start with key:, command:, or event:"
+        )
+
+    return "\n".join(lines) + "\n"
+
+
 def emit_pattern(tool: dict[str, Any]) -> str:
     """Emit zsh shell command string for a declarative tool registry entry."""
     method = tool.get("load_method", "")
     timing = tool.get("load_timing", "")
 
-    if timing == "on-demand":
-        tt = tool.get("trigger_type", "")
-        if tt == "key":
-            return emit_on_demand_key(tool)
-        elif tt == "command":
-            return emit_on_demand_command(tool)
-        elif tt == "function":
-            return emit_on_demand_function(tool)
+    # Future strategies dispatch (see SPEC-027)
+    future_strategies = {
+        "eager-shim",
+        "deferred-s5",
+        "lazy-compinit",
+        "background-service",
+        "compiled-artifact",
+    }
+    if method in future_strategies or timing in future_strategies:
+        st = method if method in future_strategies else timing
+        raise NotImplementedError(
+            f"Load strategy {st!r} for tool {tool.get('name')!r} is not yet implemented (see SPEC-027)"
+        )
+
+    if method == "on-demand" or timing == "on-demand":
+        return emit_on_demand(tool)
 
     if method == "bootstrap-source":
         return f"source {tool['source']}"

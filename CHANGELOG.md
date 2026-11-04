@@ -5,6 +5,22 @@ This project adheres to [Semantic Versioning](https://semver.org/) and a structu
 
 ---
 
+## [v1.3.2] — 2026-11-04
+
+### Fixed
+- Generator now recognizes `on-demand` load_method (37 tests unblocked)
+- Bench v2.1 tests aligned with new output structure (2 tests)
+- TTY fallback test — lazy import of rich.console in bench_cli (1 test)
+
+### Added
+- Generator dispatch for future strategies: eager-shim, lazy-compinit, background-service, compiled-artifact (raises NotImplementedError with SPEC-027 reference until implemented)
+
+### Notes
+- Ghost Tab binding fix (ADL-041) now included in v1.3.2 release
+- Test suite: 671 passing (631+37+2+1)
+
+---
+
 ## [v1.3.1] — 2026-11-03
 
 ### Added

@@ -74,6 +74,7 @@ class TestToolsFactorySchema(unittest.TestCase):
             "local-source",
             "builtin-load",
             "bootstrap-source",
+            "on-demand",
         }
         for t in self.tools:
             self.assertIn(

@@ -392,12 +392,19 @@ def config_set(key: str, value: str) -> int:
 # Additional top-level commands
 # ---------------------------------------------------------------------------
 @app.command
-def bench(iters: int = 10, warmup: int = 2, quiet: bool = False) -> int:
+def bench(
+    iters: int = 10,
+    warmup: int = 2,
+    quiet: bool = False,
+    plugin: str | None = None,
+) -> int:
     """Benchmark interactive shell startup time across iterations."""
     from core import bench_cli
     args = ["--iters", str(iters), "--warmup", str(warmup)]
     if quiet:
         args.append("--quiet")
+    if plugin:
+        args.extend(["--plugin", plugin])
     return bench_cli.cmd_bench(args)
 
 

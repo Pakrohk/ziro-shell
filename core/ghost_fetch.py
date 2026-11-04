@@ -135,9 +135,10 @@ def fetch_ghost_binary(dest_dir: Path | None = None) -> bool:
         tmp_bin.replace(target_bin)
         target_bin.chmod(0o755)
 
-        # Also place symlink or copy to ~/.local/bin/ghost-popup if ~/.local/bin exists
+        # Also place symlink or copy to ~/.local/bin/ghost-popup if ~/.local/bin exists and not in temp test dir
         user_local_bin = Path.home() / ".local" / "bin"
-        if user_local_bin.is_dir():
+        real_data_dir = Path.home() / ".local" / "share" / "ziro"
+        if user_local_bin.is_dir() and str(paths.get("data", "")).startswith(str(real_data_dir)):
             link_path = user_local_bin / "ghost-popup"
             try:
                 link_path.unlink(missing_ok=True)
