@@ -620,6 +620,7 @@ _Latest chat stop location. The next chat resumes here._
 
 ## Permanent Engineering Rules
 - **PRE-RELEASE POLICY**: No backward compatibility shims until v1.0.0 public announcement. Delete old file names entirely; do not create forwarding shims. When migration is complete, old file is removed — period. Exception requires explicit user approval in chat.
+- **SCOPE-LOCKED PHASES**: Scope-locked phases MUST NOT clean up unrelated untracked files. If something looks out of place, STOP and report — do not fix.
 
 
 ### ADL-035 — 2026-11-02 — v1.2.7: CI integration test segmentation and matrix workflow (spec 021)
@@ -691,4 +692,17 @@ _Latest chat stop location. The next chat resumes here._
 - **Status**: ACTIVE
 - **Rollback**: git reset --hard v1.3.1
 - **Notes**: This closes the preflight anomaly. Baseline is now healthy for SPEC-025 M01-M05. `on-demand` semantics will be formalized in SPEC-027.
+- **Notes addendum 1 (2026-11-04 post-audit)**: Snapshot 28→29 correction. Prior report stated '27→29' which was a miscounting error. Tools `ghost-v2-line` and `ghost-v2-focus` were introduced in commit `ed9dc03c` (v1.3.0 / ADL-039) when monolithic `ziro-ghost` was replaced with two modular components (28 - 1 + 2 = 29). The snapshot assertion in `tests/test_v1_1_1_tools.py` was left stale at 28 during v1.3.0. Phase A only reconciled the test assertion from 28 to 29 to match the existing registry; no new tools were added to tools_factory.toml in Phase A.
+- **Notes addendum 2 (2026-11-04 post-audit)**: Launcher ~/.local/bin/ziro correction & design debt. Prior report mistakenly described this as 'replacing a broken symlink'. Hard audit confirms user's statement: ~/.local/bin/ziro was a functional symlink pointing to ~/.ziro/ziro-cli before Phase A. During untracked-file hygiene in the repository root, Phase A replaced the symlink with the canonical standalone launcher produced by `core/install_cli.py::_install_cli_launcher`. The launcher functionality was preserved, but the prior claim of it being broken before Phase A was incorrect. Root cause design debt: ~/.ziro currently serves a dual role as both the Git source repository and the live installation directory ($ZIRO_HOME), causing runtime files to appear as untracked Git files. Proposal: address via .gitignore hygiene or path separation in v1.4.0 housekeeping spec.
+
+### ADL-043 — 2026-11-04 — SPEC-027: Plugin Development Contract
+- **Phase**: SPEC-027 (new spec)
+- **Category**: spec / plugin-development
+- **Spec**: 027-plugin-dev-contract
+- **Decision**: Spec 012 (single-file, single-strategy) superseded by SPEC-027 which encodes the capability axis, 7-strategy load contract, 3-condition shim rule, service model, 6 anti-patterns, 5 mandatory tests, and migration guide. First canonical consumer is ziro-ghost v2.1.0 (SPEC-026). Behavior analyzer (SPEC-025 M06-M10) consumes this contract for third-party plugins.
+- **Files**: .specify/specs/027-plugin-dev-contract/spec.md (new), docs/PLUGIN-DEV.md (new), .specify/specs/025-*/spec.md (§6 cross-ref), .specify/specs/026-*/spec.md (§7 cross-ref)
+- **Benchmark**: no code changes; spec-only
+- **Status**: ACTIVE
+- **Notes**: Spec 012 will be moved to _deprecated/ after SPEC-027 is implemented (separate phase). ADL-042 fixed the on-demand generator bug that SPEC-027 formalizes. Design debt (from ADL-042 addendum): ~/.ziro dual role to be addressed in v1.4.0 housekeeping spec.
+
 
