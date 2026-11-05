@@ -375,84 +375,22 @@ def apply_overrides(
 
 
 def render_defer_core(defer_root: Path, eager_modules: list[str]) -> str:
-    """Inline minimal Defer v2 core modules directly into boot script."""
-    blocks: list[str] = [
-        "# --- Section 1: Defer minimal core (inlined) ---",
-        f'typeset -g _ZIRO_DEFER_ROOT="{defer_root}"',
-    ]
-
-    for mod_rel in eager_modules:
-        mod_file = defer_root / mod_rel
-        if mod_file.is_file():
-            blocks.append(f"\n# [{mod_rel}]")
-            blocks.append(mod_file.read_text(encoding="utf-8").strip())
-        else:
-            blocks.append(f"\n# warning: eager module not found: {mod_rel}")
-
-    lazy_definition = """
-# ─── Lazy Module Loader ───
-typeset -gA _ZIRO_DEFER_LAZY_MODULES=(
-  timer lib/timer.zsh
-  json-writer lib/json-writer.zsh
-  cycle-detect lib/cycle-detect.zsh
-  condition-eval lib/condition-eval.zsh
-  toml-parser lib/toml-parser.zsh
-  cache-io lib/cache-io.zsh
-  eval-cache cache/eval-cache.zsh
-  zwc-cache cache/zwc-cache.zsh
-  analysis-cache cache/analysis-cache.zsh
-  tag-cache cache/tag-cache.zsh
-  marker-cache cache/marker-cache.zsh
-  ghost-cache cache/ghost-cache.zsh
-  batch api/ziro-defer-batch.zsh
-  stats api/ziro-defer-stats.zsh
-  reorder api/ziro-defer-reorder.zsh
-  stage-1 stages/stage-1-bootstrap.zsh
-  stage-2 stages/stage-2-pre-compinit.zsh
-  stage-3 stages/stage-3-compinit.zsh
-  stage-4 stages/stage-4-post-compinit.zsh
-  stage-5 stages/stage-5-post-prompt.zsh
-  stage-6 stages/stage-6-idle.zsh
-  stage-7 stages/stage-7-on-demand.zsh
-)
-typeset -gA _ZIRO_DEFER_LOADED_MODULES=()
-
-_ziro_defer_need() {
-  local mod="$1"
-  [[ -n "${_ZIRO_DEFER_LOADED_MODULES[$mod]:-}" ]] && return 0
-  local rel="${_ZIRO_DEFER_LAZY_MODULES[$mod]:-}"
-  if [[ -n "$rel" && -r "${_ZIRO_DEFER_ROOT}/${rel}" ]]; then
-    source "${_ZIRO_DEFER_ROOT}/${rel}"
-    _ZIRO_DEFER_LOADED_MODULES[$mod]=1
-    return 0
-  fi
-  return 1
-}
-
-# ─── Stubs for Lazy Public APIs & Builtins ───
-ziro-defer-stats() { _ziro_defer_need stats && ziro-defer-stats "$@"; }
-ziro-defer-reorder() { _ziro_defer_need reorder && ziro-defer-reorder "$@"; }
-ziro-defer-batch() { _ziro_defer_need batch && ziro-defer-batch "$@"; }
-_ziro_defer_lib_timer_start() { _ziro_defer_need timer && _ziro_defer_lib_timer_start "$@"; }
-_ziro_defer_lib_timer_elapsed_ms() { _ziro_defer_need timer && _ziro_defer_lib_timer_elapsed_ms "$@"; }
-_ziro_defer_lib_eval_condition() { _ziro_defer_need condition-eval && _ziro_defer_lib_eval_condition "$@"; }
-_ziro_defer_lib_json_record() { _ziro_defer_need json-writer && _ziro_defer_lib_json_record "$@"; }
-_ziro_defer_stage_1_builtin() { _ziro_defer_need stage-1 && _ziro_defer_stage_1_builtin "$@"; }
-_ziro_defer_stage_2_builtin() { _ziro_defer_need stage-2 && _ziro_defer_stage_2_builtin "$@"; }
-_ziro_defer_stage_3_builtin() { _ziro_defer_need stage-3 && _ziro_defer_stage_3_builtin "$@"; }
-_ziro_defer_stage_4_builtin() { _ziro_defer_need stage-4 && _ziro_defer_stage_4_builtin "$@"; }
-_ziro_defer_stage_5_builtin() { _ziro_defer_need stage-5 && _ziro_defer_stage_5_builtin "$@"; }
-_ziro_defer_stage_6_builtin() { _ziro_defer_need stage-6 && _ziro_defer_stage_6_builtin "$@"; }
-_ziro_defer_stage_7_builtin() { _ziro_defer_need stage-7 && _ziro_defer_stage_7_builtin "$@"; }
-
-# ─── Initial Builtin Hooking ───
-_ziro_defer_stage_0_builtin
-ziro-defer --stage=2 --slot=a --name=_builtin_stage_2 _ziro_defer_stage_2_builtin
-ziro-defer --stage=3 --slot=a --name=_builtin_stage_3 _ziro_defer_stage_3_builtin
-ziro-defer --stage=4 --slot=a --name=_builtin_stage_4 _ziro_defer_stage_4_builtin
-"""
-    blocks.append(lazy_definition.strip())
-    return "\n\n".join(blocks)
+    """Render Section 1: Ultra-Minimal Queue Shim (SPEC-025 M02)."""
+    return f"""# --- Section 1: Defer minimal core (queue shim) ---
+typeset -g _ZIRO_DEFER_ROOT="{defer_root}" _ZIRO_DEFER_LOADED=0
+typeset -ga _ZIRO_DEFER_QUEUE=()
+ziro-defer() {{ (( _ZIRO_DEFER_LOADED )) && _ziro_defer_run "$@" || _ZIRO_DEFER_QUEUE+=("$*"); }}
+_ziro_defer_flush() {{
+  (( _ZIRO_DEFER_LOADED )) && return 0
+  _ZIRO_DEFER_LOADED=1
+  local l="${{_ZIRO_DEFER_ROOT}}/loader.zsh"
+  [[ -r "$l" ]] && source "$l"
+  (( $#_ZIRO_DEFER_QUEUE )) && for _c in "${{_ZIRO_DEFER_QUEUE[@]}}"; do eval "_ziro_defer_run $_c"; done
+  _ZIRO_DEFER_QUEUE=()
+}}
+_ziro_defer_flush_stage5() {{ _ziro_defer_flush; }}
+ziro-defer-bind-widget() {{ local k="$1"; shift; local w="_ziro_bw_${{RANDOM}}_${{RANDOM}}"; eval "${{w}}() {{ eval \\"${{*}}\\" }}"; zle -N "$w" && bindkey "$k" "$w"; }}
+ziro-defer-dispatch() {{ _ziro_defer_flush; (( $+functions[_ziro_defer_core_dispatch_stage] )) && _ziro_defer_core_dispatch_stage "$@"; }}"""
 
 
 def _shell_path(p: str) -> str:
@@ -763,7 +701,16 @@ def render_finalize_section() -> str:
     """Render Section 6: Hooks and finalize."""
     return """# --- Section 6: Defer hooks + finalize ---
 if [[ -o interactive ]]; then
-  _ziro_defer_core_hooks_install
+  _ziro_defer_precmd() {
+    autoload -Uz add-zsh-hook 2>/dev/null
+    add-zsh-hook -d precmd _ziro_defer_precmd 2>/dev/null || true
+    _ziro_defer_flush_stage5
+    if (( $+functions[_ziro_defer_core_hooks_install] )); then
+      _ziro_defer_core_hooks_install
+    fi
+  }
+  autoload -Uz add-zsh-hook 2>/dev/null
+  add-zsh-hook precmd _ziro_defer_precmd
   _ziro_idle_update_check() { ( zsh "${ZIRO_HOME}/scripts/background-update.zsh" >/dev/null 2>&1 & ) }
   ziro-defer --stage=6 _ziro_idle_update_check
 fi

@@ -226,3 +226,29 @@ ziro-ghost v2.1.0's capability decomposition MUST follow the contract defined in
 
 **Revision history**: 2026-11-04 — Added cross-reference to SPEC-027.
 
+
+## 8. Ghost UI & Tagging Fixes (from v1.3.2 User Audit)
+
+During the audit of Ghost v2.0.1, the following UI and tagging bugs were identified. These MUST be resolved in Ghost v2.1.0 (SPEC-026) as part of the capability decomposition.
+
+### 8.1. Path-Bearing Command Tagging Bug
+- **Symptom**: In the Ghost Cmp popup, bare system commands like `cd`, `z`, and `pushd` are incorrectly tagged as `path` (folder icon).
+- **Root Cause**: The `history.source.zsh` and `path.source.zsh` lack command-context awareness. They tokenize the buffer and misclassify bare commands that typically accept paths as the paths themselves.
+- **Fix Requirement (Capability: `ghost-tokenizer`)**: Introduce a `ghost-tokenizer` capability that knows the difference between `command` and `path-context`. If the buffer is `cd `, suggest paths. If the buffer is `cd` (no space), suggest the command `cd` with a `command` tag, NOT `path`.
+
+### 8.2. Missing UI Colors (Ratatui Theme)
+- **Symptom**: The Rust popup UI is monochromatic. No visual distinction between history items (`hist`), path items (`path`), and the selected item.
+- **Root Cause**: `ghost-popup` Rust binary uses `ratatui` but lacks a theme configuration parser. Hardcoded default styles are plain.
+- **Fix Requirement (Capability: `ghost-ui`)**: Implement a theme config in `ziro-plugin.toml` (e.g., `[ui.theme]` with color hex codes for `hist`, `path`, `selected`). The Rust binary must parse this and apply colors.
+
+### 8.3. Configurable Display Limits
+- **Symptom**: The popup shows a fixed number of items (e.g., `1/5`), with no user control.
+- **Root Cause**: Hardcoded limits in the Rust UI.
+- **Fix Requirement (Capability: `ghost-ui`)**: Add `ui.max_items` and `ui.page_size` to `ziro-plugin.toml`. Allow `ghost-popup` to respect these settings.
+
+### 8.4. Updated Milestones for SPEC-026
+- **M03a (New)**: Add `ghost-tokenizer` capability to correctly classify commands vs paths.
+- **M04a (New)**: Implement theme and layout config parsing in `ghost-popup` Rust binary.
+- **M06a (New)**: Update `ziro-plugin.toml` schema (per SPEC-027) to include `[ui.theme]` and `[ui.limits]` blocks.
+
+
