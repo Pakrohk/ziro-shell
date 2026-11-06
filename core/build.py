@@ -582,67 +582,90 @@ def render_deferred_section(tools: list[dict[str, Any]]) -> str:
             name_flag = f'--name="{name}" ' if name else ""
             lines.append(f'ziro-defer --stage={stage} --slot={slot} {name_flag}_ziro_source_safe "{path}"')
 
-    # Ghost popup wrapper (v1.3.2 fix)
+    # Ghost popup wrapper (v1.3.4 hotfix)
     # Ensures ghost popup is primary Tab, fzf-tab is fallback
     wrapper_code = """_ziro_ghost_wrap_tab() {
   if (( $+functions[_ghost_focus_widget] )) && [[ -z "${ZIRO_GHOST_FOCUS_WRAPPED:-}" ]]; then
     typeset -g ZIRO_GHOST_FOCUS_WRAPPED=1
-    _ghost_popup_async_handler() {
-      local fd=$1
-      zle -F "$fd"
-      local selected=""
-      read -r -u "$fd" selected 2>/dev/null
-      exec {fd}<&-
-      if [[ -n "$selected" ]]; then
-        BUFFER="$selected"
-        CURSOR=${#BUFFER}
-      fi
-      zle reset-prompt 2>/dev/null || true
-    }
     _ghost_focus_widget() {
-      if [[ -n "$POSTDISPLAY" && "${_GHOST_FOCUS_ENABLED:-1}" != "0" ]]; then
-        local bin_path=""
-        if (( $+functions[_ghost_bus_binary_path] )); then
-          bin_path="$(_ghost_bus_binary_path)"
-        elif (( $+commands[ghost-popup] )); then
-          bin_path="$commands[ghost-popup]"
+      emulating zle
+      if [[ -z "$POSTDISPLAY" || "${_GHOST_FOCUS_ENABLED:-1}" == "0" ]]; then
+        if (( $+widgets[fzf-tab-complete] )); then
+          zle fzf-tab-complete
+        else
+          zle expand-or-complete
         fi
-        if [[ -n "$bin_path" && -x "$bin_path" ]]; then
-          local -a matching=()
-          local item
-          local -i count=0
-          for item in "${_ghost_results[@]}"; do
-            [[ "$item" == [0-9]*:[^:]*:* ]] && item="${item#*:*:}"
-            [[ -z "$item" ]] && continue
-            if [[ "$item" == "$BUFFER"* ]]; then
+        return 0
+      fi
+
+      local bin_path=""
+      if (( $+functions[_ghost_bus_binary_path] )); then
+        bin_path="$(_ghost_bus_binary_path)"
+      elif (( $+commands[ghost-popup] )); then
+        bin_path="$commands[ghost-popup]"
+      fi
+      if [[ -z "$bin_path" || ! -x "$bin_path" ]]; then
+        if (( $+widgets[fzf-tab-complete] )); then
+          zle fzf-tab-complete
+        else
+          zle expand-or-complete
+        fi
+        return 0
+      fi
+
+      local -a matching=()
+      local item
+      local -i count=0
+      for item in "${_ghost_results[@]}"; do
+        [[ "$item" == [0-9]*:[^:]*:* ]] && item="${item#*:*:}"
+        [[ -z "$item" ]] && continue
+        if [[ "$item" == "$BUFFER"* ]]; then
+          matching+=("$item")
+          (( ++count >= 10 )) && break
+        fi
+      done
+      if (( count < 10 )); then
+        for item in "${_ghost_history_cache[@]}"; do
+          [[ -z "$item" || "$item" == "$BUFFER" ]] && continue
+          if [[ "$item" == "$BUFFER"* ]]; then
+            if (( ${matching[(Ie)$item]} == 0 )); then
               matching+=("$item")
               (( ++count >= 10 )) && break
             fi
-          done
-          if (( count < 10 )); then
-            for item in "${_ghost_history_cache[@]}"; do
-              [[ -z "$item" || "$item" == "$BUFFER" ]] && continue
-              if [[ "$item" == "$BUFFER"* ]]; then
-                if (( ${matching[(Ie)$item]} == 0 )); then
-                  matching+=("$item")
-                  (( ++count >= 10 )) && break
-                fi
-              fi
-            done
           fi
-          if (( ${#matching} > 0 )); then
-            local fd
-            exec {fd}< <("$bin_path" focus --query="$BUFFER" "${matching[@]}" 2>/dev/null)
-            zle -F "$fd" _ghost_popup_async_handler
-            return 0
-          fi
+        done
+      fi
+
+      if (( ${#matching} == 0 )); then
+        if (( $+widgets[fzf-tab-complete] )); then
+          zle fzf-tab-complete
+        else
+          zle expand-or-complete
         fi
+        return 0
       fi
-      if (( $+widgets[fzf-tab-complete] )); then
-        zle fzf-tab-complete
-      elif (( $+widgets[expand-or-complete] )); then
-        zle expand-or-complete
+
+      # Save state defensively
+      local _saved_buf="$BUFFER"
+      local _saved_cur="$CURSOR"
+      local selected=""
+      local rc=1
+
+      # Run binary synchronously with TTY + timeout
+      selected=$(timeout 30 "$bin_path" focus --query="$BUFFER" "${matching[@]}" </dev/tty 2>/dev/null)
+      rc=$?
+
+      # Defensive restore
+      if [[ $rc -ne 0 || -z "$selected" ]]; then
+        BUFFER="$_saved_buf"
+        CURSOR=$_saved_cur
+      else
+        BUFFER="$selected"
+        CURSOR=${#BUFFER}
+        _ghost_ui_inline_clear 2>/dev/null || POSTDISPLAY=""
       fi
+
+      zle reset-prompt 2>/dev/null || true
     }
     zle -N _ghost_focus_widget
     bindkey -M emacs '^I' _ghost_focus_widget

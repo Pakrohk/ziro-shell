@@ -1,4 +1,4 @@
-"""Tests for Tab interrupt invariant and Starship prompt stability (SPEC-026 Tab-fix)."""
+"""Tests for Tab interrupt invariant and Starship prompt stability (SPEC-026 Tab-fix v1.3.4 hotfix)."""
 import os
 import pty
 import select
@@ -28,16 +28,40 @@ def test_no_command_substitution_in_prompt_literal():
 
 
 @pytest.mark.unit
-def test_no_dev_tty_redirect_in_zle_widget():
-    """_ghost_focus_widget must not block on </dev/tty."""
+def test_ghost_popup_has_devtty():
+    """_ghost_focus_widget must provide direct </dev/tty for interactive TUI rendering."""
     build_file = Path(__file__).resolve().parent.parent / "core" / "build.py"
     content = build_file.read_text(encoding="utf-8")
-    # Extract _ghost_focus_widget block
     start = content.find("_ghost_focus_widget() {")
     end = content.find("zle -N _ghost_focus_widget", start)
     assert start != -1 and end != -1, "_ghost_focus_widget block not found"
     widget_code = content[start:end]
-    assert "</dev/tty" not in widget_code, "</dev/tty redirect found inside _ghost_focus_widget"
+    assert "</dev/tty" in widget_code, "</dev/tty redirect missing from _ghost_focus_widget"
+
+
+@pytest.mark.unit
+def test_ghost_popup_sync_with_timeout():
+    """_ghost_focus_widget must wrap binary with timeout 30 to cap potential hangs."""
+    build_file = Path(__file__).resolve().parent.parent / "core" / "build.py"
+    content = build_file.read_text(encoding="utf-8")
+    start = content.find("_ghost_focus_widget() {")
+    end = content.find("zle -N _ghost_focus_widget", start)
+    assert start != -1 and end != -1, "_ghost_focus_widget block not found"
+    widget_code = content[start:end]
+    assert "timeout 30" in widget_code, "timeout 30 wrapper missing from _ghost_focus_widget"
+
+
+@pytest.mark.unit
+def test_ghost_popup_buffer_save_restore():
+    """_ghost_focus_widget must defensively save and restore BUFFER and CURSOR on failure."""
+    build_file = Path(__file__).resolve().parent.parent / "core" / "build.py"
+    content = build_file.read_text(encoding="utf-8")
+    start = content.find("_ghost_focus_widget() {")
+    end = content.find("zle -N _ghost_focus_widget", start)
+    assert start != -1 and end != -1, "_ghost_focus_widget block not found"
+    widget_code = content[start:end]
+    assert "_saved_buf" in widget_code, "_saved_buf pattern missing from _ghost_focus_widget"
+    assert "_saved_cur" in widget_code, "_saved_cur pattern missing from _ghost_focus_widget"
 
 
 @pytest.mark.unit
@@ -48,15 +72,6 @@ def test_precmd_renders_starship():
     assert "_ziro_render_starship_precmd()" in content, "Precmd render function missing"
     assert "add-zsh-hook precmd _ziro_render_starship_precmd" in content, "Hook registration missing"
     assert "typeset -g STARSHIP_RENDERED=" in content, "STARSHIP_RENDERED variable definition missing"
-
-
-@pytest.mark.unit
-def test_ghost_popup_uses_zle_F():
-    """Ghost popup must use async zle -F fd handler."""
-    build_file = Path(__file__).resolve().parent.parent / "core" / "build.py"
-    content = build_file.read_text(encoding="utf-8")
-    assert "zle -F" in content, "zle -F handler registration missing in build.py"
-    assert "_ghost_popup_async_handler" in content, "_ghost_popup_async_handler function missing"
 
 
 @pytest.mark.unit
