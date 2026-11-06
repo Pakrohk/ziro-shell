@@ -427,7 +427,9 @@ _ziro_defer_flush() {{
 }}
 _ziro_defer_flush_stage5() {{ _ziro_defer_flush; }}
 ziro-defer-bind-widget() {{ local k="$1"; shift; local w="_ziro_bw_${{RANDOM}}_${{RANDOM}}"; eval "${{w}}() {{ eval \\"${{*}}\\" }}"; zle -N "$w" && bindkey "$k" "$w"; }}
-ziro-defer-dispatch() {{ _ziro_defer_flush; (( $+functions[_ziro_defer_core_dispatch_stage] )) && _ziro_defer_core_dispatch_stage "$@"; }}"""
+ziro-defer-dispatch() {{ _ziro_defer_flush; (( $+functions[_ziro_defer_core_dispatch_stage] )) && _ziro_defer_core_dispatch_stage "$@"; }}
+_ziro_defer_core_hooks_install() {{ autoload -Uz add-zsh-hook 2>/dev/null; add-zsh-hook precmd _ziro_defer_core_dispatch_precmd; }}
+_ziro_defer_core_dispatch_precmd() {{ _ziro_defer_flush; (( $+functions[_ziro_defer_core_dispatch_precmd] )) && _ziro_defer_core_dispatch_precmd "$@"; }}"""
 
 
 def _shell_path(p: str) -> str:
@@ -738,16 +740,7 @@ def render_finalize_section() -> str:
     """Render Section 6: Hooks and finalize."""
     return """# --- Section 6: Defer hooks + finalize ---
 if [[ -o interactive ]]; then
-  _ziro_defer_precmd() {
-    autoload -Uz add-zsh-hook 2>/dev/null
-    add-zsh-hook -d precmd _ziro_defer_precmd 2>/dev/null || true
-    _ziro_defer_flush_stage5
-    if (( $+functions[_ziro_defer_core_hooks_install] )); then
-      _ziro_defer_core_hooks_install
-    fi
-  }
-  autoload -Uz add-zsh-hook 2>/dev/null
-  add-zsh-hook precmd _ziro_defer_precmd
+  _ziro_defer_core_hooks_install
   _ziro_idle_update_check() { ( zsh "${ZIRO_HOME}/scripts/background-update.zsh" >/dev/null 2>&1 & ) }
   ziro-defer --stage=6 _ziro_idle_update_check
 fi
