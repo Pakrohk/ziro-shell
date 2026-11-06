@@ -518,6 +518,21 @@ def render_eager_section(tools: list[dict[str, Any]]) -> str:
                 lines.append('    autoload -Uz colors 2>/dev/null && colors 2>/dev/null')
                 lines.append('    PROMPT="%F{cyan}%~%f %F{green}❯%f "')
                 lines.append('  fi')
+                lines.append("  # Starship prompt (pre-rendered in precmd — no $() in PROMPT)")
+                lines.append("  typeset -g STARSHIP_RENDERED=''")
+                lines.append("  _ziro_render_starship_precmd() {")
+                lines.append('    local star_bin=""')
+                lines.append('    if (( $+commands[starship] )); then star_bin="$commands[starship]"')
+                lines.append('    elif [[ -x "$HOME/.local/bin/starship" ]]; then star_bin="$HOME/.local/bin/starship"')
+                lines.append('    fi')
+                lines.append('    if [[ -n "$star_bin" ]]; then')
+                lines.append('      STARSHIP_RENDERED=$("$star_bin" prompt --terminal-width="$COLUMNS" --keymap="${KEYMAP:-}" --status="$STARSHIP_CMD_STATUS" --pipestatus="${STARSHIP_PIPE_STATUS[*]}" --cmd-duration="${STARSHIP_DURATION:-}" --jobs="$STARSHIP_JOBS_COUNT")')
+                lines.append('    fi')
+                lines.append("  }")
+                lines.append("  autoload -Uz add-zsh-hook 2>/dev/null")
+                lines.append("  add-zsh-hook precmd _ziro_render_starship_precmd")
+                lines.append("  _ziro_render_starship_precmd")
+                lines.append("  PROMPT='$STARSHIP_RENDERED'")
                 lines.append("fi")
             elif name == "zcolors":
                 lines.append("if [[ -o interactive ]]; then")
@@ -572,6 +587,18 @@ def render_deferred_section(tools: list[dict[str, Any]]) -> str:
     wrapper_code = """_ziro_ghost_wrap_tab() {
   if (( $+functions[_ghost_focus_widget] )) && [[ -z "${ZIRO_GHOST_FOCUS_WRAPPED:-}" ]]; then
     typeset -g ZIRO_GHOST_FOCUS_WRAPPED=1
+    _ghost_popup_async_handler() {
+      local fd=$1
+      zle -F "$fd"
+      local selected=""
+      read -r -u "$fd" selected 2>/dev/null
+      exec {fd}<&-
+      if [[ -n "$selected" ]]; then
+        BUFFER="$selected"
+        CURSOR=${#BUFFER}
+      fi
+      zle reset-prompt 2>/dev/null || true
+    }
     _ghost_focus_widget() {
       if [[ -n "$POSTDISPLAY" && "${_GHOST_FOCUS_ENABLED:-1}" != "0" ]]; then
         local bin_path=""
@@ -604,21 +631,9 @@ def render_deferred_section(tools: list[dict[str, Any]]) -> str:
             done
           fi
           if (( ${#matching} > 0 )); then
-            zle -I
-            local selected
-            if [[ -r /dev/tty ]]; then
-              selected=$("$bin_path" focus --query="$BUFFER" "${matching[@]}" </dev/tty)
-            else
-              selected=$("$bin_path" focus --query="$BUFFER" "${matching[@]}")
-            fi
-            if [[ -n "$selected" ]]; then
-              BUFFER="$selected"
-              CURSOR=${#BUFFER}
-              _ghost_ui_inline_clear 2>/dev/null || POSTDISPLAY=""
-              zle reset-prompt 2>/dev/null || true
-              return 0
-            fi
-            zle reset-prompt 2>/dev/null || true
+            local fd
+            exec {fd}< <("$bin_path" focus --query="$BUFFER" "${matching[@]}" 2>/dev/null)
+            zle -F "$fd" _ghost_popup_async_handler
             return 0
           fi
         fi
