@@ -1,4 +1,4 @@
-"""Tests for Tab interrupt invariant and Starship prompt stability (SPEC-026 Tab-fix v1.3.4 hotfix)."""
+"""Tests for Tab interrupt invariant and Starship prompt stability (SPEC-026 Tab-fix v1.3.4 pragmatic hotfix)."""
 import os
 import pty
 import select
@@ -28,40 +28,39 @@ def test_no_command_substitution_in_prompt_literal():
 
 
 @pytest.mark.unit
-def test_ghost_popup_has_devtty():
-    """_ghost_focus_widget must provide direct </dev/tty for interactive TUI rendering."""
-    build_file = Path(__file__).resolve().parent.parent / "core" / "build.py"
-    content = build_file.read_text(encoding="utf-8")
-    start = content.find("_ghost_focus_widget() {")
-    end = content.find("zle -N _ghost_focus_widget", start)
-    assert start != -1 and end != -1, "_ghost_focus_widget block not found"
-    widget_code = content[start:end]
-    assert "</dev/tty" in widget_code, "</dev/tty redirect missing from _ghost_focus_widget"
+def test_ghost_popup_default_disabled():
+    """_GHOST_POPUP_ENABLED must default to 0 in boot script until binary handles SIGINT."""
+    boot_file = Path.home() / ".cache" / "ziro" / "ziro-boot.zsh"
+    content = boot_file.read_text(encoding="utf-8")
+    assert "_GHOST_POPUP_ENABLED:=0" in content, "_GHOST_POPUP_ENABLED default 0 missing from boot script"
 
 
 @pytest.mark.unit
-def test_ghost_popup_sync_with_timeout():
-    """_ghost_focus_widget must wrap binary with timeout 30 to cap potential hangs."""
-    build_file = Path(__file__).resolve().parent.parent / "core" / "build.py"
-    content = build_file.read_text(encoding="utf-8")
+def test_fzf_tab_used_when_popup_disabled():
+    """_ghost_focus_widget must fall through to fzf-tab when popup is disabled."""
+    boot_file = Path.home() / ".cache" / "ziro" / "ziro-boot.zsh"
+    content = boot_file.read_text(encoding="utf-8")
     start = content.find("_ghost_focus_widget() {")
     end = content.find("zle -N _ghost_focus_widget", start)
-    assert start != -1 and end != -1, "_ghost_focus_widget block not found"
+    assert start != -1 and end != -1, "_ghost_focus_widget block not found in boot"
     widget_code = content[start:end]
-    assert "timeout 30" in widget_code, "timeout 30 wrapper missing from _ghost_focus_widget"
+    assert "! _GHOST_POPUP_ENABLED" in widget_code
+    assert "zle fzf-tab-complete" in widget_code
 
 
 @pytest.mark.unit
-def test_ghost_popup_buffer_save_restore():
-    """_ghost_focus_widget must defensively save and restore BUFFER and CURSOR on failure."""
+def test_no_binary_spawn_when_disabled():
+    """When _GHOST_POPUP_ENABLED is 0, execution must return before any binary spawn."""
     build_file = Path(__file__).resolve().parent.parent / "core" / "build.py"
     content = build_file.read_text(encoding="utf-8")
     start = content.find("_ghost_focus_widget() {")
     end = content.find("zle -N _ghost_focus_widget", start)
     assert start != -1 and end != -1, "_ghost_focus_widget block not found"
     widget_code = content[start:end]
-    assert "_saved_buf" in widget_code, "_saved_buf pattern missing from _ghost_focus_widget"
-    assert "_saved_cur" in widget_code, "_saved_cur pattern missing from _ghost_focus_widget"
+    check_pos = widget_code.find("if (( ! _GHOST_POPUP_ENABLED )); then")
+    spawn_pos = widget_code.find('"$bin_path" focus')
+    assert check_pos != -1 and spawn_pos != -1
+    assert check_pos < spawn_pos, "Kill switch check must precede binary spawn"
 
 
 @pytest.mark.unit
@@ -76,7 +75,7 @@ def test_precmd_renders_starship():
 
 @pytest.mark.unit
 def test_fzf_tab_fallback_preserved():
-    """fzf-tab fallback must remain in the tab chain when POSTDISPLAY is empty."""
+    """fzf-tab fallback must remain in the tab chain."""
     boot_file = Path.home() / ".cache" / "ziro" / "ziro-boot.zsh"
     content = boot_file.read_text(encoding="utf-8")
     assert "fzf-tab-complete" in content, "fzf-tab-complete fallback missing in ziro-boot.zsh"

@@ -582,14 +582,32 @@ def render_deferred_section(tools: list[dict[str, Any]]) -> str:
             name_flag = f'--name="{name}" ' if name else ""
             lines.append(f'ziro-defer --stage={stage} --slot={slot} {name_flag}_ziro_source_safe "{path}"')
 
-    # Ghost popup wrapper (v1.3.4 hotfix)
-    # Ensures ghost popup is primary Tab, fzf-tab is fallback
-    wrapper_code = """_ziro_ghost_wrap_tab() {
+    # Ghost popup wrapper (v1.3.4 pragmatic hotfix)
+    # Ghost popup — DISABLED until binary handles SIGINT (see SPEC-026 M04a)
+    # Set _GHOST_POPUP_ENABLED=1 to re-enable (WILL HANG until binary fixed)
+    # When disabled, Tab falls through to fzf-tab / standard completion
+    wrapper_code = """# Ghost popup — DISABLED until binary handles SIGINT (see SPEC-026 M04a)
+# Set _GHOST_POPUP_ENABLED=1 to re-enable (WILL HANG until binary fixed)
+: ${_GHOST_POPUP_ENABLED:=0}
+
+_ziro_ghost_wrap_tab() {
   if (( $+functions[_ghost_focus_widget] )) && [[ -z "${ZIRO_GHOST_FOCUS_WRAPPED:-}" ]]; then
     typeset -g ZIRO_GHOST_FOCUS_WRAPPED=1
     _ghost_focus_widget() {
       emulate -L zsh; setopt zle
-      if [[ -z "$POSTDISPLAY" || "${_GHOST_FOCUS_ENABLED:-1}" == "0" ]]; then
+
+      # Popup disabled — fall through to fzf-tab / standard completion
+      if (( ! _GHOST_POPUP_ENABLED )); then
+        if (( $+widgets[fzf-tab-complete] )); then
+          zle fzf-tab-complete
+        else
+          zle expand-or-complete
+        fi
+        return 0
+      fi
+
+      # Popup enabled path (known to hang until binary fixed)
+      if [[ -z "$POSTDISPLAY" ]]; then
         if (( $+widgets[fzf-tab-complete] )); then
           zle fzf-tab-complete
         else
@@ -645,17 +663,15 @@ def render_deferred_section(tools: list[dict[str, Any]]) -> str:
         return 0
       fi
 
-      # Save state defensively
+      # WARNING: this path hangs until ghost-popup handles SIGINT
       local _saved_buf="$BUFFER"
       local _saved_cur="$CURSOR"
       local selected=""
       local rc=1
 
-      # Run binary synchronously with TTY + timeout
-      selected=$(timeout 30 "$bin_path" focus --query="$BUFFER" "${matching[@]}" </dev/tty 2>/dev/null)
+      selected=$(timeout 5 "$bin_path" focus --query="$BUFFER" "${matching[@]}" </dev/tty 2>/dev/null)
       rc=$?
 
-      # Defensive restore
       if [[ $rc -ne 0 || -z "$selected" ]]; then
         BUFFER="$_saved_buf"
         CURSOR=$_saved_cur
