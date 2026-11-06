@@ -588,7 +588,7 @@ def render_deferred_section(tools: list[dict[str, Any]]) -> str:
   if (( $+functions[_ghost_focus_widget] )) && [[ -z "${ZIRO_GHOST_FOCUS_WRAPPED:-}" ]]; then
     typeset -g ZIRO_GHOST_FOCUS_WRAPPED=1
     _ghost_focus_widget() {
-      emulating zle
+      emulate -L zsh; setopt zle
       if [[ -z "$POSTDISPLAY" || "${_GHOST_FOCUS_ENABLED:-1}" == "0" ]]; then
         if (( $+widgets[fzf-tab-complete] )); then
           zle fzf-tab-complete
