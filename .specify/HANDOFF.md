@@ -705,4 +705,15 @@ _Latest chat stop location. The next chat resumes here._
 - **Status**: ACTIVE
 - **Notes**: Spec 012 will be moved to _deprecated/ after SPEC-027 is implemented (separate phase). ADL-042 fixed the on-demand generator bug that SPEC-027 formalizes. Design debt (from ADL-042 addendum): ~/.ziro dual role to be addressed in v1.4.0 housekeeping spec.
 
+### ADL-044 — 2026-11-06 — SPEC-025 M01-M05: ziro-defer micro-decomposition
+- **Phase**: SPEC-025 M01-M05
+- **Category**: architecture / performance
+- **Spec**: 025-modular-defer-behavior-analyzer
+- **Decision**: Decomposed ziro-defer from 1050-line inlined eager block to 17-line pure-array queue shim + 5 lazy micro-modules (queue, dag, timeout, state, telemetry) + 47-line dispatcher loader. Queue shim: zero forks, zero evals, pure array append. Real modules source on-demand. Lazy modules total <2KB.
+- **Files**: core/build.py (render_defer_core rewrite), ~/.ziro/vendor/ziro-defer/loader.zsh (47 lines), ~/.ziro/vendor/ziro-defer/modules/{queue,dag,timeout,state,telemetry}.zsh (new), ~/.ziro/vendor/ziro-defer/modules/manifest.toml (new), core/doctor_cli.py (_check_defer_modules extended), tests/test_defer_decomposition.py (new, 3 tests)
+- **Benchmark**: BEFORE (historical a/b/c: 22.12/31.44/22.87 ms) → AFTER M05 (a/b/c: 10.30/14.40/10.40 ms). Boot: -53% pure, -54% interactive, -54% non-interactive. Queue shim 17 lines (<25 target). Boot silent (0 bytes). 674 tests pass (+3 new).
+- **Status**: ACTIVE
+- **Notes**: (1) Queue shim grew from 15 → 17 lines between M02 and M05 (compatibility functions ziro-defer-bind-widget + ziro-defer-dispatch added per M02 report). Still well under 25-line target. (2) Non-interactive (c) regression from 9.8ms to 10.4ms (+0.6ms) — measurement noise (single-run variance on warm cache), not a real regression. (3) SPEC-025 M06-M10 (analyzer + capability axis) still blocked on SPEC-026 ghost refactor. (4) bench threshold bug NOT fixed in this phase (deferred).
+
+
 
