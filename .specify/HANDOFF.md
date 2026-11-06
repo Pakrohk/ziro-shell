@@ -715,5 +715,16 @@ _Latest chat stop location. The next chat resumes here._
 - **Status**: ACTIVE
 - **Notes**: (1) Queue shim grew from 15 → 17 lines between M02 and M05 (compatibility functions ziro-defer-bind-widget + ziro-defer-dispatch added per M02 report). Still well under 25-line target. (2) Non-interactive (c) regression from 9.8ms to 10.4ms (+0.6ms) — measurement noise (single-run variance on warm cache), not a real regression. (3) SPEC-025 M06-M10 (analyzer + capability axis) still blocked on SPEC-026 ghost refactor. (4) bench threshold bug NOT fixed in this phase (deferred).
 
+### ADL-045 — 2026-11-06 — Tab-hang permanent fix + regression tests
+- **Phase**: v1.3.2 patch (part of v1.3.3 release)
+- **Category**: bugfix / ZLE integration
+- **Spec**: none (bug fix; SPEC-027 §4-5 patterns applied)
+- **Decision**: Two root causes identified in Phase A: (1) `$()` in PROMPT literal produced raw fragment on SIGINT; (2) `< /dev/tty` in ZLE widget blocked shell. Fixed both: (a) starship pre-rendered in precmd hook, PROMPT uses `$STARSHIP_RENDERED` only — eliminates fragment impossible; (b) ghost-popup spawned via process substitution `exec {fd}< <(binary ...)`, handled via `zle -F $fd _ghost_popup_async_handler` — shell returns immediately, no hang. Feature preserved: ghost popup remains primary on Tab; fzf-tab is fallback only. Previous attempts (ADL-041 wrapper, 37c5db6 coproc removal) masked symptom but did not fix root cause; this entry supersedes them.
+- **Files**: core/build.py (starship + ghost-focus emission), tests/test_tab_interrupt_invariant.py (new, 9 tests: 5 static + 4 pty)
+- **Benchmark**: Boot unchanged (~14.4ms interactive). Tab response time: <1ms (was up to indefinite hang). Regression tests simulate interrupt via pty — capture original bug, must pass forever.
+- **Status**: ACTIVE (supersedes ADL-041 wrapper approach and 37c5db6 approach)
+- **Notes**: Regression tests validated against v1.3.2 checkpoint to prove they catch the bug. Any future PR touching ghost-focus or starship-init must pass test_tab_interrupt_invariant.py.
+
+
 
 
