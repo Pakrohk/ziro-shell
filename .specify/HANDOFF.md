@@ -722,8 +722,19 @@ _Latest chat stop location. The next chat resumes here._
 - **Decision**: Two root causes identified in Phase A: (1) `$()` in PROMPT literal produced raw fragment on SIGINT; (2) `< /dev/tty` in ZLE widget blocked shell. Fixed both: (a) starship pre-rendered in precmd hook, PROMPT uses `$STARSHIP_RENDERED` only — eliminates fragment impossible; (b) ghost-popup spawned via process substitution `exec {fd}< <(binary ...)`, handled via `zle -F $fd _ghost_popup_async_handler` — shell returns immediately, no hang. Feature preserved: ghost popup remains primary on Tab; fzf-tab is fallback only. Previous attempts (ADL-041 wrapper, 37c5db6 coproc removal) masked symptom but did not fix root cause; this entry supersedes them.
 - **Files**: core/build.py (starship + ghost-focus emission), tests/test_tab_interrupt_invariant.py (new, 9 tests: 5 static + 4 pty)
 - **Benchmark**: Boot unchanged (~14.4ms interactive). Tab response time: <1ms (was up to indefinite hang). Regression tests simulate interrupt via pty — capture original bug, must pass forever.
-- **Status**: ACTIVE (supersedes ADL-041 wrapper approach and 37c5db6 approach)
+- **Status**: SUPERSEDED (superseded by ADL-046)
 - **Notes**: Regression tests validated against v1.3.2 checkpoint to prove they catch the bug. Any future PR touching ghost-focus or starship-init must pass test_tab_interrupt_invariant.py.
+
+### ADL-046 — 2026-11-06 — v1.3.4: disable ghost-popup until binary handles SIGINT
+- **Phase**: v1.3.4 hotfix
+- **Category**: bugfix / pragmatic deferral
+- **Supersedes**: ADL-045 (async pattern — killed TUI rendering)
+- **Decision**: Three iterations confirmed root cause: ghost-popup binary (Rust ratatui TUI) does not handle SIGINT and does not exit raw mode. Sync + </dev/tty hangs indefinitely; async via pipe gives no TTY for TUI rendering. Pragmatic fix: `_GHOST_POPUP_ENABLED` kill switch, default 0. When disabled, Tab falls through to fzf-tab. No hang, no fragment. Starship pre-render preserved (fragment impossible). Popup re-enables when binary fix lands (SPEC-026 M04a).
+- **Files**: core/build.py (_ghost_focus_widget kill-switch, _ghost_popup_async_handler removed), tests/test_tab_interrupt_invariant.py (updated: kill-switch + fzf-tab fallback tests, 10 total)
+- **Benchmark**: Tab response <1ms. No hang. No fragment.
+- **Status**: ACTIVE
+- **Notes**: Popup feature temporarily disabled. Restore at M04a when ghost-popup handles SIGINT gracefully. Users wanting popup can set _GHOST_POPUP_ENABLED=1 but experience known hang. Users on v1.3.3 (popup broken via async) should update to v1.3.4 immediately.
+
 
 
 
