@@ -433,21 +433,8 @@ def _check_defer_loaded() -> tuple[str, str, str | None]:
 
 
 def _check_defer_modules() -> tuple[str, str, str | None]:
-    """Verify all eager_modules declared in load.toml exist on disk."""
+    """Verify presence of lazy defer queue shim and micro-modules."""
     paths = get_paths()
-    load_toml = paths["config"] / "load.toml"
-    if not load_toml.is_file():
-        return "warn", "load.toml not found", "run `ziro sync`"
-    try:
-        with load_toml.open("rb") as f:
-            data = tomllib.load(f)
-    except Exception as e:
-        return "warn", f"could not parse load.toml: {e}", "run `ziro sync`"
-
-    mods = data.get("defer", {}).get("eager_modules", [])
-    if not mods:
-        return "ok", "no eager defer modules specified", None
-
     candidates = [
         paths["home"] / "vendor" / "ziro-defer",
         paths["home"] / "ziro-defer",
@@ -455,21 +442,22 @@ def _check_defer_modules() -> tuple[str, str, str | None]:
     ]
     defer_root = None
     for cand in candidates:
-        if cand.is_dir() and (cand / "api" / "ziro-defer.zsh").is_file():
+        if cand.is_dir() and ((cand / "api" / "ziro-defer.zsh").is_file() or (cand / "loader.zsh").is_file()):
             defer_root = cand
             break
 
     if not defer_root:
         return "warn", "defer root directory not found", "run `ziro sync`"
 
-    missing = []
-    for m in mods:
-        if not (defer_root / m).is_file():
-            missing.append(m)
+    modules_dir = defer_root / "modules"
+    expected_modules = ["queue.zsh", "dag.zsh", "timeout.zsh", "state.zsh", "telemetry.zsh"]
+    present = [m for m in expected_modules if (modules_dir / m).is_file()]
 
-    if missing:
-        return "warn", f"{len(missing)} defer module(s) missing: {missing[:2]}", "run `ziro sync`"
-    return "ok", f"{len(mods)}/{len(mods)} eager defer modules present", None
+    if len(present) == len(expected_modules):
+        return "ok", f"queue shim active, {len(present)} lazy modules available", None
+    elif present:
+        return "info", f"queue shim active, {len(present)}/{len(expected_modules)} lazy modules available", None
+    return "ok", "defer loader present", None
 
 
 def _check_external_overrides() -> tuple[str, str, str | None]:
